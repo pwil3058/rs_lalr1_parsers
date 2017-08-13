@@ -3,7 +3,6 @@ use std::collections::HashSet;
 use std::cmp::Eq;
 use std::hash::Hash;
 use std::fmt::Debug;
-use std::marker::Copy;
 
 #[derive(Clone)]
 #[derive(Copy)]
@@ -61,8 +60,7 @@ impl <H: Eq + Hash + Debug + Copy> LiteralMatcher<H> {
     pub fn new(leximes: &[(H, &'static str)]) -> LiteralMatcher<H> {
         let mut handles = HashSet::<H>::new();
         let mut lexes = HashMap::<u8, LiteralMatcherNode<H>>::new();
-        for l in leximes.iter() {
-            let (handle, pattern) = *l;
+        for &(handle, pattern) in leximes.iter() {
             // make sure that handles are unique and strings are not empty
             if pattern.len() == 0 {
                 panic!("Empty pattern for handle: {:?}", handle)
