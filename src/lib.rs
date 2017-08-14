@@ -33,18 +33,15 @@ impl <H: Eq + Hash + Debug + Copy> LiteralMatcherNode<H> {
     pub fn add(&mut self, handle: H, string: &str, s_index: usize) {
         assert!(string.len() > 0);
         if string.len() == s_index {
-            match self.option {
-                Some(ref x) => panic!("Duplicate string: {}: {:?} and {:?}", string, x.handle, handle),
-                None => (),
+            if self.option.is_some() {
+                panic!("Duplicate string: \"{}\": handles {:?} and {:?}", string, self.option.unwrap().handle, handle);
             }
             self.option = Some(MatchData{handle: handle, length: string.len()})
         } else {
             let key = string.as_bytes()[s_index];
+            // Couldn't do this with match because of ownersip issues wirh "tails"
             if self.tails.contains_key(&key) {
-                match self.tails.get_mut(&key) {
-                    Some(node) => node.add(handle, string, s_index + 1),
-                    None => panic!("Should NOT happen!!"),
-                }
+                self.tails.get_mut(&key).unwrap().add(handle, string, s_index + 1);
             } else {
                 self.tails.insert(key, LiteralMatcherNode::<H>::new(handle, string, s_index + 1));
             }
@@ -70,14 +67,10 @@ impl <H: Eq + Hash + Debug + Copy> LiteralMatcher<H> {
             } else {
                 handles.insert(handle);
             }
-            println!("lexime {:?}:{}", handle, pattern);
 
             let key = pattern.as_bytes()[0];
             if lexes.contains_key(&key) {
-                match lexes.get_mut(&key) {
-                    Some(node) => node.add(handle, pattern, 1),
-                    None => panic!("Should NOT happen!!"),
-                }
+                lexes.get_mut(&key).unwrap().add(handle, pattern, 1);
             } else {
                 lexes.insert(key, LiteralMatcherNode::<H>::new(handle, pattern, 1));
             }
@@ -92,9 +85,8 @@ impl <H: Eq + Hash + Debug + Copy> LiteralMatcher<H> {
             match leximes.get(&key) {
                 None => break,
                 Some(node) => {
-                    match node.option {
-                        Some(md) => rval = Some(md),
-                        None => (),
+                    if node.option.is_some() {
+                        rval = node.option;
                     }
                     leximes = &node.tails;
                 }
