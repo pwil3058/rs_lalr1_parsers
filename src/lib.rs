@@ -30,22 +30,23 @@ impl <H: Eq + Hash + Debug + Copy> LiteralMatcherNode<H> {
         }
     }
 
-    pub fn add(&mut self, handle: H, string: &str, s_index: usize) {
+    pub fn add(&mut self, handle: H, string: &str, s_index: usize) -> Result<(), String>{
         assert!(string.len() > 0);
         if string.len() == s_index {
             if self.option.is_some() {
-                panic!("Duplicate string: \"{}\": handles {:?} and {:?}", string, self.option.unwrap().handle, handle);
+                return Err(format!("Duplicate string: \"{}\": handles {:?} and {:?}", string, self.option.unwrap().handle, handle));
             }
             self.option = Some(MatchData{handle: handle, length: string.len()})
         } else {
             let key = string.as_bytes()[s_index];
             // Couldn't do this with match because of ownersip issues wirh "tails"
             if self.tails.contains_key(&key) {
-                self.tails.get_mut(&key).unwrap().add(handle, string, s_index + 1);
+                self.tails.get_mut(&key).unwrap().add(handle, string, s_index + 1)?;
             } else {
                 self.tails.insert(key, LiteralMatcherNode::<H>::new(handle, string, s_index + 1));
             }
         }
+        Ok(())
     }
 }
 
@@ -54,28 +55,28 @@ pub struct LiteralMatcher<H: Eq + Hash + Debug + Copy> {
 }
 
 impl <H: Eq + Hash + Debug + Copy> LiteralMatcher<H> {
-    pub fn new(leximes: &[(H, &'static str)]) -> LiteralMatcher<H> {
+    pub fn new(leximes: &[(H, &'static str)]) -> Result<LiteralMatcher<H>, String> {
         let mut handles = HashSet::<H>::new();
         let mut lexes = HashMap::<u8, LiteralMatcherNode<H>>::new();
         for &(handle, pattern) in leximes.iter() {
             // make sure that handles are unique and strings are not empty
             if pattern.len() == 0 {
-                panic!("Empty pattern for handle: {:?}", handle)
+                return Err(format!("Empty pattern for handle: {:?}", handle));
             }
             if handles.contains(&handle) {
-                panic!("Duplicate handle: {:?}", handle)
+                return Err(format!("Duplicate handle: {:?}", handle));
             } else {
                 handles.insert(handle);
             }
 
             let key = pattern.as_bytes()[0];
             if lexes.contains_key(&key) {
-                lexes.get_mut(&key).unwrap().add(handle, pattern, 1);
+                lexes.get_mut(&key).unwrap().add(handle, pattern, 1)?;
             } else {
                 lexes.insert(key, LiteralMatcherNode::<H>::new(handle, pattern, 1));
             }
         }
-        LiteralMatcher{leximes: lexes}
+        Ok(LiteralMatcher{leximes: lexes})
     }
 
     pub fn get_longest_match(&self, string: &str) -> Option<MatchData<H>> {
@@ -100,7 +101,7 @@ impl <H: Eq + Hash + Debug + Copy> LiteralMatcher<H> {
 mod tests {
     #[test]
     fn it_works() {
-        let lm = ::LiteralMatcher::new(&[(0, "test"), (1, "whatever"), (2, "anything"), (3, "anything at all")]);
+        let lm = ::LiteralMatcher::new(&[(0, "test"), (1, "whatever"), (2, "anything"), (3, "anything at all")]).unwrap();
         let string = "something";
         match lm.get_longest_match(string) {
             Some(find) => println!("{:?} found", find.handle),
