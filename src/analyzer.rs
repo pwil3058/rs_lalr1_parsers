@@ -37,13 +37,31 @@ impl fmt::Display for Location {
 }
 
 #[derive(Debug)]
+pub enum LexanError {
+    TestError,
+}
+
+#[derive(Debug)]
 pub struct Token<'a, H>
 where
     H: fmt::Debug,
 {
-    handle: H,
+    handle: Result<H, LexanError>,
     matched_text: &'a str,
     location: Location,
+}
+
+impl<'a, H> Token<'a, H>
+where
+    H: fmt::Debug,
+{
+    fn new(handle: Result<H, LexanError>, matched_text: &'a str, location: Location) -> Self {
+        Self {
+            handle,
+            matched_text,
+            location,
+        }
+    }
 }
 
 pub struct TokenStream<'a, L, H>
@@ -83,6 +101,12 @@ where
         }
         self.index_location.index = next_index;
     }
+
+    fn advance(&mut self) {
+        loop {
+            break;
+        }
+    }
 }
 
 #[cfg(test)]
@@ -93,27 +117,45 @@ mod tests {
 
     impl LexiconIfce<u32> for Lexicon {
         /// Returns number of skippable bytes at start of `text`.
-        fn skippable_count(&self, text: &str) -> usize {0}
+        fn skippable_count(&self, text: &str) -> usize {
+            0
+        }
         /// Returns the longest literal match at start of `text`.
-        fn longest_literal_match(&self, text: &str) -> Option<(u32, usize)> { None }
+        fn longest_literal_match(&self, text: &str) -> Option<(u32, usize)> {
+            None
+        }
         /// Returns the longest regular expression match at start of `text`.
-        fn longest_regex_match(&self, text: &str) -> Option<(u32, usize)> { None }
+        fn longest_regex_match(&self, text: &str) -> Option<Vec<(u32, usize)>> {
+            None
+        }
         /// Returns the distance in bytes to the next valid content in `text`
-        fn distance_to_next_valid_byte(&self, text: &str) -> Option<usize> { None }
+        fn distance_to_next_valid_byte(&self, text: &str) -> Option<usize> {
+            None
+        }
     }
 
     #[test]
     fn format_location() {
-        let location = Location{ index: 10, line_number: 10, offset: 15, label: "whatever".to_string()};
+        let location = Location {
+            index: 10,
+            line_number: 10,
+            offset: 15,
+            label: "whatever".to_string(),
+        };
         assert_eq!(format!("{}", location), "whatever:10(15)");
-        let location = Location{ index: 100, line_number: 9, offset: 23, label: String::new()};
+        let location = Location {
+            index: 100,
+            line_number: 9,
+            offset: 23,
+            label: String::new(),
+        };
         assert_eq!(format!("{}", location), "9(23)");
     }
 
     #[test]
     fn incr_index_location() {
         let mut token_stream = TokenStream {
-            lexicon: Lexicon{},
+            lexicon: Lexicon {},
             text: "String\nwith a new line in it".to_string(),
             index_location: Location::new("whatever"),
             current_match: None,
