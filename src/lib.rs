@@ -5,6 +5,9 @@ use std::{
     hash::Hash,
 };
 
+pub mod analyzer;
+pub mod lexicon;
+
 #[derive(Clone, Copy, PartialEq, Debug)]
 pub struct MatchData<H: Eq + Hash + Debug + Copy> {
     handle: H,
@@ -18,8 +21,8 @@ struct LiteralMatcherNode<H: Eq + Hash + Debug + Copy> {
 }
 
 impl<H: Eq + Hash + Debug + Copy> LiteralMatcherNode<H> {
-    pub fn new(handle: H, string: &str, s_index: usize) -> LiteralMatcherNode<H> {
-        assert!(string.len() > 0);
+    fn new(handle: H, string: &str, s_index: usize) -> LiteralMatcherNode<H> {
+        debug_assert!(string.len() > 0);
         let mut t = HashMap::<u8, LiteralMatcherNode<H>>::new();
         if string.len() == s_index {
             let md = MatchData {
@@ -43,8 +46,8 @@ impl<H: Eq + Hash + Debug + Copy> LiteralMatcherNode<H> {
         }
     }
 
-    pub fn add(&mut self, handle: H, string: &str, s_index: usize) -> Result<(), String> {
-        assert!(string.len() > 0);
+    fn add(&mut self, handle: H, string: &str, s_index: usize) -> Result<(), String> {
+        debug_assert!(string.len() > 0);
         if string.len() == s_index {
             if self.option.is_some() {
                 return Err(format!(
@@ -130,7 +133,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn it_works() {
+    fn literal_matcher() {
         let lm = crate::LiteralMatcher::new(&[
             (0, "test"),
             (1, "whatever"),
