@@ -70,16 +70,16 @@ where
         while i < length {
             if let Some(eol_i) = slice[i..].find("\r\n") {
                 self.index_location.line_number += 1;
-                self.index_location.offset = 0;
+                self.index_location.offset = 1;
                 i += eol_i + 2;
             } else if let Some(eol_i) = slice[i..].find("\n") {
                 self.index_location.line_number += 1;
-                self.index_location.offset = 0;
+                self.index_location.offset = 1;
                 i += eol_i + 1;
             } else {
                 self.index_location.offset += length - i;
                 i = length;
-            }
+            };
         }
         self.index_location.index = next_index;
     }
@@ -123,6 +123,6 @@ mod tests {
         println!("{:?}", token_stream.index_location);
         assert_eq!(token_stream.index_location.index, 11);
         assert_eq!(token_stream.index_location.line_number, 2);
-        assert_eq!(token_stream.index_location.offset, 4);
+        assert_eq!(token_stream.index_location.offset, 5);
     }
 }
