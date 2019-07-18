@@ -1,3 +1,5 @@
+extern crate regex;
+
 use std::{
     cmp::Eq,
     collections::{HashMap, HashSet},
@@ -9,18 +11,18 @@ pub mod analyzer;
 pub mod lexicon;
 
 #[derive(Clone, Copy, PartialEq, Debug)]
-pub struct MatchData<H: Eq + Hash + Debug + Copy> {
+pub struct MatchData<H: PartialEq + Hash + Debug + Copy> {
     handle: H,
     length: usize,
 }
 
 #[derive(Debug)]
-struct LiteralMatcherNode<H: Eq + Hash + Debug + Copy> {
+struct LiteralMatcherNode<H: PartialEq + Hash + Debug + Copy> {
     option: Option<MatchData<H>>,
     tails: HashMap<u8, LiteralMatcherNode<H>>,
 }
 
-impl<H: Eq + Hash + Debug + Copy> LiteralMatcherNode<H> {
+impl<H: PartialEq + Hash + Debug + Copy> LiteralMatcherNode<H> {
     fn new(handle: H, string: &str, s_index: usize) -> LiteralMatcherNode<H> {
         debug_assert!(string.len() > 0);
         let mut t = HashMap::<u8, LiteralMatcherNode<H>>::new();
@@ -81,7 +83,7 @@ impl<H: Eq + Hash + Debug + Copy> LiteralMatcherNode<H> {
 }
 
 #[derive(Debug)]
-pub struct LiteralMatcher<H: Eq + Hash + Debug + Copy> {
+pub struct LiteralMatcher<H: PartialEq + Hash + Debug + Copy> {
     leximes: HashMap<u8, LiteralMatcherNode<H>>,
 }
 

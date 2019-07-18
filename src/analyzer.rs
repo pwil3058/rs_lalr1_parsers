@@ -3,7 +3,7 @@ use std::fmt;
 use crate::lexicon::LexiconIfce;
 
 /// Data for use in user friendly lexical analysis error messages
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Location {
     /// Index of this location within the string
     index: usize,
@@ -37,31 +37,10 @@ impl fmt::Display for Location {
 }
 
 #[derive(Debug)]
-pub enum LexanError {
-    TestError,
-}
-
-#[derive(Debug)]
-pub struct Token<'a, H>
-where
-    H: fmt::Debug,
-{
-    handle: Result<H, LexanError>,
-    matched_text: &'a str,
-    location: Location,
-}
-
-impl<'a, H> Token<'a, H>
-where
-    H: fmt::Debug,
-{
-    fn new(handle: Result<H, LexanError>, matched_text: &'a str, location: Location) -> Self {
-        Self {
-            handle,
-            matched_text,
-            location,
-        }
-    }
+pub enum Token<'a, H: fmt::Debug> {
+    Valid(H, &'a str, Location),
+    UnexpectedText(&'a str, Location),
+    AmbiguousMatches(Vec<H>, &'a str, Location),
 }
 
 pub struct TokenStream<'a, L, H>
@@ -69,10 +48,9 @@ where
     L: LexiconIfce<H>,
     H: fmt::Debug + Copy + PartialEq,
 {
-    lexicon: L, // Temporay for testing
-    text: String,
+    lexicon: L,
+    text: &'a str,
     index_location: Location,
-    current_match: Option<Token<'a, H>>,
     end_handle: Option<H>,
 }
 
@@ -101,10 +79,48 @@ where
         }
         self.index_location.index = next_index;
     }
+}
 
-    fn advance(&mut self) {
-        loop {
-            break;
+impl<'a, L, H> Iterator for TokenStream<'a, L, H>
+where
+    L: LexiconIfce<H>,
+    H: fmt::Debug + Copy + PartialEq,
+{
+    type Item = Token<'a, H>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let text = &self.text[self.index_location.index..];
+        self.incr_index_location(self.lexicon.skippable_count(text));
+        if self.index_location.index >= self.text.len() {
+            return None;
+        }
+
+        let current_location = self.index_location.clone();
+        let text = &self.text[current_location.index..];
+        let o_llm = self.lexicon.longest_literal_match(text);
+        let lrems = self.lexicon.longest_regex_matches(text);
+
+        if let Some(llm) = o_llm {
+            if lrems.0.len() > 1 && lrems.1 > llm.1 {
+                self.incr_index_location(lrems.1);
+                Some(Token::AmbiguousMatches(lrems.0, &text[..lrems.1], current_location))
+            } else if lrems.0.len() == 1 && lrems.1 > llm.1 {
+                self.incr_index_location(lrems.1);
+                Some(Token::Valid(lrems.0[0], &text[..lrems.1], current_location))
+            } else {
+                self.incr_index_location(llm.1);
+                Some(Token::Valid(llm.0, &text[..llm.1], current_location))
+            }
+        } else if lrems.0.len() == 1 {
+            self.incr_index_location(lrems.1);
+            Some(Token::Valid(lrems.0[0], &text[..lrems.1], current_location))
+        } else if lrems.0.len() > 1 {
+            self.incr_index_location(lrems.1);
+            Some(Token::AmbiguousMatches(lrems.0, &text[..lrems.1], current_location))
+        } else {
+            let distance = self.lexicon.distance_to_next_valid_byte(text);
+            self.incr_index_location(distance);
+            Some(Token::UnexpectedText(&text[..distance], current_location))
         }
     }
 }
@@ -125,12 +141,12 @@ mod tests {
             None
         }
         /// Returns the longest regular expression match at start of `text`.
-        fn longest_regex_match(&self, text: &str) -> Option<Vec<(u32, usize)>> {
-            None
+        fn longest_regex_matches(&self, text: &str) -> (Vec<u32>, usize) {
+            (vec![], 0)
         }
         /// Returns the distance in bytes to the next valid content in `text`
-        fn distance_to_next_valid_byte(&self, text: &str) -> Option<usize> {
-            None
+        fn distance_to_next_valid_byte(&self, text: &str) -> usize {
+            0
         }
     }
 
@@ -156,9 +172,8 @@ mod tests {
     fn incr_index_location() {
         let mut token_stream = TokenStream {
             lexicon: Lexicon {},
-            text: "String\nwith a new line in it".to_string(),
+            text: &"String\nwith a new line in it".to_string(),
             index_location: Location::new("whatever"),
-            current_match: None,
             end_handle: None,
         };
         token_stream.incr_index_location(11);
