@@ -5,11 +5,11 @@ use regex::Regex;
 use crate::error::LexanError;
 
 #[derive(Debug, Default)]
-pub struct RegexMatcher<H: Copy + Debug + Default> {
+pub struct RegexMatcher<H: Copy + Debug> {
     lexemes: Vec<(H, Regex)>,
 }
 
-impl<H: Copy + Ord + Debug + Default> RegexMatcher<H> {
+impl<H: Copy + Ord + Debug> RegexMatcher<H> {
     pub fn new<'a>(lexeme_patterns: &[(H, &'a str)]) -> Result<RegexMatcher<H>, LexanError<'a, H>> {
         let mut handles = vec![];
         let mut patterns = vec![];

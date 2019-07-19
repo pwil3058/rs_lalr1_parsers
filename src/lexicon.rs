@@ -1,12 +1,8 @@
-use std::{
-    //cmp::Eq,
-    collections::HashSet,
-    fmt::Debug,
-    hash::Hash,
-};
+use std::fmt::Debug;
 
 use regex::Regex;
 
+use crate::analyzer::TokenStream;
 use crate::error::LexanError;
 use crate::matcher::RegexMatcher;
 use crate::LiteralMatcher;
@@ -14,30 +10,33 @@ use crate::LiteralMatcher;
 #[derive(Default)]
 pub struct Lexicon<H>
 where
-    H: Copy + PartialEq + Debug + Hash + Default,
+    H: Copy + PartialEq + Debug,
 {
     literal_matcher: LiteralMatcher<H>,
     regex_matcher: RegexMatcher<H>,
-    skip_regex_list: Vec<Regex>,
+    skip_regexes: Vec<Regex>,
 }
 
 impl<H> Lexicon<H>
 where
-    H: Copy + Eq + Debug + Hash + Default + Ord,
+    H: Copy + Eq + Debug + Ord,
 {
     pub fn new<'a>(
         literal_lexemes: &[(H, &'a str)],
-        regex_lexeme_strs: &[(H, &'a str)],
+        regex_lexemes: &[(H, &'a str)],
+        skip_regex_strs: &[&'a str],
     ) -> Result<Self, LexanError<'a, H>> {
-        let mut handles: HashSet<H> = literal_lexemes.iter().map(|x| x.0).collect();
-        let _literal_matcher = LiteralMatcher::new(literal_lexemes)?;
-        let regex_lexemes: Vec<(H, Regex)> = Vec::new();
-        for (handle, regex_str) in regex_lexeme_strs.iter() {
-            if !handles.insert(*handle) {
-                return Err(LexanError::DuplicateHandle(*handle));
-            }
+        let literal_matcher = LiteralMatcher::new(literal_lexemes)?;
+        let regex_matcher = RegexMatcher::new(regex_lexemes)?;
+        let mut skip_regexes = vec![];
+        for skip_regex_str in skip_regex_strs.iter() {
+            skip_regexes.push(Regex::new(skip_regex_str)?);
         }
-        Ok(Self::default())
+        Ok(Self {
+            literal_matcher,
+            regex_matcher,
+            skip_regexes,
+        })
     }
 
     /// Returns number of skippable bytes at start of `text`.
@@ -45,7 +44,7 @@ where
         let mut index = 0;
         while index < text.len() {
             let mut skips = 0;
-            for skip_regex in self.skip_regex_list.iter() {
+            for skip_regex in self.skip_regexes.iter() {
                 if let Some(m) = skip_regex.find_at(text, index) {
                     if m.start() == index {
                         index = m.end() + 1;
@@ -79,7 +78,7 @@ where
             if self.regex_matcher.matches(&text[index..]) {
                 return index;
             }
-            for regex in self.skip_regex_list.iter() {
+            for regex in self.skip_regexes.iter() {
                 if let Some(m) = regex.find_at(text, index) {
                     if m.start() == index {
                         return index;
@@ -88,5 +87,37 @@ where
             }
         }
         text.len()
+    }
+
+    pub fn token_stream<'a>(&'a self, text: &'a str, label: &'a str) -> TokenStream<'a, H> {
+        TokenStream::new(self, text, label)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[derive(PartialEq, Eq, Clone, Copy, Hash, Debug, PartialOrd, Ord)]
+    enum Handle {
+        If,
+        When,
+        Ident,
+        Btextl,
+        Pred,
+        Literal,
+        Action,
+        Predicate,
+        Code,
+        Morse,
+    }
+
+    #[test]
+    fn streamer_basic() {
+        let lexicon = Lexicon::<Handle>::new(
+            &[],
+            &[],
+            &[],
+        );
     }
 }

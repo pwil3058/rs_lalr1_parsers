@@ -1,7 +1,4 @@
-use std::{
-    fmt::{self, Debug},
-    hash::Hash,
-};
+use std::fmt::{self, Debug};
 
 use crate::lexicon::Lexicon;
 
@@ -48,7 +45,7 @@ pub enum Token<'a, H: Debug> {
 
 pub struct TokenStream<'a, H>
 where
-    H: Debug + Copy + Eq + Hash + Default,
+    H: Debug + Copy + Eq,
 {
     lexicon: &'a Lexicon<H>,
     text: &'a str,
@@ -57,8 +54,17 @@ where
 
 impl<'a, H> TokenStream<'a, H>
 where
-    H: Debug + Copy + Eq + Hash + Default,
+    H: Debug + Copy + Eq,
 {
+    pub fn new(
+        lexicon: &'a Lexicon<H>,
+        text: &'a str,
+        label: &'a str,
+    ) -> Self {
+        let index_location = Location::new(label);
+        Self { lexicon, text, index_location }
+    }
+
     fn incr_index_location(&mut self, length: usize) {
         let next_index = self.index_location.index + length;
         let slice = &self.text[self.index_location.index..next_index];
@@ -83,7 +89,7 @@ where
 
 impl<'a, H> Iterator for TokenStream<'a, H>
 where
-    H: Debug + Copy + Eq + Hash + Default + Ord,
+    H: Debug + Copy + Eq + Ord,
 {
     type Item = Token<'a, H>;
 
@@ -158,7 +164,7 @@ mod tests {
 
     #[test]
     fn incr_index_location() {
-        let lexicon = Lexicon::<u32>::default();
+        let lexicon = Lexicon::<u32>::new(&[], &[], &[]).unwrap();
         let mut token_stream = TokenStream {
             lexicon: &lexicon,
             text: &"String\nwith a new line in it".to_string(),

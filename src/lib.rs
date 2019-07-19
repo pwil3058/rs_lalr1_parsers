@@ -2,9 +2,8 @@ extern crate regex;
 
 use std::{
     cmp::Eq,
-    collections::{HashMap, HashSet},
+    collections::HashMap,
     fmt::Debug,
-    hash::Hash,
 };
 
 pub mod analyzer;
@@ -15,19 +14,19 @@ pub mod matcher;
 use crate::error::LexanError;
 
 #[derive(Clone, Copy, PartialEq, Debug)]
-struct MatchData<H: PartialEq + Hash + Debug + Copy> {
+struct MatchData<H: PartialEq + Debug + Copy> {
     handle: H,
     length: usize,
 }
 
 #[derive(Debug, Default)]
-struct LiteralMatcherNode<H: PartialEq + Hash + Debug + Copy + Default> {
+struct LiteralMatcherNode<H: PartialEq + Debug + Copy> {
     handle: Option<H>,
     length: usize,
     tails: HashMap<u8, LiteralMatcherNode<H>>,
 }
 
-impl<H: PartialEq + Hash + Debug + Copy + Default> LiteralMatcherNode<H> {
+impl<H: PartialEq + Debug + Copy> LiteralMatcherNode<H> {
     fn new(handle: H, string: &str, s_index: usize) -> LiteralMatcherNode<H> {
         debug_assert!(string.len() > 0);
         let mut t = HashMap::<u8, LiteralMatcherNode<H>>::new();
@@ -59,7 +58,7 @@ impl<H: PartialEq + Hash + Debug + Copy + Default> LiteralMatcherNode<H> {
     ) -> Result<(), LexanError<'a, H>> {
         debug_assert!(string.len() > 0);
         if string.len() == s_index {
-            if let Some(my_handle) = self.handle {
+            if self.handle.is_some() {
                 return Err(LexanError::DuplicatePattern(string));
             }
             self.handle = Some(handle);
@@ -84,23 +83,23 @@ impl<H: PartialEq + Hash + Debug + Copy + Default> LiteralMatcherNode<H> {
 }
 
 #[derive(Debug, Default)]
-pub struct LiteralMatcher<H: PartialEq + Hash + Debug + Copy + Default> {
+pub struct LiteralMatcher<H: PartialEq + Debug + Copy> {
     lexemes: HashMap<u8, LiteralMatcherNode<H>>,
 }
 
-impl<H: Eq + Hash + Debug + Copy + Default> LiteralMatcher<H> {
+impl<H: Eq + Debug + Copy + Ord> LiteralMatcher<H> {
     pub fn new<'a>(lexemes: &[(H, &'a str)]) -> Result<LiteralMatcher<H>, LexanError<'a, H>> {
-        let mut handles = HashSet::<H>::new();
+        let mut handles = vec![];
         let mut lexes = HashMap::<u8, LiteralMatcherNode<H>>::new();
         for &(handle, pattern) in lexemes.iter() {
             // make sure that handles are unique and strings are not empty
             if pattern.len() == 0 {
                 return Err(LexanError::EmptyPattern(handle));
-            } else if handles.contains(&handle) {
-                return Err(LexanError::DuplicateHandle(handle));
-            } else {
-                handles.insert(handle);
             }
+            match handles.binary_search(&handle) {
+                Ok(_) => return Err(LexanError::DuplicateHandle(handle)),
+                Err(index) => handles.insert(index, handle),
+            };
 
             let key = pattern.as_bytes()[0];
             if lexes.contains_key(&key) {
