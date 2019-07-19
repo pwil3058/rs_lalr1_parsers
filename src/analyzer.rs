@@ -1,6 +1,9 @@
-use std::fmt;
+use std::{
+    fmt::{self, Debug},
+    hash::Hash,
+};
 
-use crate::lexicon::LexiconIfce;
+use crate::lexicon::Lexicon;
 
 /// Data for use in user friendly lexical analysis error messages
 #[derive(Debug, Clone)]
@@ -37,27 +40,24 @@ impl fmt::Display for Location {
 }
 
 #[derive(Debug)]
-pub enum Token<'a, H: fmt::Debug> {
+pub enum Token<'a, H: Debug> {
     Valid(H, &'a str, Location),
     UnexpectedText(&'a str, Location),
     AmbiguousMatches(Vec<H>, &'a str, Location),
 }
 
-pub struct TokenStream<'a, L, H>
+pub struct TokenStream<'a, H>
 where
-    L: LexiconIfce<H>,
-    H: fmt::Debug + Copy + PartialEq,
+    H: Debug + Copy + Eq + Hash + Default,
 {
-    lexicon: L,
+    lexicon: &'a Lexicon<H>,
     text: &'a str,
     index_location: Location,
-    end_handle: Option<H>,
 }
 
-impl<'a, L, H> TokenStream<'a, L, H>
+impl<'a, H> TokenStream<'a, H>
 where
-    L: LexiconIfce<H>,
-    H: fmt::Debug + Copy + PartialEq,
+    H: Debug + Copy + Eq + Hash + Default,
 {
     fn incr_index_location(&mut self, length: usize) {
         let next_index = self.index_location.index + length;
@@ -81,10 +81,9 @@ where
     }
 }
 
-impl<'a, L, H> Iterator for TokenStream<'a, L, H>
+impl<'a, H> Iterator for TokenStream<'a, H>
 where
-    L: LexiconIfce<H>,
-    H: fmt::Debug + Copy + PartialEq,
+    H: Debug + Copy + Eq + Hash + Default,
 {
     type Item = Token<'a, H>;
 
@@ -128,27 +127,8 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    struct Lexicon {}
-
-    impl LexiconIfce<u32> for Lexicon {
-        /// Returns number of skippable bytes at start of `text`.
-        fn skippable_count(&self, text: &str) -> usize {
-            0
-        }
-        /// Returns the longest literal match at start of `text`.
-        fn longest_literal_match(&self, text: &str) -> Option<(u32, usize)> {
-            None
-        }
-        /// Returns the longest regular expression match at start of `text`.
-        fn longest_regex_matches(&self, text: &str) -> (Vec<u32>, usize) {
-            (vec![], 0)
-        }
-        /// Returns the distance in bytes to the next valid content in `text`
-        fn distance_to_next_valid_byte(&self, text: &str) -> usize {
-            0
-        }
-    }
+    use crate::lexicon::Lexicon;
+    use crate::LiteralMatcher;
 
     #[test]
     fn format_location() {
@@ -170,11 +150,11 @@ mod tests {
 
     #[test]
     fn incr_index_location() {
+        let lexicon = Lexicon::<u32>::default();
         let mut token_stream = TokenStream {
-            lexicon: Lexicon {},
+            lexicon: &lexicon,
             text: &"String\nwith a new line in it".to_string(),
             index_location: Location::new("whatever"),
-            end_handle: None,
         };
         token_stream.incr_index_location(11);
         println!("{:?}", token_stream.index_location);

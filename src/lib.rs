@@ -16,23 +16,21 @@ pub struct MatchData<H: PartialEq + Hash + Debug + Copy> {
     length: usize,
 }
 
-#[derive(Debug)]
-struct LiteralMatcherNode<H: PartialEq + Hash + Debug + Copy> {
-    option: Option<MatchData<H>>,
+#[derive(Debug, Default)]
+struct LiteralMatcherNode<H: PartialEq + Hash + Debug + Copy + Default> {
+    handle: Option<H>,
+    length: usize,
     tails: HashMap<u8, LiteralMatcherNode<H>>,
 }
 
-impl<H: PartialEq + Hash + Debug + Copy> LiteralMatcherNode<H> {
+impl<H: PartialEq + Hash + Debug + Copy + Default> LiteralMatcherNode<H> {
     fn new(handle: H, string: &str, s_index: usize) -> LiteralMatcherNode<H> {
         debug_assert!(string.len() > 0);
         let mut t = HashMap::<u8, LiteralMatcherNode<H>>::new();
         if string.len() == s_index {
-            let md = MatchData {
-                handle: handle,
-                length: string.len(),
-            };
             LiteralMatcherNode {
-                option: Some(md),
+                handle: Some(handle),
+                length: string.len(),
                 tails: t,
             }
         } else {
@@ -42,7 +40,8 @@ impl<H: PartialEq + Hash + Debug + Copy> LiteralMatcherNode<H> {
                 LiteralMatcherNode::<H>::new(handle, string, s_index + 1),
             );
             LiteralMatcherNode {
-                option: None,
+                handle: None,
+                length: s_index,
                 tails: t,
             }
         }
@@ -51,18 +50,16 @@ impl<H: PartialEq + Hash + Debug + Copy> LiteralMatcherNode<H> {
     fn add(&mut self, handle: H, string: &str, s_index: usize) -> Result<(), String> {
         debug_assert!(string.len() > 0);
         if string.len() == s_index {
-            if self.option.is_some() {
+            if self.handle.is_some() {
                 return Err(format!(
                     "Duplicate string: \"{}\": handles {:?} and {:?}",
                     string,
-                    self.option.unwrap().handle,
+                    self.handle.unwrap(),
                     handle
                 ));
             }
-            self.option = Some(MatchData {
-                handle: handle,
-                length: string.len(),
-            })
+            self.handle = Some(handle);
+            self.length = string.len();
         } else {
             let key = string.as_bytes()[s_index];
             // Couldn't do this with match because of ownership issues with "tails"
@@ -82,12 +79,12 @@ impl<H: PartialEq + Hash + Debug + Copy> LiteralMatcherNode<H> {
     }
 }
 
-#[derive(Debug)]
-pub struct LiteralMatcher<H: PartialEq + Hash + Debug + Copy> {
+#[derive(Debug, Default)]
+pub struct LiteralMatcher<H: PartialEq + Hash + Debug + Copy + Default> {
     leximes: HashMap<u8, LiteralMatcherNode<H>>,
 }
 
-impl<H: Eq + Hash + Debug + Copy> LiteralMatcher<H> {
+impl<H: Eq + Hash + Debug + Copy + Default> LiteralMatcher<H> {
     pub fn new(leximes: &[(H, &'static str)]) -> Result<LiteralMatcher<H>, String> {
         let mut handles = HashSet::<H>::new();
         let mut lexes = HashMap::<u8, LiteralMatcherNode<H>>::new();
@@ -112,15 +109,15 @@ impl<H: Eq + Hash + Debug + Copy> LiteralMatcher<H> {
         Ok(LiteralMatcher { leximes: lexes })
     }
 
-    pub fn get_longest_match(&self, string: &str) -> Option<MatchData<H>> {
-        let mut rval: Option<MatchData<H>> = None;
+    pub fn longest_match(&self, string: &str) -> Option<(H, usize)> {
+        let mut rval: Option<(H, usize)> = None;
         let mut leximes = &self.leximes;
         for key in string.as_bytes().iter() {
             match leximes.get(&key) {
                 None => break,
                 Some(node) => {
-                    if node.option.is_some() {
-                        rval = node.option;
+                    if let Some(handle) = node.handle {
+                        rval = Some((handle, node.length));
                     }
                     leximes = &node.tails;
                 }
@@ -143,20 +140,14 @@ mod tests {
             (3, "anything at all"),
         ])
         .unwrap();
-        assert!(lm.get_longest_match("something").is_none());
+        assert!(lm.longest_match("something").is_none());
         assert_eq!(
-            lm.get_longest_match("anything at all something"),
-            Some(MatchData {
-                handle: 3,
-                length: 15
-            })
+            lm.longest_match("anything at all something"),
+            Some((3, 15))
         );
         assert_eq!(
-            lm.get_longest_match(&"anything at all whatever something"[16..]),
-            Some(MatchData {
-                handle: 1,
-                length: 8
-            })
+            lm.longest_match(&"anything at all whatever something"[16..]),
+            Some((1, 8))
         );
     }
 }
