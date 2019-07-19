@@ -8,10 +8,14 @@ use std::{
 };
 
 pub mod analyzer;
+pub mod error;
 pub mod lexicon;
+pub mod matcher;
+
+use crate::error::LexanError;
 
 #[derive(Clone, Copy, PartialEq, Debug)]
-pub struct MatchData<H: PartialEq + Hash + Debug + Copy> {
+struct MatchData<H: PartialEq + Hash + Debug + Copy> {
     handle: H,
     length: usize,
 }
@@ -47,16 +51,16 @@ impl<H: PartialEq + Hash + Debug + Copy + Default> LiteralMatcherNode<H> {
         }
     }
 
-    fn add(&mut self, handle: H, string: &str, s_index: usize) -> Result<(), String> {
+    fn add<'a>(
+        &mut self,
+        handle: H,
+        string: &'a str,
+        s_index: usize,
+    ) -> Result<(), LexanError<'a, H>> {
         debug_assert!(string.len() > 0);
         if string.len() == s_index {
-            if self.handle.is_some() {
-                return Err(format!(
-                    "Duplicate string: \"{}\": handles {:?} and {:?}",
-                    string,
-                    self.handle.unwrap(),
-                    handle
-                ));
+            if let Some(my_handle) = self.handle {
+                return Err(LexanError::DuplicatePattern(string));
             }
             self.handle = Some(handle);
             self.length = string.len();
@@ -81,20 +85,19 @@ impl<H: PartialEq + Hash + Debug + Copy + Default> LiteralMatcherNode<H> {
 
 #[derive(Debug, Default)]
 pub struct LiteralMatcher<H: PartialEq + Hash + Debug + Copy + Default> {
-    leximes: HashMap<u8, LiteralMatcherNode<H>>,
+    lexemes: HashMap<u8, LiteralMatcherNode<H>>,
 }
 
 impl<H: Eq + Hash + Debug + Copy + Default> LiteralMatcher<H> {
-    pub fn new(leximes: &[(H, &'static str)]) -> Result<LiteralMatcher<H>, String> {
+    pub fn new<'a>(lexemes: &[(H, &'a str)]) -> Result<LiteralMatcher<H>, LexanError<'a, H>> {
         let mut handles = HashSet::<H>::new();
         let mut lexes = HashMap::<u8, LiteralMatcherNode<H>>::new();
-        for &(handle, pattern) in leximes.iter() {
+        for &(handle, pattern) in lexemes.iter() {
             // make sure that handles are unique and strings are not empty
             if pattern.len() == 0 {
-                return Err(format!("Empty pattern for handle: {:?}", handle));
-            }
-            if handles.contains(&handle) {
-                return Err(format!("Duplicate handle: {:?}", handle));
+                return Err(LexanError::EmptyPattern(handle));
+            } else if handles.contains(&handle) {
+                return Err(LexanError::DuplicateHandle(handle));
             } else {
                 handles.insert(handle);
             }
@@ -106,24 +109,40 @@ impl<H: Eq + Hash + Debug + Copy + Default> LiteralMatcher<H> {
                 lexes.insert(key, LiteralMatcherNode::<H>::new(handle, pattern, 1));
             }
         }
-        Ok(LiteralMatcher { leximes: lexes })
+        Ok(LiteralMatcher { lexemes: lexes })
     }
 
     pub fn longest_match(&self, string: &str) -> Option<(H, usize)> {
         let mut rval: Option<(H, usize)> = None;
-        let mut leximes = &self.leximes;
+        let mut lexemes = &self.lexemes;
         for key in string.as_bytes().iter() {
-            match leximes.get(&key) {
+            match lexemes.get(&key) {
                 None => break,
                 Some(node) => {
                     if let Some(handle) = node.handle {
                         rval = Some((handle, node.length));
                     }
-                    leximes = &node.tails;
+                    lexemes = &node.tails;
                 }
             }
         }
         rval
+    }
+
+    pub fn matches(&self, string: &str) -> bool {
+        let mut lexemes = &self.lexemes;
+        for key in string.as_bytes().iter() {
+            match lexemes.get(&key) {
+                None => break,
+                Some(node) => {
+                    if node.handle.is_some() {
+                        return true;
+                    }
+                    lexemes = &node.tails;
+                }
+            }
+        }
+        false
     }
 }
 
@@ -141,10 +160,7 @@ mod tests {
         ])
         .unwrap();
         assert!(lm.longest_match("something").is_none());
-        assert_eq!(
-            lm.longest_match("anything at all something"),
-            Some((3, 15))
-        );
+        assert_eq!(lm.longest_match("anything at all something"), Some((3, 15)));
         assert_eq!(
             lm.longest_match(&"anything at all whatever something"[16..]),
             Some((1, 8))

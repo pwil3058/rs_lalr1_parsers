@@ -83,7 +83,7 @@ where
 
 impl<'a, H> Iterator for TokenStream<'a, H>
 where
-    H: Debug + Copy + Eq + Hash + Default,
+    H: Debug + Copy + Eq + Hash + Default + Ord,
 {
     type Item = Token<'a, H>;
 
@@ -102,7 +102,11 @@ where
         if let Some(llm) = o_llm {
             if lrems.0.len() > 1 && lrems.1 > llm.1 {
                 self.incr_index_location(lrems.1);
-                Some(Token::AmbiguousMatches(lrems.0, &text[..lrems.1], current_location))
+                Some(Token::AmbiguousMatches(
+                    lrems.0,
+                    &text[..lrems.1],
+                    current_location,
+                ))
             } else if lrems.0.len() == 1 && lrems.1 > llm.1 {
                 self.incr_index_location(lrems.1);
                 Some(Token::Valid(lrems.0[0], &text[..lrems.1], current_location))
@@ -115,7 +119,11 @@ where
             Some(Token::Valid(lrems.0[0], &text[..lrems.1], current_location))
         } else if lrems.0.len() > 1 {
             self.incr_index_location(lrems.1);
-            Some(Token::AmbiguousMatches(lrems.0, &text[..lrems.1], current_location))
+            Some(Token::AmbiguousMatches(
+                lrems.0,
+                &text[..lrems.1],
+                current_location,
+            ))
         } else {
             let distance = self.lexicon.distance_to_next_valid_byte(text);
             self.incr_index_location(distance);
@@ -136,14 +144,14 @@ mod tests {
             index: 10,
             line_number: 10,
             offset: 15,
-            label: "whatever".to_string(),
+            label: &"whatever",
         };
         assert_eq!(format!("{}", location), "whatever:10(15)");
         let location = Location {
             index: 100,
             line_number: 9,
             offset: 23,
-            label: String::new(),
+            label: &"",
         };
         assert_eq!(format!("{}", location), "9(23)");
     }

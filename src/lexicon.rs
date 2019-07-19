@@ -1,28 +1,45 @@
 use std::{
     //cmp::Eq,
-    //collections::{HashMap, HashSet},
+    collections::HashSet,
     fmt::Debug,
     hash::Hash,
 };
 
 use regex::Regex;
 
+use crate::error::LexanError;
+use crate::matcher::RegexMatcher;
 use crate::LiteralMatcher;
 
 #[derive(Default)]
 pub struct Lexicon<H>
 where
-    H: Copy + PartialEq + Debug + Hash + Default
+    H: Copy + PartialEq + Debug + Hash + Default,
 {
     literal_matcher: LiteralMatcher<H>,
-    regex_leximes: Vec<(H, Regex)>,
+    regex_matcher: RegexMatcher<H>,
     skip_regex_list: Vec<Regex>,
 }
 
 impl<H> Lexicon<H>
 where
-    H: Copy + Eq + Debug + Hash + Default
+    H: Copy + Eq + Debug + Hash + Default + Ord,
 {
+    pub fn new<'a>(
+        literal_lexemes: &[(H, &'a str)],
+        regex_lexeme_strs: &[(H, &'a str)],
+    ) -> Result<Self, LexanError<'a, H>> {
+        let mut handles: HashSet<H> = literal_lexemes.iter().map(|x| x.0).collect();
+        let _literal_matcher = LiteralMatcher::new(literal_lexemes)?;
+        let regex_lexemes: Vec<(H, Regex)> = Vec::new();
+        for (handle, regex_str) in regex_lexeme_strs.iter() {
+            if !handles.insert(*handle) {
+                return Err(LexanError::DuplicateHandle(*handle));
+            }
+        }
+        Ok(Self::default())
+    }
+
     /// Returns number of skippable bytes at start of `text`.
     pub fn skippable_count(&self, text: &str) -> usize {
         let mut index = 0;
@@ -37,7 +54,7 @@ where
                 }
             }
             if skips == 0 {
-                 break;
+                break;
             }
         }
         index
@@ -50,36 +67,17 @@ where
 
     /// Returns the longest regular expression match at start of `text`.
     pub fn longest_regex_matches(&self, text: &str) -> (Vec<H>, usize) {
-        let mut matches = vec![];
-        let mut largest_end = 0;
-        for (handle, regex) in self.regex_leximes.iter() {
-            if let Some(m) = regex.find(text) {
-                if m.start() == 0 {
-                    if m.end() == largest_end {
-                        matches.push(*handle);
-                    } else if m.end() > largest_end {
-                        largest_end = m.end();
-                        matches = vec![*handle];
-                    }
-
-                }
-            }
-        }
-        (matches, largest_end + 1)
+        self.regex_matcher.longest_matches(text)
     }
 
     /// Returns the distance in bytes to the next valid content in `text`
     pub fn distance_to_next_valid_byte(&self, text: &str) -> usize {
         for index in 0..text.len() {
-            if self.literal_matcher.longest_match(&text[index..]).is_some() {
+            if self.literal_matcher.matches(&text[index..]) {
                 return index;
             }
-            for (_, regex) in self.regex_leximes.iter() {
-                if let Some(m) = regex.find_at(text, index) {
-                    if m.start() == index {
-                        return index;
-                    }
-                }
+            if self.regex_matcher.matches(&text[index..]) {
+                return index;
             }
             for regex in self.skip_regex_list.iter() {
                 if let Some(m) = regex.find_at(text, index) {
