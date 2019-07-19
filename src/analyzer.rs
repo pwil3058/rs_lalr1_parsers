@@ -6,8 +6,8 @@ use std::{
 use crate::lexicon::Lexicon;
 
 /// Data for use in user friendly lexical analysis error messages
-#[derive(Debug, Clone)]
-pub struct Location {
+#[derive(Debug, Clone, Copy)]
+pub struct Location<'a> {
     /// Index of this location within the string
     index: usize,
     /// Human friendly line number of this location
@@ -15,21 +15,21 @@ pub struct Location {
     /// Human friendly offset of this location within its line
     offset: usize,
     /// A label describing the source of the string in which this location occurs
-    label: String,
+    label: &'a str,
 }
 
-impl Location {
-    fn new(label: &str) -> Self {
+impl<'a> Location<'a> {
+    fn new(label: &'a str) -> Self {
         Self {
             index: 0,
             line_number: 1,
             offset: 0,
-            label: label.to_string(),
+            label: label,
         }
     }
 }
 
-impl fmt::Display for Location {
+impl<'a> fmt::Display for Location<'a> {
     fn fmt(&self, dest: &mut fmt::Formatter) -> fmt::Result {
         if self.label.len() > 0 {
             write!(dest, "{}:{}({})", self.label, self.line_number, self.offset)
@@ -41,9 +41,9 @@ impl fmt::Display for Location {
 
 #[derive(Debug)]
 pub enum Token<'a, H: Debug> {
-    Valid(H, &'a str, Location),
-    UnexpectedText(&'a str, Location),
-    AmbiguousMatches(Vec<H>, &'a str, Location),
+    Valid(H, &'a str, Location<'a>),
+    UnexpectedText(&'a str, Location<'a>),
+    AmbiguousMatches(Vec<H>, &'a str, Location<'a>),
 }
 
 pub struct TokenStream<'a, H>
@@ -52,7 +52,7 @@ where
 {
     lexicon: &'a Lexicon<H>,
     text: &'a str,
-    index_location: Location,
+    index_location: Location<'a>,
 }
 
 impl<'a, H> TokenStream<'a, H>
