@@ -47,7 +47,7 @@ impl<H: Copy + Ord + Debug> RegexMatcher<H> {
                 }
             }
         }
-        (matches, largest_end + 1)
+        (matches, largest_end)
     }
 
     /// Returns `true` if we match the start of the text

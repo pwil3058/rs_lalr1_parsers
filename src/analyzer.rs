@@ -20,7 +20,7 @@ impl<'a> Location<'a> {
         Self {
             index: 0,
             line_number: 1,
-            offset: 0,
+            offset: 1,
             label: label,
         }
     }
@@ -56,13 +56,13 @@ impl<'a, H> TokenStream<'a, H>
 where
     H: Debug + Copy + Eq,
 {
-    pub fn new(
-        lexicon: &'a Lexicon<H>,
-        text: &'a str,
-        label: &'a str,
-    ) -> Self {
+    pub fn new(lexicon: &'a Lexicon<H>, text: &'a str, label: &'a str) -> Self {
         let index_location = Location::new(label);
-        Self { lexicon, text, index_location }
+        Self {
+            lexicon,
+            text,
+            index_location,
+        }
     }
 
     fn incr_index_location(&mut self, length: usize) {

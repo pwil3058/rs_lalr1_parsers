@@ -47,7 +47,7 @@ where
             for skip_regex in self.skip_regexes.iter() {
                 if let Some(m) = skip_regex.find_at(text, index) {
                     if m.start() == index {
-                        index = m.end() + 1;
+                        index = m.end();
                         skips += 1;
                     }
                 }
@@ -97,6 +97,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::analyzer::*;
 
     #[derive(PartialEq, Eq, Clone, Copy, Hash, Debug, PartialOrd, Ord)]
     enum Handle {
@@ -109,15 +110,108 @@ mod tests {
         Action,
         Predicate,
         Code,
-        Morse,
     }
 
     #[test]
     fn streamer_basic() {
+        use self::Handle::*;
         let lexicon = Lexicon::<Handle>::new(
-            &[],
-            &[],
-            &[],
+            &[(If, "if"), (When, "when")],
+            &[
+                (Ident, "^[a-zA-Z]+[\\w_]*"),
+                (Btextl, r"^&\{(.|[\n\r])*&\}"),
+                (Pred, r"^\?\{(.|[\n\r])*\?\}"),
+                (Literal, "^(\"\\S+\")"),
+                (Action, r"^(!\{(.|[\n\r])*?!\})"),
+                (Predicate, r"^(\?\((.|[\n\r])*?\?\))"),
+                (Code, r"^(%\{(.|[\n\r])*?%\})"),
+            ],
+            &[r"^(/\*(.|[\n\r])*?\*/)", r"^(//[^\n\r]*)", r"^(\s+)"],
+        )
+        .unwrap();
+        let mut token_stream = lexicon.token_stream(
+            "if iffy\n \"quoted\" \"if\" \n9 $ \tname &{ one \n two &} and so ?{on?}",
+            "raw text",
         );
+        match token_stream.next().unwrap() {
+            Token::Valid(handle, text, locn) => {
+                assert_eq!(handle, If);
+                assert_eq!(text, "if");
+                assert_eq!(format!("{}", locn), "raw text:1(1)");
+            },
+            _ => assert!(false),
+        };
+        match token_stream.next().unwrap() {
+            Token::Valid(handle, text, locn) => {
+                assert_eq!(handle, Ident);
+                assert_eq!(text, "iffy");
+                assert_eq!(format!("{}", locn), "raw text:1(4)");
+            },
+            _ => assert!(false),
+        };
+        match token_stream.next().unwrap() {
+            Token::Valid(handle, text, locn) => {
+                assert_eq!(handle, Literal);
+                assert_eq!(text, "\"quoted\"");
+                assert_eq!(format!("{}", locn), "raw text:2(2)");
+            },
+            _ => assert!(false),
+        };
+        match token_stream.next().unwrap() {
+            Token::Valid(handle, text, locn) => {
+                assert_eq!(handle, Literal);
+                assert_eq!(text, "\"if\"");
+                assert_eq!(format!("{}", locn), "raw text:2(11)");
+            },
+            _ => assert!(false),
+        };
+        match token_stream.next().unwrap() {
+            Token::UnexpectedText(text, locn) => {
+                assert_eq!(text, "9 $ \t");
+                assert_eq!(format!("{}", locn), "raw text:3(1)");
+            },
+            _ => assert!(false),
+        };
+        match token_stream.next().unwrap() {
+            Token::Valid(handle, text, locn) => {
+                assert_eq!(handle, Ident);
+                assert_eq!(text, "name");
+                assert_eq!(format!("{}", locn), "raw text:3(6)");
+            },
+            _ => assert!(false),
+        };
+        match token_stream.next().unwrap() {
+            Token::Valid(handle, text, locn) => {
+                assert_eq!(handle, Btextl);
+                assert_eq!(text, "&{ one \n two &}");
+                assert_eq!(format!("{}", locn), "raw text:3(11)");
+            },
+            _ => assert!(false),
+        };
+        match token_stream.next().unwrap() {
+            Token::Valid(handle, text, locn) => {
+                assert_eq!(handle, Ident);
+                assert_eq!(text, "and");
+                assert_eq!(format!("{}", locn), "raw text:4(9)");
+            },
+            _ => assert!(false),
+        };
+        match token_stream.next().unwrap() {
+            Token::Valid(handle, text, locn) => {
+                assert_eq!(handle, Ident);
+                assert_eq!(text, "so");
+                assert_eq!(format!("{}", locn), "raw text:4(13)");
+            },
+            _ => assert!(false),
+        };
+        match token_stream.next().unwrap() {
+            Token::Valid(handle, text, locn) => {
+                assert_eq!(handle, Pred);
+                assert_eq!(text, "?{on?}");
+                assert_eq!(format!("{}", locn), "raw text:4(16)");
+            },
+            _ => assert!(false),
+        };
+        assert!(token_stream.next().is_none());
     }
 }

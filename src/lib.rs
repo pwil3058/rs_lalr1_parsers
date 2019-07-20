@@ -1,10 +1,6 @@
 extern crate regex;
 
-use std::{
-    cmp::Eq,
-    collections::HashMap,
-    fmt::Debug,
-};
+use std::{cmp::Eq, collections::HashMap, fmt::Debug};
 
 pub mod analyzer;
 pub mod error;
