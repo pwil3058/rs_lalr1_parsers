@@ -2,7 +2,7 @@ use std::fmt::Debug;
 
 use regex::Regex;
 
-use crate::analyzer::TokenStream;
+use crate::analyzer::{InjectableTokenStream, TokenStream};
 use crate::error::LexanError;
 use crate::matcher::RegexMatcher;
 use crate::LiteralMatcher;
@@ -92,6 +92,14 @@ where
     pub fn token_stream<'a>(&'a self, text: &'a str, label: &'a str) -> TokenStream<'a, H> {
         TokenStream::new(self, text, label)
     }
+
+    pub fn injectable_token_stream<'a>(
+        &'a self,
+        text: &'a str,
+        label: &'a str,
+    ) -> InjectableTokenStream<'a, H> {
+        InjectableTokenStream::new(self, text, label)
+    }
 }
 
 #[cfg(test)]
@@ -138,7 +146,7 @@ mod tests {
                 assert_eq!(handle, If);
                 assert_eq!(text, "if");
                 assert_eq!(format!("{}", locn), "raw text:1(1)");
-            },
+            }
             _ => assert!(false),
         };
         match token_stream.next().unwrap() {
@@ -146,7 +154,7 @@ mod tests {
                 assert_eq!(handle, Ident);
                 assert_eq!(text, "iffy");
                 assert_eq!(format!("{}", locn), "raw text:1(4)");
-            },
+            }
             _ => assert!(false),
         };
         match token_stream.next().unwrap() {
@@ -154,7 +162,7 @@ mod tests {
                 assert_eq!(handle, Literal);
                 assert_eq!(text, "\"quoted\"");
                 assert_eq!(format!("{}", locn), "raw text:2(2)");
-            },
+            }
             _ => assert!(false),
         };
         match token_stream.next().unwrap() {
@@ -162,14 +170,14 @@ mod tests {
                 assert_eq!(handle, Literal);
                 assert_eq!(text, "\"if\"");
                 assert_eq!(format!("{}", locn), "raw text:2(11)");
-            },
+            }
             _ => assert!(false),
         };
         match token_stream.next().unwrap() {
             Token::UnexpectedText(text, locn) => {
                 assert_eq!(text, "9 $ \t");
                 assert_eq!(format!("{}", locn), "raw text:3(1)");
-            },
+            }
             _ => assert!(false),
         };
         match token_stream.next().unwrap() {
@@ -177,7 +185,7 @@ mod tests {
                 assert_eq!(handle, Ident);
                 assert_eq!(text, "name");
                 assert_eq!(format!("{}", locn), "raw text:3(6)");
-            },
+            }
             _ => assert!(false),
         };
         match token_stream.next().unwrap() {
@@ -185,7 +193,7 @@ mod tests {
                 assert_eq!(handle, Btextl);
                 assert_eq!(text, "&{ one \n two &}");
                 assert_eq!(format!("{}", locn), "raw text:3(11)");
-            },
+            }
             _ => assert!(false),
         };
         match token_stream.next().unwrap() {
@@ -193,7 +201,7 @@ mod tests {
                 assert_eq!(handle, Ident);
                 assert_eq!(text, "and");
                 assert_eq!(format!("{}", locn), "raw text:4(9)");
-            },
+            }
             _ => assert!(false),
         };
         match token_stream.next().unwrap() {
@@ -201,7 +209,7 @@ mod tests {
                 assert_eq!(handle, Ident);
                 assert_eq!(text, "so");
                 assert_eq!(format!("{}", locn), "raw text:4(13)");
-            },
+            }
             _ => assert!(false),
         };
         match token_stream.next().unwrap() {
@@ -209,7 +217,153 @@ mod tests {
                 assert_eq!(handle, Pred);
                 assert_eq!(text, "?{on?}");
                 assert_eq!(format!("{}", locn), "raw text:4(16)");
-            },
+            }
+            _ => assert!(false),
+        };
+        assert!(token_stream.next().is_none());
+    }
+
+    #[test]
+    fn streamer_injectable() {
+        use self::Handle::*;
+        let lexicon = Lexicon::<Handle>::new(
+            &[(If, "if"), (When, "when")],
+            &[
+                (Ident, "^[a-zA-Z]+[\\w_]*"),
+                (Btextl, r"^&\{(.|[\n\r])*&\}"),
+                (Pred, r"^\?\{(.|[\n\r])*\?\}"),
+                (Literal, "^(\"\\S+\")"),
+                (Action, r"^(!\{(.|[\n\r])*?!\})"),
+                (Predicate, r"^(\?\((.|[\n\r])*?\?\))"),
+                (Code, r"^(%\{(.|[\n\r])*?%\})"),
+            ],
+            &[r"^(/\*(.|[\n\r])*?\*/)", r"^(//[^\n\r]*)", r"^(\s+)"],
+        )
+        .unwrap();
+        let mut token_stream = lexicon.injectable_token_stream(
+            "if iffy\n \"quoted\" \"if\" \n9 $ \tname &{ one \n two &} and so ?{on?}",
+            "raw text",
+        );
+        match token_stream.next().unwrap() {
+            Token::Valid(handle, text, locn) => {
+                assert_eq!(handle, If);
+                assert_eq!(text, "if");
+                assert_eq!(format!("{}", locn), "raw text:1(1)");
+            }
+            _ => assert!(false),
+        };
+        match token_stream.next().unwrap() {
+            Token::Valid(handle, text, locn) => {
+                assert_eq!(handle, Ident);
+                assert_eq!(text, "iffy");
+                assert_eq!(format!("{}", locn), "raw text:1(4)");
+            }
+            _ => assert!(false),
+        };
+        match token_stream.next().unwrap() {
+            Token::Valid(handle, text, locn) => {
+                assert_eq!(handle, Literal);
+                assert_eq!(text, "\"quoted\"");
+                assert_eq!(format!("{}", locn), "raw text:2(2)");
+            }
+            _ => assert!(false),
+        };
+        match token_stream.next().unwrap() {
+            Token::Valid(handle, text, locn) => {
+                assert_eq!(handle, Literal);
+                assert_eq!(text, "\"if\"");
+                assert_eq!(format!("{}", locn), "raw text:2(11)");
+            }
+            _ => assert!(false),
+        };
+        token_stream.inject("if one \"name\"", "injected text");
+        match token_stream.next().unwrap() {
+            Token::Valid(handle, text, locn) => {
+                assert_eq!(handle, If);
+                assert_eq!(text, "if");
+                assert_eq!(format!("{}", locn), "injected text:1(1)");
+            }
+            _ => assert!(false),
+        };
+        match token_stream.next().unwrap() {
+            Token::Valid(handle, text, locn) => {
+                assert_eq!(handle, Ident);
+                assert_eq!(text, "one");
+                assert_eq!(format!("{}", locn), "injected text:1(4)");
+            }
+            _ => assert!(false),
+        };
+        token_stream.inject("  two", "another text");
+        match token_stream.next().unwrap() {
+            Token::Valid(handle, text, locn) => {
+                assert_eq!(handle, Ident);
+                assert_eq!(text, "two");
+                assert_eq!(format!("{}", locn), "another text:1(3)");
+            }
+            _ => assert!(false),
+        };
+        match token_stream.next().unwrap() {
+            Token::Valid(handle, text, locn) => {
+                assert_eq!(handle, Literal);
+                assert_eq!(text, "\"name\"");
+                assert_eq!(format!("{}", locn), "injected text:1(8)");
+            }
+            _ => assert!(false),
+        };
+        token_stream.inject("   three", "yet another text");
+        match token_stream.next().unwrap() {
+            Token::Valid(handle, text, locn) => {
+                assert_eq!(handle, Ident);
+                assert_eq!(text, "three");
+                assert_eq!(format!("{}", locn), "yet another text:1(4)");
+            }
+            _ => assert!(false),
+        };
+        match token_stream.next().unwrap() {
+            Token::UnexpectedText(text, locn) => {
+                assert_eq!(text, "9 $ \t");
+                assert_eq!(format!("{}", locn), "raw text:3(1)");
+            }
+            _ => assert!(false),
+        };
+        match token_stream.next().unwrap() {
+            Token::Valid(handle, text, locn) => {
+                assert_eq!(handle, Ident);
+                assert_eq!(text, "name");
+                assert_eq!(format!("{}", locn), "raw text:3(6)");
+            }
+            _ => assert!(false),
+        };
+        match token_stream.next().unwrap() {
+            Token::Valid(handle, text, locn) => {
+                assert_eq!(handle, Btextl);
+                assert_eq!(text, "&{ one \n two &}");
+                assert_eq!(format!("{}", locn), "raw text:3(11)");
+            }
+            _ => assert!(false),
+        };
+        match token_stream.next().unwrap() {
+            Token::Valid(handle, text, locn) => {
+                assert_eq!(handle, Ident);
+                assert_eq!(text, "and");
+                assert_eq!(format!("{}", locn), "raw text:4(9)");
+            }
+            _ => assert!(false),
+        };
+        match token_stream.next().unwrap() {
+            Token::Valid(handle, text, locn) => {
+                assert_eq!(handle, Ident);
+                assert_eq!(text, "so");
+                assert_eq!(format!("{}", locn), "raw text:4(13)");
+            }
+            _ => assert!(false),
+        };
+        match token_stream.next().unwrap() {
+            Token::Valid(handle, text, locn) => {
+                assert_eq!(handle, Pred);
+                assert_eq!(text, "?{on?}");
+                assert_eq!(format!("{}", locn), "raw text:4(16)");
+            }
             _ => assert!(false),
         };
         assert!(token_stream.next().is_none());

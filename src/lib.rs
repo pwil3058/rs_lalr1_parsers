@@ -143,8 +143,6 @@ impl<H: Eq + Debug + Copy + Ord> LiteralMatcher<H> {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-
     #[test]
     fn literal_matcher() {
         let lm = crate::LiteralMatcher::new(&[

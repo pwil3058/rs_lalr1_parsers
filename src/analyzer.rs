@@ -138,11 +138,58 @@ where
     }
 }
 
+pub struct InjectableTokenStream<'a, H>
+where
+    H: Debug + Copy + Eq,
+{
+    lexicon: &'a Lexicon<H>,
+    token_stream_stack: Vec<TokenStream<'a, H>>,
+}
+
+impl<'a, H> InjectableTokenStream<'a, H>
+where
+    H: Debug + Copy + Eq + Ord,
+{
+    pub fn new(lexicon: &'a Lexicon<H>, text: &'a str, label: &'a str) -> Self {
+        let mut stream = Self {
+            lexicon,
+            token_stream_stack: vec![],
+        };
+        stream.inject(text, label);
+        stream
+    }
+
+    pub fn inject(&mut self, text: &'a str, label: &'a str) {
+        let token_stream = self.lexicon.token_stream(text, label);
+        self.token_stream_stack.push(token_stream);
+    }
+}
+
+impl<'a, H> Iterator for InjectableTokenStream<'a, H>
+where
+    H: Debug + Copy + Eq + Ord,
+{
+    type Item = Token<'a, H>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        loop {
+            if let Some(token_stream) = self.token_stream_stack.last_mut() {
+                if let Some(token) = token_stream.next() {
+                    return Some(token);
+                } else {
+                    self.token_stream_stack.pop();
+                }
+            } else {
+                return None;
+            }
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::lexicon::Lexicon;
-    use crate::LiteralMatcher;
 
     #[test]
     fn format_location() {
