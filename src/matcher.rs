@@ -18,6 +18,9 @@ impl<H: Copy + Ord + Debug> RegexMatcher<H> {
             if pattern.len() == 0 {
                 return Err(LexanError::EmptyPattern(*handle));
             };
+            if !pattern.starts_with("\\A") {
+                return Err(LexanError::UnanchoredRegex(pattern));
+            };
             match handles.binary_search(handle) {
                 Ok(_) => return Err(LexanError::DuplicateHandle(*handle)),
                 Err(index) => handles.insert(index, *handle),
@@ -37,13 +40,11 @@ impl<H: Copy + Ord + Debug> RegexMatcher<H> {
         let mut largest_end = 0;
         for (handle, regex) in self.lexemes.iter() {
             if let Some(m) = regex.find(text) {
-                if m.start() == 0 {
-                    if m.end() == largest_end {
-                        matches.push(*handle);
-                    } else if m.end() > largest_end {
-                        largest_end = m.end();
-                        matches = vec![*handle];
-                    }
+                if m.end() == largest_end {
+                    matches.push(*handle);
+                } else if m.end() > largest_end {
+                    largest_end = m.end();
+                    matches = vec![*handle];
                 }
             }
         }
@@ -53,10 +54,8 @@ impl<H: Copy + Ord + Debug> RegexMatcher<H> {
     /// Returns `true` if we match the start of the text
     pub fn matches(&self, text: &str) -> bool {
         for (_, regex) in self.lexemes.iter() {
-            if let Some(m) = regex.find(text) {
-                if m.start() == 0 {
-                    return true;
-                }
+            if regex.find(text).is_some() {
+                return true;
             }
         }
         false

@@ -30,6 +30,9 @@ where
         let regex_matcher = RegexMatcher::new(regex_lexemes)?;
         let mut skip_regexes = vec![];
         for skip_regex_str in skip_regex_strs.iter() {
+            if !skip_regex_str.starts_with("\\A") {
+                return Err(LexanError::UnanchoredRegex(skip_regex_str));
+            };
             skip_regexes.push(Regex::new(skip_regex_str)?);
         }
         Ok(Self {
@@ -46,10 +49,8 @@ where
             let mut skips = 0;
             for skip_regex in self.skip_regexes.iter() {
                 if let Some(m) = skip_regex.find_at(text, index) {
-                    if m.start() == index {
-                        index = m.end();
-                        skips += 1;
-                    }
+                    index = m.end();
+                    skips += 1;
                 }
             }
             if skips == 0 {
@@ -79,10 +80,8 @@ where
                 return index;
             }
             for regex in self.skip_regexes.iter() {
-                if let Some(m) = regex.find_at(text, index) {
-                    if m.start() == index {
-                        return index;
-                    }
+                if regex.find_at(text, index).is_some() {
+                    return index;
                 }
             }
         }
@@ -126,15 +125,15 @@ mod tests {
         let lexicon = Lexicon::<Handle>::new(
             &[(If, "if"), (When, "when")],
             &[
-                (Ident, "^[a-zA-Z]+[\\w_]*"),
-                (Btextl, r"^&\{(.|[\n\r])*&\}"),
-                (Pred, r"^\?\{(.|[\n\r])*\?\}"),
-                (Literal, "^(\"\\S+\")"),
-                (Action, r"^(!\{(.|[\n\r])*?!\})"),
-                (Predicate, r"^(\?\((.|[\n\r])*?\?\))"),
-                (Code, r"^(%\{(.|[\n\r])*?%\})"),
+                (Ident, "\\A[a-zA-Z]+[\\w_]*"),
+                (Btextl, r"\A&\{(.|[\n\r])*&\}"),
+                (Pred, r"\A\?\{(.|[\n\r])*\?\}"),
+                (Literal, "\\A(\"\\S+\")"),
+                (Action, r"\A(!\{(.|[\n\r])*?!\})"),
+                (Predicate, r"\A(\?\((.|[\n\r])*?\?\))"),
+                (Code, r"\A(%\{(.|[\n\r])*?%\})"),
             ],
-            &[r"^(/\*(.|[\n\r])*?\*/)", r"^(//[^\n\r]*)", r"^(\s+)"],
+            &[r"\A(/\*(.|[\n\r])*?\*/)", r"\A(//[^\n\r]*)", r"\A(\s+)"],
         )
         .unwrap();
         let mut token_stream = lexicon.token_stream(
@@ -229,15 +228,15 @@ mod tests {
         let lexicon = Lexicon::<Handle>::new(
             &[(If, "if"), (When, "when")],
             &[
-                (Ident, "^[a-zA-Z]+[\\w_]*"),
-                (Btextl, r"^&\{(.|[\n\r])*&\}"),
-                (Pred, r"^\?\{(.|[\n\r])*\?\}"),
-                (Literal, "^(\"\\S+\")"),
-                (Action, r"^(!\{(.|[\n\r])*?!\})"),
-                (Predicate, r"^(\?\((.|[\n\r])*?\?\))"),
-                (Code, r"^(%\{(.|[\n\r])*?%\})"),
+                (Ident, "\\A[a-zA-Z]+[\\w_]*"),
+                (Btextl, r"\A&\{(.|[\n\r])*&\}"),
+                (Pred, r"\A\?\{(.|[\n\r])*\?\}"),
+                (Literal, "\\A(\"\\S+\")"),
+                (Action, r"\A(!\{(.|[\n\r])*?!\})"),
+                (Predicate, r"\A(\?\((.|[\n\r])*?\?\))"),
+                (Code, r"\A(%\{(.|[\n\r])*?%\})"),
             ],
-            &[r"^(/\*(.|[\n\r])*?\*/)", r"^(//[^\n\r]*)", r"^(\s+)"],
+            &[r"\A(/\*(.|[\n\r])*?\*/)", r"\A(//[^\n\r]*)", r"\A(\s+)"],
         )
         .unwrap();
         let mut token_stream = lexicon.injectable_token_stream(
