@@ -9,12 +9,6 @@ pub mod matcher;
 
 use crate::error::LexanError;
 
-#[derive(Clone, Copy, PartialEq, Debug)]
-struct MatchData<H: PartialEq + Debug + Copy> {
-    handle: H,
-    length: usize,
-}
-
 #[derive(Debug, Default)]
 struct LiteralMatcherNode<H: PartialEq + Debug + Copy> {
     handle: Option<H>,
