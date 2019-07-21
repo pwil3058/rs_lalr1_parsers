@@ -61,3 +61,45 @@ impl<H: Copy + Ord + Debug> RegexMatcher<H> {
         false
     }
 }
+
+#[derive(Debug, Default)]
+pub struct SkipMatcher {
+    regexes: Vec<Regex>,
+}
+
+impl SkipMatcher {
+    pub fn new<'a, H>(regex_strs: &[&'a str]) -> Result<Self, LexanError<'a, H>> {
+        let mut regexes = vec![];
+        for regex_str in regex_strs.iter() {
+            if !regex_str.starts_with("\\A") {
+                return Err(LexanError::UnanchoredRegex(regex_str));
+            };
+            regexes.push(Regex::new(regex_str)?);
+        }
+        Ok(Self { regexes })
+    }
+
+    /// Returns number of skippable bytes at start of `text`.
+    pub fn skippable_count(&self, text: &str) -> usize {
+        let mut index = 0;
+        'outer: while index < text.len() {
+            for regex in self.regexes.iter() {
+                if let Some(m) = regex.find(&text[index..]) {
+                    index += m.end();
+                    continue 'outer;
+                }
+            }
+            break;
+        }
+        index
+    }
+
+    pub fn matches(&self, text: &str) -> bool {
+        for regex in self.regexes.iter() {
+            if regex.find(text).is_some() {
+                return true;
+            }
+        }
+        false
+    }
+}

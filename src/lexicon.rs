@@ -1,10 +1,8 @@
 use std::fmt::Debug;
 
-use regex::Regex;
-
 use crate::analyzer::{InjectableTokenStream, TokenStream};
 use crate::error::LexanError;
-use crate::matcher::RegexMatcher;
+use crate::matcher::{RegexMatcher, SkipMatcher};
 use crate::LiteralMatcher;
 
 #[derive(Default)]
@@ -14,7 +12,7 @@ where
 {
     literal_matcher: LiteralMatcher<H>,
     regex_matcher: RegexMatcher<H>,
-    skip_regexes: Vec<Regex>,
+    skip_matcher: SkipMatcher,
 }
 
 impl<H> Lexicon<H>
@@ -28,36 +26,17 @@ where
     ) -> Result<Self, LexanError<'a, H>> {
         let literal_matcher = LiteralMatcher::new(literal_lexemes)?;
         let regex_matcher = RegexMatcher::new(regex_lexemes)?;
-        let mut skip_regexes = vec![];
-        for skip_regex_str in skip_regex_strs.iter() {
-            if !skip_regex_str.starts_with("\\A") {
-                return Err(LexanError::UnanchoredRegex(skip_regex_str));
-            };
-            skip_regexes.push(Regex::new(skip_regex_str)?);
-        }
+        let skip_matcher = SkipMatcher::new(skip_regex_strs)?;
         Ok(Self {
             literal_matcher,
             regex_matcher,
-            skip_regexes,
+            skip_matcher,
         })
     }
 
     /// Returns number of skippable bytes at start of `text`.
     pub fn skippable_count(&self, text: &str) -> usize {
-        let mut index = 0;
-        while index < text.len() {
-            let mut skips = 0;
-            for skip_regex in self.skip_regexes.iter() {
-                if let Some(m) = skip_regex.find_at(text, index) {
-                    index = m.end();
-                    skips += 1;
-                }
-            }
-            if skips == 0 {
-                break;
-            }
-        }
-        index
+        self.skip_matcher.skippable_count(text)
     }
 
     /// Returns the longest literal match at start of `text`.
@@ -79,10 +58,8 @@ where
             if self.regex_matcher.matches(&text[index..]) {
                 return index;
             }
-            for regex in self.skip_regexes.iter() {
-                if regex.find(&text[index..]).is_some() {
-                    return index;
-                }
+            if self.skip_matcher.matches(&text[index..]) {
+                return index;
             }
         }
         text.len()
