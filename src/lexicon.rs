@@ -80,7 +80,7 @@ where
                 return index;
             }
             for regex in self.skip_regexes.iter() {
-                if regex.find_at(text, index).is_some() {
+                if regex.find(&text[index..]).is_some() {
                     return index;
                 }
             }
@@ -174,8 +174,15 @@ mod tests {
         };
         match token_stream.next().unwrap() {
             Token::UnexpectedText(text, locn) => {
-                assert_eq!(text, "9 $ \t");
+                assert_eq!(text, "9");
                 assert_eq!(format!("{}", locn), "raw text:3(1)");
+            }
+            _ => assert!(false),
+        };
+        match token_stream.next().unwrap() {
+            Token::UnexpectedText(text, locn) => {
+                assert_eq!(text, "$");
+                assert_eq!(format!("{}", locn), "raw text:3(3)");
             }
             _ => assert!(false),
         };
@@ -320,8 +327,15 @@ mod tests {
         };
         match token_stream.next().unwrap() {
             Token::UnexpectedText(text, locn) => {
-                assert_eq!(text, "9 $ \t");
+                assert_eq!(text, "9");
                 assert_eq!(format!("{}", locn), "raw text:3(1)");
+            }
+            _ => assert!(false),
+        };
+        match token_stream.next().unwrap() {
+            Token::UnexpectedText(text, locn) => {
+                assert_eq!(text, "$");
+                assert_eq!(format!("{}", locn), "raw text:3(3)");
             }
             _ => assert!(false),
         };
