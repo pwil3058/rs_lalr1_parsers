@@ -100,7 +100,7 @@ where
             return None;
         }
 
-        let current_location = self.index_location.clone();
+        let current_location = self.index_location;
         let text = &self.text[current_location.index..];
         let o_llm = self.lexicon.longest_literal_match(text);
         let lrems = self.lexicon.longest_regex_matches(text);
