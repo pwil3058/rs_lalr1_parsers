@@ -6,4 +6,4 @@ mod lexicon;
 mod matcher;
 
 pub use lexicon::Lexicon;
-pub use analyzer::Token;
+pub use analyzer::{Location, Token};
