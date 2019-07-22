@@ -1,6 +1,9 @@
 extern crate regex;
 
-pub mod analyzer;
-pub mod error;
-pub mod lexicon;
-pub mod matcher;
+mod analyzer;
+mod error;
+mod lexicon;
+mod matcher;
+
+pub use lexicon::Lexicon;
+pub use analyzer::Token;

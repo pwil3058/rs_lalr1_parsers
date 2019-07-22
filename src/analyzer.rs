@@ -36,11 +36,10 @@ impl<'a> fmt::Display for Location<'a> {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub enum Token<'a, H: Debug> {
     Valid(H, &'a str, Location<'a>),
     UnexpectedText(&'a str, Location<'a>),
-    AmbiguousMatches(Vec<H>, &'a str, Location<'a>),
 }
 
 pub struct TokenStream<'a, H>
@@ -107,12 +106,11 @@ where
 
         if let Some(llm) = o_llm {
             if lrems.0.len() > 1 && lrems.1 > llm.1 {
-                self.incr_index_location(lrems.1);
-                Some(Token::AmbiguousMatches(
-                    lrems.0,
+                panic!("Ambiguous regex match: \"{}\" for: {:?} at: {}.",
                     &text[..lrems.1],
+                    lrems.0,
                     current_location,
-                ))
+                );
             } else if lrems.0.len() == 1 && lrems.1 > llm.1 {
                 self.incr_index_location(lrems.1);
                 Some(Token::Valid(lrems.0[0], &text[..lrems.1], current_location))
@@ -124,12 +122,11 @@ where
             self.incr_index_location(lrems.1);
             Some(Token::Valid(lrems.0[0], &text[..lrems.1], current_location))
         } else if lrems.0.len() > 1 {
-            self.incr_index_location(lrems.1);
-            Some(Token::AmbiguousMatches(
-                lrems.0,
+            panic!("Ambiguous regex match: \"{}\" for: {:?} at: {}.",
                 &text[..lrems.1],
+                lrems.0,
                 current_location,
-            ))
+            );
         } else {
             let distance = self.lexicon.distance_to_next_valid_byte(text);
             self.incr_index_location(distance);
