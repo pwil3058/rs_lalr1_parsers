@@ -2,8 +2,7 @@ use std::fmt::Debug;
 
 use crate::analyzer::{InjectableTokenStream, TokenStream};
 use crate::error::LexanError;
-use crate::matcher::{RegexMatcher, SkipMatcher};
-use crate::LiteralMatcher;
+use crate::matcher::{LiteralMatcher, RegexMatcher, SkipMatcher};
 
 #[derive(Default)]
 pub struct Lexicon<H>
