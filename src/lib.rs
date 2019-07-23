@@ -60,39 +60,34 @@ mod tests {
             &self.attributes
         }
 
-        fn next_action<'a>(&self, state: u32, o_token: Option<lexan::Token<'a, Handle>>) -> parser::Action<'a> {
-            if let Some(token) = o_token {
+        fn next_action<'a>(&self, state: u32, o_handle: Option<Handle>) -> parser::Action<Handle> {
+            if let Some(handle) = o_handle {
                 use Handle::*;
-                match token {
-                    lexan::Token::UnexpectedText(text,location) => {
-                        return parser::Action::UnexpectedText(text, location);
-                    }
-                    lexan::Token::Valid(handle, text, location) => match state {
-                        0 => match handle {
-                            Minus => return parser::Action::Reduce(8),
-                            LPR => return parser::Action::Reduce(8),
-                            Number => return parser::Action::Reduce(8),
-                            Id => return parser::Action::Reduce(8),
-                            _ => return parser::Action::SyntaxError,
-                        },
-                        1 => match handle {
-                            EOL => return parser::Action::Shift(4),
-                            _ => return parser::Action::SyntaxError,
-                        },
-                        100 => match handle {
-                            Plus => return parser::Action::Shift(0),
-                            Minus => return parser::Action::Shift(0),
-                            Times => return parser::Action::Shift(0),
-                            Divide => return parser::Action::Shift(0),
-                            Assign => return parser::Action::Shift(0),
-                            LPR => return parser::Action::Shift(0),
-                            RPR => return parser::Action::Shift(0),
-                            EOL => return parser::Action::Shift(0),
-                            Number => return parser::Action::Shift(0),
-                            Id => return parser::Action::Shift(0),
-                        },
-                        _ => panic!("illegal state: {}", state)
-                    }
+                match state {
+                    0 => match handle {
+                        Minus => return parser::Action::Reduce(8),
+                        LPR => return parser::Action::Reduce(8),
+                        Number => return parser::Action::Reduce(8),
+                        Id => return parser::Action::Reduce(8),
+                        _ => return parser::Action::SyntaxError(handle, vec![Minus, LPR, Number, Id]),
+                    },
+                    1 => match handle {
+                        EOL => return parser::Action::Shift(4),
+                        _ => return parser::Action::SyntaxError(handle, vec![EOL]),
+                    },
+                    100 => match handle {
+                        Plus => return parser::Action::Shift(0),
+                        Minus => return parser::Action::Shift(0),
+                        Times => return parser::Action::Shift(0),
+                        Divide => return parser::Action::Shift(0),
+                        Assign => return parser::Action::Shift(0),
+                        LPR => return parser::Action::Shift(0),
+                        RPR => return parser::Action::Shift(0),
+                        EOL => return parser::Action::Shift(0),
+                        Number => return parser::Action::Shift(0),
+                        Id => return parser::Action::Shift(0),
+                    },
+                    _ => panic!("illegal state: {}", state)
                 }
             } else {
                 match state {
@@ -107,6 +102,6 @@ mod tests {
     fn calc_works() {
         use crate::parser::Parser;
         let calc = Calc::new();
-        assert!(calc.parse_text("a = 3 + 4", "raw"));
+        assert!(!calc.parse_text("a = 3 + 4", "raw"));
     }
 }
