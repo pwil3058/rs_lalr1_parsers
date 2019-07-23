@@ -60,39 +60,39 @@ mod tests {
             &self.attributes
         }
 
-        fn next_action<'a>(&self, state: u32, o_handle: Option<Handle>) -> parser::Action<Handle> {
+        fn next_action<'a>(&self, state: u32, o_handle: Option<Handle>) -> Result<parser::Action, parser::Error<Handle>> {
             if let Some(handle) = o_handle {
                 use Handle::*;
                 match state {
                     0 => match handle {
-                        Minus => return parser::Action::Reduce(8),
-                        LPR => return parser::Action::Reduce(8),
-                        Number => return parser::Action::Reduce(8),
-                        Id => return parser::Action::Reduce(8),
-                        _ => return parser::Action::SyntaxError(handle, vec![Minus, LPR, Number, Id]),
+                        Minus => return Ok(parser::Action::Reduce(8)),
+                        LPR => return Ok(parser::Action::Reduce(8)),
+                        Number => return Ok(parser::Action::Reduce(8)),
+                        Id => return Ok(parser::Action::Reduce(8)),
+                        _ => return Err(parser::Error::SyntaxError(handle, vec![Minus, LPR, Number, Id])),
                     },
                     1 => match handle {
-                        EOL => return parser::Action::Shift(4),
-                        _ => return parser::Action::SyntaxError(handle, vec![EOL]),
+                        EOL => return Ok(parser::Action::Shift(4)),
+                        _ => return Err(parser::Error::SyntaxError(handle, vec![EOL])),
                     },
                     100 => match handle {
-                        Plus => return parser::Action::Shift(0),
-                        Minus => return parser::Action::Shift(0),
-                        Times => return parser::Action::Shift(0),
-                        Divide => return parser::Action::Shift(0),
-                        Assign => return parser::Action::Shift(0),
-                        LPR => return parser::Action::Shift(0),
-                        RPR => return parser::Action::Shift(0),
-                        EOL => return parser::Action::Shift(0),
-                        Number => return parser::Action::Shift(0),
-                        Id => return parser::Action::Shift(0),
+                        Plus => return Ok(parser::Action::Shift(0)),
+                        Minus => return Ok(parser::Action::Shift(0)),
+                        Times => return Ok(parser::Action::Shift(0)),
+                        Divide => return Ok(parser::Action::Shift(0)),
+                        Assign => return Ok(parser::Action::Shift(0)),
+                        LPR => return Ok(parser::Action::Shift(0)),
+                        RPR => return Ok(parser::Action::Shift(0)),
+                        EOL => return Ok(parser::Action::Shift(0)),
+                        Number => return Ok(parser::Action::Shift(0)),
+                        Id => return Ok(parser::Action::Shift(0)),
                     },
                     _ => panic!("illegal state: {}", state)
                 }
             } else {
                 match state {
-                    1 => return parser::Action::Accept,
-                    _ => return parser::Action::UnexpectedEndOfInput,
+                    1 => return Ok(parser::Action::Accept),
+                    _ => return Err(parser::Error::UnexpectedEndOfInput),
                 }
             }
         }

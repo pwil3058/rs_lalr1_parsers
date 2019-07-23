@@ -2,19 +2,28 @@ use std::fmt::Debug;
 
 use lexan;
 
+#[derive(Debug)]
+pub enum Error<'a, H: Copy + Debug> {
+    SyntaxError(H, Vec<H>),
+    UnexpectedEndOfInput,
+    UnexpectedInput(&'a str),
+}
+
 #[derive(Debug, Clone)]
-pub enum Action<H:  Ord + Copy + Debug> {
+pub enum Action {
     Shift(u32),
     Reduce(u32),
     Accept,
-    SyntaxError(H, Vec<H>),
-    UnexpectedEndOfInput,
 }
 
 pub trait Parser<H: Ord + Copy + Debug, A> {
     fn lexicon(&self) -> &lexan::Lexicon<H>;
     fn attributes(&self) -> &Vec<A>;
-    fn next_action(&self, state: u32, o_handle: Option<H>) -> Action<H>;
+    fn next_action(&self, state: u32, o_handle: Option<H>) -> Result<Action, Error<H>>;
+
+    fn report_error(_error: &Error<H>, _location: Option<lexan::Location>) {
+
+    }
 
     fn short_circuit() -> bool {
         false
@@ -34,30 +43,34 @@ pub trait Parser<H: Ord + Copy + Debug, A> {
                             return false
                         }
                     }
-                    lexan::Token::Valid(handle, text, location) => {
+                    lexan::Token::Valid(handle, _text, location) => {
                         match self.next_action(state, Some(handle)) {
-                            Action::Shift(state) => println!("shift: {}", state),
-                            Action::Reduce(production) => println!("reduce: {}", production),
-                            Action::SyntaxError(found, expected) => {
-                                println!("syntax error: expected {:?} found {:?}", expected, found);
+                            Ok(action) => match action {
+                                Action::Shift(state) => println!("shift: {}", state),
+                                Action::Reduce(production) => println!("reduce: {}", production),
+                                _ => panic!("unexpected action"),
+                            }
+                            Err(err) => {
+                                Self::report_error(&err, Some(location));
                                 result = false;
                                 if Self::short_circuit() {
                                     return result
                                 }
                             }
-                            _ => panic!("unexpected action"),
                         }
                     }
                 }
             } else {
                 match self.next_action(state, None) {
-                    Action::Reduce(production) => println!("reduce: {}", production),
-                    Action::Accept => break,
-                    Action::UnexpectedEndOfInput => {
-                        println!("unexpected end of input");
+                    Ok(action) => match action {
+                        Action::Reduce(production) => println!("reduce: {}", production),
+                        Action::Accept => break,
+                        _ => panic!("unexpected action"),
+                    }
+                    Err(err) => {
+                        Self::report_error(&err, None);
                         return false
                     }
-                    _ => panic!("unexpected action"),
                 }
             }
             o_token = tokens.next();
