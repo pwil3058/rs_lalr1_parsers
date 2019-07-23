@@ -1,6 +1,6 @@
 extern crate lexan;
 
-mod parser;
+pub mod parser;
 
 #[cfg(test)]
 mod tests {
@@ -60,20 +60,21 @@ mod tests {
             &self.attributes
         }
 
-        fn next_action<'a>(&self, state: u32, o_handle: Option<Handle>) -> Result<parser::Action, parser::Error<Handle>> {
-            if let Some(handle) = o_handle {
+        fn next_action<'a>(&self, state: u32, o_token: Option<&'a lexan::Token<'a, Handle>>) -> Result<parser::Action, parser::Error<'a, Handle>> {
+            if let Some(token) = o_token {
                 use Handle::*;
+                let handle = token.handle();
                 match state {
                     0 => match handle {
                         Minus => return Ok(parser::Action::Reduce(8)),
                         LPR => return Ok(parser::Action::Reduce(8)),
                         Number => return Ok(parser::Action::Reduce(8)),
                         Id => return Ok(parser::Action::Reduce(8)),
-                        _ => return Err(parser::Error::SyntaxError(handle, vec![Minus, LPR, Number, Id])),
+                        _ => return Err(parser::Error::SyntaxError(handle, vec![Minus, LPR, Number, Id], token.location())),
                     },
                     1 => match handle {
                         EOL => return Ok(parser::Action::Shift(4)),
-                        _ => return Err(parser::Error::SyntaxError(handle, vec![EOL])),
+                        _ => return Err(parser::Error::SyntaxError(handle, vec![EOL], token.location())),
                     },
                     100 => match handle {
                         Plus => return Ok(parser::Action::Shift(0)),

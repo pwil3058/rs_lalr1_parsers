@@ -4,9 +4,9 @@ use lexan;
 
 #[derive(Debug)]
 pub enum Error<'a, H: Copy + Debug> {
-    SyntaxError(H, Vec<H>),
+    LexicalError(lexan::Error<'a, H>),
+    SyntaxError(H, Vec<H>, lexan::Location<'a>),
     UnexpectedEndOfInput,
-    UnexpectedInput(&'a str),
 }
 
 #[derive(Debug, Clone)]
@@ -19,39 +19,46 @@ pub enum Action {
 pub trait Parser<H: Ord + Copy + Debug, A> {
     fn lexicon(&self) -> &lexan::Lexicon<H>;
     fn attributes(&self) -> &Vec<A>;
-    fn next_action(&self, state: u32, o_handle: Option<H>) -> Result<Action, Error<H>>;
+    fn next_action<'a>(&'a self, state: u32, o_token: Option<&'a lexan::Token<'a, H>>) -> Result<Action, Error<'a, H>>;
 
-    fn report_error(_error: &Error<H>, _location: Option<lexan::Location>) {
-
+    fn report_error<'a>(error: &Error<'a, H>) {
+        match error {
+            Error::LexicalError(lex_err) => println!("Lexical Error: {}.", lex_err),
+            Error::SyntaxError(found, expected, location) =>
+                println!("Syntax Error: expected: {:?} found: {:?} at: {}.", expected, found, location),
+            Error::UnexpectedEndOfInput => println!("unexpected end of input."),
+        }
     }
 
     fn short_circuit() -> bool {
         false
     }
 
-    fn parse_text(&self, text: &str, label: &str) -> bool {
+    fn parse_text<'b>(&'b self, text: &'b str, label: &'b str) -> bool {
         let mut tokens = self.lexicon().injectable_token_stream(text, label);
-        let mut o_token = tokens.next();
+        let mut o_r_token = tokens.next();
         let mut state: u32 = 0;
-        let mut result = true;
+        let mut result: bool = true;
         loop {
-            if let Some(token) = o_token {
-                match token {
-                    lexan::Token::UnexpectedText(text, location) => {
-                        println!("Unexpected text \"{}\" at: {}", text, location);
+            if let Some(r_token) = o_r_token {
+                match r_token {
+                    Err(err) => {
+                        let err = Error::LexicalError(err);
+                        Self::report_error(&err);
+                        result = false;
                         if Self::short_circuit() {
-                            return false
+                            return result
                         }
                     }
-                    lexan::Token::Valid(handle, _text, location) => {
-                        match self.next_action(state, Some(handle)) {
+                    Ok(token) => {
+                        match self.next_action(state, Some(&token)) {
                             Ok(action) => match action {
                                 Action::Shift(state) => println!("shift: {}", state),
                                 Action::Reduce(production) => println!("reduce: {}", production),
                                 _ => panic!("unexpected action"),
                             }
                             Err(err) => {
-                                Self::report_error(&err, Some(location));
+                                Self::report_error(&err);
                                 result = false;
                                 if Self::short_circuit() {
                                     return result
@@ -68,12 +75,12 @@ pub trait Parser<H: Ord + Copy + Debug, A> {
                         _ => panic!("unexpected action"),
                     }
                     Err(err) => {
-                        Self::report_error(&err, None);
+                        Self::report_error(&err);
                         return false
                     }
                 }
             }
-            o_token = tokens.next();
+            o_r_token = tokens.next();
         }
         result
     }
