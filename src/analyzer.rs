@@ -29,33 +29,35 @@ impl<'a> Location<'a> {
 impl<'a> fmt::Display for Location<'a> {
     fn fmt(&self, dest: &mut fmt::Formatter) -> fmt::Result {
         if self.label.len() > 0 {
-            write!(dest, "{}:{}({})", self.label, self.line_number, self.offset)
+            write!(dest, "{}:{}:{}", self.label, self.line_number, self.offset)
         } else {
-            write!(dest, "{}({})", self.line_number, self.offset)
+            write!(dest, "{}:{}", self.line_number, self.offset)
         }
     }
 }
 
 #[derive(Debug, Clone)]
-pub enum Error<'a, H: Debug + Copy> {
-    UnexpectedText(&'a str, Location<'a>),
-    AmbiguousMatches(Vec<H>, &'a str, Location<'a>),
+pub enum Error<H: Debug + Copy> {
+    UnexpectedText(String, String),
+    AmbiguousMatches(Vec<H>, String, String),
 }
 
-impl<'a, H: Debug + Copy> fmt::Display for Error<'a, H> {
+impl<H: Debug + Copy> fmt::Display for Error<H> {
     fn fmt(&self, dest: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Error::UnexpectedText(text, location) => {
                 write!(dest, "Enexpected text \"{}\" at: {}", text, location)
             }
-            Error::AmbiguousMatches(handles, text, location) => {
-                write!(dest, "Ambiguous matches {:?} \"{}\" at: {}", handles, text, location)
-            }
+            Error::AmbiguousMatches(handles, text, location) => write!(
+                dest,
+                "Ambiguous matches {:?} \"{}\" at: {}",
+                handles, text, location
+            ),
         }
     }
 }
 
-impl<'a, H: Debug + Copy> std::error::Error for Error<'a, H> {}
+impl<H: Debug + Copy> std::error::Error for Error<H> {}
 
 #[derive(Debug, Clone, Copy)]
 pub struct Token<'a, H: Debug + Copy + Eq> {
@@ -65,8 +67,8 @@ pub struct Token<'a, H: Debug + Copy + Eq> {
 }
 
 impl<'a, H: Debug + Copy + Eq> Token<'a, H> {
-    pub fn handle(&self) -> H {
-        self.handle
+    pub fn handle<'h>(&'h self) -> &'h H {
+        &self.handle
     }
 
     pub fn matched_text(&'a self) -> &'a str {
@@ -126,7 +128,7 @@ impl<'a, H> Iterator for TokenStream<'a, H>
 where
     H: Debug + Copy + Eq + Ord,
 {
-    type Item = Result<Token<'a, H>, Error<'a, H>>;
+    type Item = Result<Token<'a, H>, Error<H>>;
 
     fn next(&mut self) -> Option<Self::Item> {
         let text = &self.text[self.index_location.index..];
@@ -142,21 +144,22 @@ where
 
         if let Some(llm) = o_llm {
             if lrems.0.len() > 1 && lrems.1 > llm.1 {
-                panic!("Ambiguous regex match: \"{}\" for: {:?} at: {}.",
-                    &text[..lrems.1],
+                self.incr_index_location(lrems.1);
+                Some(Err(Error::AmbiguousMatches(
                     lrems.0,
-                    current_location,
-                );
+                    text[..lrems.1].to_string(),
+                    current_location.to_string(),
+                )))
             } else if lrems.0.len() == 1 && lrems.1 > llm.1 {
                 self.incr_index_location(lrems.1);
-                Some(Ok(Token{
+                Some(Ok(Token {
                     handle: lrems.0[0],
                     matched_text: &text[..lrems.1],
-                    location: current_location
+                    location: current_location,
                 }))
             } else {
                 self.incr_index_location(llm.1);
-                Some(Ok(Token{
+                Some(Ok(Token {
                     handle: llm.0,
                     matched_text: &text[..llm.1],
                     location: current_location,
@@ -164,21 +167,25 @@ where
             }
         } else if lrems.0.len() == 1 {
             self.incr_index_location(lrems.1);
-            Some(Ok(Token{
+            Some(Ok(Token {
                 handle: lrems.0[0],
                 matched_text: &text[..lrems.1],
-                location: current_location
+                location: current_location,
             }))
         } else if lrems.0.len() > 1 {
-            panic!("Ambiguous regex match: \"{}\" for: {:?} at: {}.",
-                &text[..lrems.1],
+            self.incr_index_location(lrems.1);
+            Some(Err(Error::AmbiguousMatches(
                 lrems.0,
-                current_location,
-            );
+                text[..lrems.1].to_string(),
+                current_location.to_string(),
+            )))
         } else {
             let distance = self.lexicon.distance_to_next_valid_byte(text);
             self.incr_index_location(distance);
-            Some(Err(Error::UnexpectedText(&text[..distance], current_location)))
+            Some(Err(Error::UnexpectedText(
+                text[..distance].to_string(),
+                current_location.to_string(),
+            )))
         }
     }
 }
@@ -214,7 +221,7 @@ impl<'a, H> Iterator for InjectableTokenStream<'a, H>
 where
     H: Debug + Copy + Eq + Ord,
 {
-    type Item = Result<Token<'a, H>, Error<'a, H>>;
+    type Item = Result<Token<'a, H>, Error<H>>;
 
     fn next(&mut self) -> Option<Self::Item> {
         loop {
@@ -244,14 +251,14 @@ mod tests {
             offset: 15,
             label: &"whatever",
         };
-        assert_eq!(format!("{}", location), "whatever:10(15)");
+        assert_eq!(format!("{}", location), "whatever:10:15");
         let location = Location {
             index: 100,
             line_number: 9,
             offset: 23,
             label: &"",
         };
-        assert_eq!(format!("{}", location), "9(23)");
+        assert_eq!(format!("{}", location), "9:23");
     }
 
     #[test]

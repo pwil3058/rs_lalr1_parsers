@@ -5,5 +5,5 @@ mod error;
 mod lexicon;
 mod matcher;
 
-pub use lexicon::Lexicon;
 pub use analyzer::{Error, Location, Token};
+pub use lexicon::Lexicon;
