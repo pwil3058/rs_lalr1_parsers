@@ -16,16 +16,28 @@ pub enum Action {
     Accept,
 }
 
+#[derive(Debug, Clone)]
+pub struct SyntaxErrorData<'a, H> {
+    unexpected_handle: H,
+    matched_text: &'a str,
+}
+
 pub trait Parser<H: Ord + Copy + Debug, A> {
     fn lexicon(&self) -> &lexan::Lexicon<H>;
-    fn attributes(&self) -> &Vec<A>;
-    fn next_action<'a>(&self, state: u32, o_token: Option<&lexan::Token<'a, H>>) -> Result<Action, Error<H>>;
+    fn attribute<'b>(&'b self, attr_num: usize, num_attrs: usize) -> &'b u32;
+    fn next_action<'a>(
+        &self,
+        state: u32,
+        o_token: Option<&lexan::Token<'a, H>>,
+    ) -> Result<Action, Error<H>>;
 
     fn report_error(error: &Error<H>) {
         match error {
             Error::LexicalError(lex_err) => println!("Lexical Error: {}.", lex_err),
-            Error::SyntaxError(found, expected, location) =>
-                println!("Syntax Error: expected: {:?} found: {:?} at: {}.", expected, found, location),
+            Error::SyntaxError(found, expected, location) => println!(
+                "Syntax Error: expected: {:?} found: {:?} at: {}.",
+                expected, found, location
+            ),
             Error::UnexpectedEndOfInput => println!("unexpected end of input."),
         }
     }
@@ -47,25 +59,23 @@ pub trait Parser<H: Ord + Copy + Debug, A> {
                         Self::report_error(&err);
                         result = false;
                         if Self::short_circuit() {
-                            return result
+                            return result;
                         }
                     }
-                    Ok(token) => {
-                        match self.next_action(state, Some(&token)) {
-                            Ok(action) => match action {
-                                Action::Shift(state) => println!("shift: {}", state),
-                                Action::Reduce(production) => println!("reduce: {}", production),
-                                _ => panic!("unexpected action"),
-                            }
-                            Err(err) => {
-                                Self::report_error(&err);
-                                result = false;
-                                if Self::short_circuit() {
-                                    return result
-                                }
+                    Ok(token) => match self.next_action(state, Some(&token)) {
+                        Ok(action) => match action {
+                            Action::Shift(state) => println!("shift: {}", state),
+                            Action::Reduce(production) => println!("reduce: {}", production),
+                            _ => panic!("unexpected action"),
+                        },
+                        Err(err) => {
+                            Self::report_error(&err);
+                            result = false;
+                            if Self::short_circuit() {
+                                return result;
                             }
                         }
-                    }
+                    },
                 }
             } else {
                 match self.next_action(state, None) {
@@ -73,10 +83,10 @@ pub trait Parser<H: Ord + Copy + Debug, A> {
                         Action::Reduce(production) => println!("reduce: {}", production),
                         Action::Accept => break,
                         _ => panic!("unexpected action"),
-                    }
+                    },
                     Err(err) => {
                         Self::report_error(&err);
-                        return false
+                        return false;
                     }
                 }
             }
