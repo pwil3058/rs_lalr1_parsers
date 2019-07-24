@@ -60,21 +60,21 @@ mod tests {
             &self.attributes
         }
 
-        fn next_action<'a>(&self, state: u32, o_token: Option<&'a lexan::Token<'a, Handle>>) -> Result<parser::Action, parser::Error<'a, Handle>> {
+        fn next_action<'a>(&self, state: u32, o_token: Option<&lexan::Token<'a, Handle>>) -> Result<parser::Action, parser::Error<Handle>> {
             if let Some(token) = o_token {
                 use Handle::*;
-                let handle = token.handle();
+                let handle = *token.handle();
                 match state {
                     0 => match handle {
                         Minus => return Ok(parser::Action::Reduce(8)),
                         LPR => return Ok(parser::Action::Reduce(8)),
                         Number => return Ok(parser::Action::Reduce(8)),
                         Id => return Ok(parser::Action::Reduce(8)),
-                        _ => return Err(parser::Error::SyntaxError(handle, vec![Minus, LPR, Number, Id], token.location())),
+                        _ => return Err(parser::Error::SyntaxError(handle, vec![Minus, LPR, Number, Id], token.location().to_string())),
                     },
                     1 => match handle {
                         EOL => return Ok(parser::Action::Shift(4)),
-                        _ => return Err(parser::Error::SyntaxError(handle, vec![EOL], token.location())),
+                        _ => return Err(parser::Error::SyntaxError(handle, vec![EOL], token.location().to_string())),
                     },
                     100 => match handle {
                         Plus => return Ok(parser::Action::Shift(0)),

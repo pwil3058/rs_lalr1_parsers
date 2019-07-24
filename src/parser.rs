@@ -3,9 +3,9 @@ use std::fmt::Debug;
 use lexan;
 
 #[derive(Debug)]
-pub enum Error<'a, H: Copy + Debug> {
-    LexicalError(lexan::Error<'a, H>),
-    SyntaxError(H, Vec<H>, lexan::Location<'a>),
+pub enum Error<H: Copy + Debug> {
+    LexicalError(lexan::Error<H>),
+    SyntaxError(H, Vec<H>, String),
     UnexpectedEndOfInput,
 }
 
@@ -19,9 +19,9 @@ pub enum Action {
 pub trait Parser<H: Ord + Copy + Debug, A> {
     fn lexicon(&self) -> &lexan::Lexicon<H>;
     fn attributes(&self) -> &Vec<A>;
-    fn next_action<'a>(&'a self, state: u32, o_token: Option<&'a lexan::Token<'a, H>>) -> Result<Action, Error<'a, H>>;
+    fn next_action<'a>(&self, state: u32, o_token: Option<&lexan::Token<'a, H>>) -> Result<Action, Error<H>>;
 
-    fn report_error<'a>(error: &Error<'a, H>) {
+    fn report_error(error: &Error<H>) {
         match error {
             Error::LexicalError(lex_err) => println!("Lexical Error: {}.", lex_err),
             Error::SyntaxError(found, expected, location) =>
