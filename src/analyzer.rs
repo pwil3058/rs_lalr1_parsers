@@ -5,8 +5,6 @@ use crate::lexicon::Lexicon;
 /// Data for use in user friendly lexical analysis error messages
 #[derive(Debug, Clone, Copy)]
 pub struct Location<'a> {
-    /// Index of this location within the string
-    index: usize,
     /// Human friendly line number of this location
     line_number: usize,
     /// Human friendly offset of this location within its line
@@ -18,7 +16,6 @@ pub struct Location<'a> {
 impl<'a> Location<'a> {
     fn new(label: &'a str) -> Self {
         Self {
-            index: 0,
             line_number: 1,
             offset: 1,
             label: label,
@@ -86,7 +83,8 @@ where
 {
     lexicon: &'a Lexicon<H>,
     text: &'a str,
-    index_location: Location<'a>,
+    index: usize,
+    location: Location<'a>,
 }
 
 impl<'a, H> TokenStream<'a, H>
@@ -94,33 +92,34 @@ where
     H: Debug + Copy + Eq,
 {
     pub fn new(lexicon: &'a Lexicon<H>, text: &'a str, label: &'a str) -> Self {
-        let index_location = Location::new(label);
+        let location = Location::new(label);
         Self {
             lexicon,
             text,
-            index_location,
+            location,
+            index: 0,
         }
     }
 
-    fn incr_index_location(&mut self, length: usize) {
-        let next_index = self.index_location.index + length;
-        let slice = &self.text[self.index_location.index..next_index];
+    fn incr_index_and_location(&mut self, length: usize) {
+        let next_index = self.index + length;
+        let slice = &self.text[self.index..next_index];
         let mut i = 0;
         while i < length {
             if let Some(eol_i) = slice[i..].find("\r\n") {
-                self.index_location.line_number += 1;
-                self.index_location.offset = 1;
+                self.location.line_number += 1;
+                self.location.offset = 1;
                 i += eol_i + 2;
             } else if let Some(eol_i) = slice[i..].find("\n") {
-                self.index_location.line_number += 1;
-                self.index_location.offset = 1;
+                self.location.line_number += 1;
+                self.location.offset = 1;
                 i += eol_i + 1;
             } else {
-                self.index_location.offset += length - i;
+                self.location.offset += length - i;
                 i = length;
             };
         }
-        self.index_location.index = next_index;
+        self.index = next_index;
     }
 }
 
@@ -131,34 +130,34 @@ where
     type Item = Result<Token<'a, H>, Error<H>>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let text = &self.text[self.index_location.index..];
-        self.incr_index_location(self.lexicon.skippable_count(text));
-        if self.index_location.index >= self.text.len() {
+        let text = &self.text[self.index..];
+        self.incr_index_and_location(self.lexicon.skippable_count(text));
+        if self.index >= self.text.len() {
             return None;
         }
 
-        let current_location = self.index_location;
-        let text = &self.text[current_location.index..];
+        let current_location = self.location;
+        let text = &self.text[self.index..];
         let o_llm = self.lexicon.longest_literal_match(text);
         let lrems = self.lexicon.longest_regex_matches(text);
 
         if let Some(llm) = o_llm {
             if lrems.0.len() > 1 && lrems.1 > llm.1 {
-                self.incr_index_location(lrems.1);
+                self.incr_index_and_location(lrems.1);
                 Some(Err(Error::AmbiguousMatches(
                     lrems.0,
                     text[..lrems.1].to_string(),
                     current_location.to_string(),
                 )))
             } else if lrems.0.len() == 1 && lrems.1 > llm.1 {
-                self.incr_index_location(lrems.1);
+                self.incr_index_and_location(lrems.1);
                 Some(Ok(Token {
                     handle: lrems.0[0],
                     matched_text: &text[..lrems.1],
                     location: current_location,
                 }))
             } else {
-                self.incr_index_location(llm.1);
+                self.incr_index_and_location(llm.1);
                 Some(Ok(Token {
                     handle: llm.0,
                     matched_text: &text[..llm.1],
@@ -166,14 +165,14 @@ where
                 }))
             }
         } else if lrems.0.len() == 1 {
-            self.incr_index_location(lrems.1);
+            self.incr_index_and_location(lrems.1);
             Some(Ok(Token {
                 handle: lrems.0[0],
                 matched_text: &text[..lrems.1],
                 location: current_location,
             }))
         } else if lrems.0.len() > 1 {
-            self.incr_index_location(lrems.1);
+            self.incr_index_and_location(lrems.1);
             Some(Err(Error::AmbiguousMatches(
                 lrems.0,
                 text[..lrems.1].to_string(),
@@ -181,7 +180,7 @@ where
             )))
         } else {
             let distance = self.lexicon.distance_to_next_valid_byte(text);
-            self.incr_index_location(distance);
+            self.incr_index_and_location(distance);
             Some(Err(Error::UnexpectedText(
                 text[..distance].to_string(),
                 current_location.to_string(),
@@ -246,14 +245,12 @@ mod tests {
     #[test]
     fn format_location() {
         let location = Location {
-            index: 10,
             line_number: 10,
             offset: 15,
             label: &"whatever",
         };
         assert_eq!(format!("{}", location), "whatever:10:15");
         let location = Location {
-            index: 100,
             line_number: 9,
             offset: 23,
             label: &"",
@@ -262,17 +259,18 @@ mod tests {
     }
 
     #[test]
-    fn incr_index_location() {
+    fn incr_index_and_location() {
         let lexicon = Lexicon::<u32>::new(&[], &[], &[]).unwrap();
         let mut token_stream = TokenStream {
             lexicon: &lexicon,
             text: &"String\nwith a new line in it".to_string(),
-            index_location: Location::new("whatever"),
+            location: Location::new("whatever"),
+            index: 0,
         };
-        token_stream.incr_index_location(11);
-        println!("{:?}", token_stream.index_location);
-        assert_eq!(token_stream.index_location.index, 11);
-        assert_eq!(token_stream.index_location.line_number, 2);
-        assert_eq!(token_stream.index_location.offset, 5);
+        token_stream.incr_index_and_location(11);
+        println!("{:?}", token_stream.location);
+        assert_eq!(token_stream.index, 11);
+        assert_eq!(token_stream.location.line_number, 2);
+        assert_eq!(token_stream.location.offset, 5);
     }
 }
