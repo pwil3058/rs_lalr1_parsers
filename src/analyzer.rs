@@ -26,7 +26,11 @@ impl<'a> Location<'a> {
 impl<'a> fmt::Display for Location<'a> {
     fn fmt(&self, dest: &mut fmt::Formatter) -> fmt::Result {
         if self.label.len() > 0 {
-            write!(dest, "{}:{}:{}", self.label, self.line_number, self.offset)
+            if self.label.contains(' ') || self.label.contains('\t') {
+                write!(dest, "\"{}\":{}:{}", self.label, self.line_number, self.offset)
+            } else {
+                write!(dest, "{}:{}:{}", self.label, self.line_number, self.offset)
+            }
         } else {
             write!(dest, "{}:{}", self.line_number, self.offset)
         }
@@ -72,8 +76,8 @@ impl<'a, H: Debug + Copy + Eq> Token<'a, H> {
         &self.matched_text
     }
 
-    pub fn location(&'a self) -> Location<'a> {
-        self.location
+    pub fn location(&'a self) -> &'a Location<'a> {
+        &self.location
     }
 }
 

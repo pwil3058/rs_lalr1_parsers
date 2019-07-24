@@ -120,7 +120,7 @@ mod tests {
             Ok(token) => {
                 assert_eq!(*token.handle(), If);
                 assert_eq!(token.matched_text(), "if");
-                assert_eq!(format!("{}", token.location()), "raw text:1:1");
+                assert_eq!(format!("{}", token.location()), "\"raw text\":1:1");
             }
             _ => assert!(false),
         };
@@ -128,7 +128,7 @@ mod tests {
             Ok(token) => {
                 assert_eq!(*token.handle(), Ident);
                 assert_eq!(token.matched_text(), "iffy");
-                assert_eq!(format!("{}", token.location()), "raw text:1:4");
+                assert_eq!(format!("{}", token.location()), "\"raw text\":1:4");
             }
             _ => assert!(false),
         };
@@ -136,7 +136,7 @@ mod tests {
             Ok(token) => {
                 assert_eq!(*token.handle(), Literal);
                 assert_eq!(token.matched_text(), "\"quoted\"");
-                assert_eq!(format!("{}", token.location()), "raw text:2:2");
+                assert_eq!(format!("{}", token.location()), "\"raw text\":2:2");
             }
             _ => assert!(false),
         };
@@ -144,7 +144,7 @@ mod tests {
             Ok(token) => {
                 assert_eq!(*token.handle(), Literal);
                 assert_eq!(token.matched_text(), "\"if\"");
-                assert_eq!(format!("{}", token.location()), "raw text:2:11");
+                assert_eq!(format!("{}", token.location()), "\"raw text\":2:11");
             }
             _ => assert!(false),
         };
@@ -152,7 +152,7 @@ mod tests {
             Err(err) => match err {
                 Error::UnexpectedText(text, location) => {
                     assert_eq!(text, "9");
-                    assert_eq!(format!("{}", location), "raw text:3:1");
+                    assert_eq!(format!("{}", location), "\"raw text\":3:1");
                 }
                 _ => assert!(false),
             },
@@ -162,7 +162,7 @@ mod tests {
             Err(err) => match err {
                 Error::UnexpectedText(text, location) => {
                     assert_eq!(text, "$");
-                    assert_eq!(format!("{}", location), "raw text:3:3");
+                    assert_eq!(format!("{}", location), "\"raw text\":3:3");
                 }
                 _ => assert!(false),
             },
@@ -172,7 +172,7 @@ mod tests {
             Ok(token) => {
                 assert_eq!(*token.handle(), Ident);
                 assert_eq!(token.matched_text(), "name");
-                assert_eq!(format!("{}", token.location()), "raw text:3:6");
+                assert_eq!(format!("{}", token.location()), "\"raw text\":3:6");
             }
             _ => assert!(false),
         };
@@ -180,7 +180,7 @@ mod tests {
             Ok(token) => {
                 assert_eq!(*token.handle(), Btextl);
                 assert_eq!(token.matched_text(), "&{ one \n two &}");
-                assert_eq!(format!("{}", token.location()), "raw text:3:11");
+                assert_eq!(format!("{}", token.location()), "\"raw text\":3:11");
             }
             _ => assert!(false),
         };
@@ -188,7 +188,7 @@ mod tests {
             Ok(token) => {
                 assert_eq!(*token.handle(), Ident);
                 assert_eq!(token.matched_text(), "and");
-                assert_eq!(format!("{}", token.location()), "raw text:4:9");
+                assert_eq!(format!("{}", token.location()), "\"raw text\":4:9");
             }
             _ => assert!(false),
         };
@@ -196,7 +196,7 @@ mod tests {
             Ok(token) => {
                 assert_eq!(*token.handle(), Ident);
                 assert_eq!(token.matched_text(), "so");
-                assert_eq!(format!("{}", token.location()), "raw text:4:13");
+                assert_eq!(format!("{}", token.location()), "\"raw text\":4:13");
             }
             _ => assert!(false),
         };
@@ -204,7 +204,7 @@ mod tests {
             Ok(token) => {
                 assert_eq!(*token.handle(), Pred);
                 assert_eq!(token.matched_text(), "?{on?}");
-                assert_eq!(format!("{}", token.location()), "raw text:4:16");
+                assert_eq!(format!("{}", token.location()), "\"raw text\":4:16");
             }
             _ => assert!(false),
         };
@@ -236,7 +236,7 @@ mod tests {
             Ok(token) => {
                 assert_eq!(*token.handle(), If);
                 assert_eq!(token.matched_text(), "if");
-                assert_eq!(format!("{}", token.location()), "raw text:1:1");
+                assert_eq!(format!("{}", token.location()), "\"raw text\":1:1");
             }
             _ => assert!(false),
         };
@@ -244,7 +244,7 @@ mod tests {
             Ok(token) => {
                 assert_eq!(*token.handle(), Ident);
                 assert_eq!(token.matched_text(), "iffy");
-                assert_eq!(format!("{}", token.location()), "raw text:1:4");
+                assert_eq!(format!("{}", token.location()), "\"raw text\":1:4");
             }
             _ => assert!(false),
         };
@@ -252,7 +252,7 @@ mod tests {
             Ok(token) => {
                 assert_eq!(*token.handle(), Literal);
                 assert_eq!(token.matched_text(), "\"quoted\"");
-                assert_eq!(format!("{}", token.location()), "raw text:2:2");
+                assert_eq!(format!("{}", token.location()), "\"raw text\":2:2");
             }
             _ => assert!(false),
         };
@@ -260,16 +260,16 @@ mod tests {
             Ok(token) => {
                 assert_eq!(*token.handle(), Literal);
                 assert_eq!(token.matched_text(), "\"if\"");
-                assert_eq!(format!("{}", token.location()), "raw text:2:11");
+                assert_eq!(format!("{}", token.location()), "\"raw text\":2:11");
             }
             _ => assert!(false),
         };
-        token_stream.inject("if one \"name\"", "injected text");
+        token_stream.inject("if one \"name\"", "\"injected text\"");
         match token_stream.next().unwrap() {
             Ok(token) => {
                 assert_eq!(*token.handle(), If);
                 assert_eq!(token.matched_text(), "if");
-                assert_eq!(format!("{}", token.location()), "injected text:1:1");
+                assert_eq!(format!("{}", token.location()), "\"\"injected text\"\":1:1");
             }
             _ => assert!(false),
         };
@@ -277,7 +277,7 @@ mod tests {
             Ok(token) => {
                 assert_eq!(*token.handle(), Ident);
                 assert_eq!(token.matched_text(), "one");
-                assert_eq!(format!("{}", token.location()), "injected text:1:4");
+                assert_eq!(format!("{}", token.location()), "\"\"injected text\"\":1:4");
             }
             _ => assert!(false),
         };
@@ -286,7 +286,7 @@ mod tests {
             Ok(token) => {
                 assert_eq!(*token.handle(), Ident);
                 assert_eq!(token.matched_text(), "two");
-                assert_eq!(format!("{}", token.location()), "another text:1:3");
+                assert_eq!(format!("{}", token.location()), "\"another text\":1:3");
             }
             _ => assert!(false),
         };
@@ -294,7 +294,7 @@ mod tests {
             Ok(token) => {
                 assert_eq!(*token.handle(), Literal);
                 assert_eq!(token.matched_text(), "\"name\"");
-                assert_eq!(format!("{}", token.location()), "injected text:1:8");
+                assert_eq!(format!("{}", token.location()), "\"\"injected text\"\":1:8");
             }
             _ => assert!(false),
         };
@@ -303,7 +303,7 @@ mod tests {
             Ok(token) => {
                 assert_eq!(*token.handle(), Ident);
                 assert_eq!(token.matched_text(), "three");
-                assert_eq!(format!("{}", token.location()), "yet another text:1:4");
+                assert_eq!(format!("{}", token.location()), "\"yet another text\":1:4");
             }
             _ => assert!(false),
         };
@@ -311,7 +311,7 @@ mod tests {
             Err(err) => match err {
                 Error::UnexpectedText(text, location) => {
                     assert_eq!(text, "9");
-                    assert_eq!(format!("{}", location), "raw text:3:1");
+                    assert_eq!(format!("{}", location), "\"raw text\":3:1");
                 }
                 _ => assert!(false),
             },
@@ -321,7 +321,7 @@ mod tests {
             Err(err) => match err {
                 Error::UnexpectedText(text, location) => {
                     assert_eq!(text, "$");
-                    assert_eq!(format!("{}", location), "raw text:3:3");
+                    assert_eq!(format!("{}", location), "\"raw text\":3:3");
                 }
                 _ => assert!(false),
             },
@@ -331,7 +331,7 @@ mod tests {
             Ok(token) => {
                 assert_eq!(*token.handle(), Ident);
                 assert_eq!(token.matched_text(), "name");
-                assert_eq!(format!("{}", token.location()), "raw text:3:6");
+                assert_eq!(format!("{}", token.location()), "\"raw text\":3:6");
             }
             _ => assert!(false),
         };
@@ -339,7 +339,7 @@ mod tests {
             Ok(token) => {
                 assert_eq!(*token.handle(), Btextl);
                 assert_eq!(token.matched_text(), "&{ one \n two &}");
-                assert_eq!(format!("{}", token.location()), "raw text:3:11");
+                assert_eq!(format!("{}", token.location()), "\"raw text\":3:11");
             }
             _ => assert!(false),
         };
@@ -347,7 +347,7 @@ mod tests {
             Ok(token) => {
                 assert_eq!(*token.handle(), Ident);
                 assert_eq!(token.matched_text(), "and");
-                assert_eq!(format!("{}", token.location()), "raw text:4:9");
+                assert_eq!(format!("{}", token.location()), "\"raw text\":4:9");
             }
             _ => assert!(false),
         };
@@ -355,7 +355,7 @@ mod tests {
             Ok(token) => {
                 assert_eq!(*token.handle(), Ident);
                 assert_eq!(token.matched_text(), "so");
-                assert_eq!(format!("{}", token.location()), "raw text:4:13");
+                assert_eq!(format!("{}", token.location()), "\"raw text\":4:13");
             }
             _ => assert!(false),
         };
@@ -363,7 +363,7 @@ mod tests {
             Ok(token) => {
                 assert_eq!(*token.handle(), Pred);
                 assert_eq!(token.matched_text(), "?{on?}");
-                assert_eq!(format!("{}", token.location()), "raw text:4:16");
+                assert_eq!(format!("{}", token.location()), "\"raw text\":4:16");
             }
             _ => assert!(false),
         };
