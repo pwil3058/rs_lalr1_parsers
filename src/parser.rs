@@ -24,7 +24,7 @@ pub struct SyntaxErrorData<'a, H> {
 
 pub trait Parser<H: Ord + Copy + Debug, A> {
     fn lexicon(&self) -> &lexan::Lexicon<H>;
-    fn attribute<'b>(&'b self, attr_num: usize, num_attrs: usize) -> &'b u32;
+    fn attribute<'b>(&'b self, attr_num: usize, num_attrs: usize) -> &'b A;
     fn next_action<'a>(
         &self,
         state: u32,

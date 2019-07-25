@@ -6,6 +6,8 @@ pub mod parser;
 mod tests {
     use super::parser;
 
+    use std::collections::HashMap;
+
     #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
     enum Handle {
         Plus,
@@ -21,23 +23,15 @@ mod tests {
     }
 
     #[derive(Debug, Clone)]
-    enum SharedAttributeData<'a> {
-        Id(&'a str),
-        Value(f64),
-        SyntaxError(parser::SyntaxErrorData<'a, Handle>),
-    }
-
-    #[derive(Debug, Clone)]
-    struct AttributeData<'a> {
-        location: lexan::Location<'a>,
-        matched_test: &'a str,
-        shared: SharedAttributeData<'a>,
+    struct AttributeData {
+        id: String,
     }
 
     struct Calc {
         lexicon: lexan::Lexicon<Handle>,
-        attributes: Vec<u32>,
+        attributes: Vec<AttributeData>,
         errors: u32,
+        variables: HashMap<String, f64>,
     }
 
     impl Calc {
@@ -65,16 +59,27 @@ mod tests {
                 lexicon,
                 attributes: vec![],
                 errors: 0,
+                variables: HashMap::new(),
             }
         }
     }
 
-    impl parser::Parser<Handle, u32> for Calc {
+    macro_rules! syntax_error {
+        ( $token:expr; $( $handle:expr),* ) => {
+            parser::Error::SyntaxError(
+                *$token.handle(),
+                vec![ $( $handle),* ],
+                $token.location().to_string(),
+            )
+        };
+    }
+
+    impl parser::Parser<Handle, AttributeData> for Calc {
         fn lexicon(&self) -> &lexan::Lexicon<Handle> {
             &self.lexicon
         }
 
-        fn attribute<'b>(&'b self, attr_num: usize, num_attrs: usize) -> &'b u32 {
+        fn attribute<'b>(&'b self, attr_num: usize, num_attrs: usize) -> &'b AttributeData {
             let index = self.attributes.len() - num_attrs - 1 + attr_num;
             &self.attributes[index]
         }
@@ -87,78 +92,122 @@ mod tests {
             if let Some(token) = o_token {
                 use Handle::*;
                 let handle = *token.handle();
-                match state {
+                return match state {
                     0 => match handle {
-                        Minus | LPR | Number | Id => return Ok(parser::Action::Reduce(8)),
-                        _ => {
-                            return Err(parser::Error::SyntaxError(
-                                handle,
-                                vec![Minus, LPR, Number, Id],
-                                token.location().to_string(),
-                            ))
-                        }
+                        Minus | LPR | Number | Id => Ok(parser::Action::Reduce(8)),
+                        _ => Err(syntax_error!(token; Minus, LPR, Number, Id)),
                     },
                     1 => match handle {
-                        EOL => return Ok(parser::Action::Shift(4)),
-                        _ => {
-                            return Err(parser::Error::SyntaxError(
-                                handle,
-                                vec![EOL],
-                                token.location().to_string(),
-                            ))
-                        }
+                        EOL => Ok(parser::Action::Shift(4)),
+                        _ => Err(syntax_error!(token; EOL)),
                     },
                     2 => match handle {
-                        Minus => return Ok(parser::Action::Shift(8)),
-                        LPR => return Ok(parser::Action::Shift(7)),
-                        Number => return Ok(parser::Action::Shift(9)),
-                        Id => return Ok(parser::Action::Shift(6)),
-                        _ => {
-                            return Err(parser::Error::SyntaxError(
-                                handle,
-                                vec![Minus, LPR, Number, Id],
-                                token.location().to_string(),
-                            ))
-                        }
+                        Minus => Ok(parser::Action::Shift(8)),
+                        LPR => Ok(parser::Action::Shift(7)),
+                        Number => Ok(parser::Action::Shift(9)),
+                        Id => Ok(parser::Action::Shift(6)),
+                        _ => Err(syntax_error!(token; Minus, LPR, Number, Id)),
                     },
                     3 => match handle {
-                        EOL => return Ok(parser::Action::Reduce(7)),
-                        _ => {
-                            return Err(parser::Error::SyntaxError(
-                                handle,
-                                vec![EOL],
-                                token.location().to_string(),
-                            ))
+                        EOL => Ok(parser::Action::Reduce(7)),
+                        _ => Err(syntax_error!(token; EOL)),
+                    },
+                    4 => match handle {
+                        EOL => Ok(parser::Action::Reduce(6)),
+                        Minus | Number | Id | LPR => Ok(parser::Action::Reduce(8)),
+                        _ => Err(syntax_error!(token; EOL, Minus, Number, Id, LPR)),
+                    },
+                    5 => match handle {
+                        Plus => Ok(parser::Action::Shift(11)),
+                        Minus => Ok(parser::Action::Shift(12)),
+                        Times => Ok(parser::Action::Shift(13)),
+                        Divide => Ok(parser::Action::Shift(14)),
+                        EOL => {
+                            if self.errors > 0 {
+                                Ok(parser::Action::Reduce(1))
+                            } else {
+                                Ok(parser::Action::Reduce(2))
+                            }
                         }
+                        _ => Err(syntax_error!(token; EOL, Plus, Minus, Times, Divide)),
+                    },
+                    6 => match handle {
+                        Assign => Ok(parser::Action::Shift(15)),
+                        EOL | Plus | Minus | Times | Divide => {
+                            if self.variables.contains_key(&self.attribute(2, 1).id) {
+                                Ok(parser::Action::Reduce(26))
+                            } else {
+                                Ok(parser::Action::Reduce(27))
+                            }
+                        }
+                        _ => Err(syntax_error!(token; EOL, Plus, Minus, Times, Divide, Assign)),
+                    },
+                    7 => match handle {
+                        Minus => Ok(parser::Action::Shift(8)),
+                        LPR => Ok(parser::Action::Shift(17)),
+                        Number => Ok(parser::Action::Shift(9)),
+                        Id => Ok(parser::Action::Shift(17)),
+                        _ => Err(syntax_error!(token; Minus, Number, Id, LPR)),
+                    },
+                    8 => match handle {
+                        Minus => Ok(parser::Action::Shift(8)),
+                        LPR => Ok(parser::Action::Shift(17)),
+                        Number => Ok(parser::Action::Shift(9)),
+                        Id => Ok(parser::Action::Shift(17)),
+                        _ => Err(syntax_error!(token; Minus, Number, Id, LPR)),
+                    },
+                    9 => match handle {
+                        EOL | Plus | Minus | Times | Divide | RPR => Ok(parser::Action::Reduce(25)),
+                        _ => Err(syntax_error!(token; EOL, Plus, Minus, Times, Divide, RPR)),
+                    },
+                    10 => match handle {
+                        EOL => Ok(parser::Action::Reduce(5)),
+                        _ => Err(syntax_error!(token; EOL)),
+                    },
+                    11 => match handle {
+                        Minus => Ok(parser::Action::Shift(8)),
+                        LPR => Ok(parser::Action::Shift(7)),
+                        Number => Ok(parser::Action::Shift(9)),
+                        Id => Ok(parser::Action::Shift(17)),
+                        _ => Err(syntax_error!(token; Minus, Number, Id, LPR)),
                     },
                     100 => match handle {
-                        Plus => return Ok(parser::Action::Shift(0)),
-                        Minus => return Ok(parser::Action::Shift(0)),
-                        Times => return Ok(parser::Action::Shift(0)),
-                        Divide => return Ok(parser::Action::Shift(0)),
-                        Assign => return Ok(parser::Action::Shift(0)),
-                        LPR => return Ok(parser::Action::Shift(0)),
-                        RPR => return Ok(parser::Action::Shift(0)),
-                        EOL => return Ok(parser::Action::Shift(0)),
-                        Number => return Ok(parser::Action::Shift(0)),
-                        Id => return Ok(parser::Action::Shift(0)),
+                        Plus => Ok(parser::Action::Shift(0)),
+                        Minus => Ok(parser::Action::Shift(0)),
+                        Times => Ok(parser::Action::Shift(0)),
+                        Divide => Ok(parser::Action::Shift(0)),
+                        Assign => Ok(parser::Action::Shift(0)),
+                        LPR => Ok(parser::Action::Shift(0)),
+                        RPR => Ok(parser::Action::Shift(0)),
+                        EOL => Ok(parser::Action::Shift(0)),
+                        Number => Ok(parser::Action::Shift(0)),
+                        Id => Ok(parser::Action::Shift(0)),
                     },
                     _ => panic!("illegal state: {}", state),
-                }
+                };
             } else {
-                match state {
-                    1 => return Ok(parser::Action::Accept),
-                    3 => return Ok(parser::Action::Reduce(7)),
-                    4 => return Ok(parser::Action::Reduce(6)),
+                return match state {
+                    1 => Ok(parser::Action::Accept),
+                    3 => Ok(parser::Action::Reduce(7)),
+                    4 => Ok(parser::Action::Reduce(6)),
                     5 => {
                         if self.errors > 0 {
-                            return Ok(parser::Action::Reduce(1));
+                            Ok(parser::Action::Reduce(1))
                         } else {
-                            return Ok(parser::Action::Reduce(2));
+                            Ok(parser::Action::Reduce(2))
                         }
                     }
-                    _ => return Err(parser::Error::UnexpectedEndOfInput),
-                }
+                    6 => {
+                        if self.variables.contains_key(&self.attribute(2, 1).id) {
+                            Ok(parser::Action::Reduce(26))
+                        } else {
+                            Ok(parser::Action::Reduce(27))
+                        }
+                    }
+                    9 => Ok(parser::Action::Reduce(25)),
+                    10 => Ok(parser::Action::Reduce(15)),
+                    _ => Err(parser::Error::UnexpectedEndOfInput),
+                };
             }
         }
     }
