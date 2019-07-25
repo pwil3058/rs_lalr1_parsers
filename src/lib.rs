@@ -25,6 +25,7 @@ mod tests {
     #[derive(Debug, Clone)]
     struct AttributeData {
         id: String,
+        value: f64,
     }
 
     struct Calc {
@@ -142,14 +143,7 @@ mod tests {
                         }
                         _ => Err(syntax_error!(token; EOL, Plus, Minus, Times, Divide, Assign)),
                     },
-                    7 => match handle {
-                        Minus => Ok(parser::Action::Shift(8)),
-                        LPR => Ok(parser::Action::Shift(17)),
-                        Number => Ok(parser::Action::Shift(9)),
-                        Id => Ok(parser::Action::Shift(17)),
-                        _ => Err(syntax_error!(token; Minus, Number, Id, LPR)),
-                    },
-                    8 => match handle {
+                    7 | 8 => match handle {
                         Minus => Ok(parser::Action::Shift(8)),
                         LPR => Ok(parser::Action::Shift(17)),
                         Number => Ok(parser::Action::Shift(9)),
@@ -164,25 +158,109 @@ mod tests {
                         EOL => Ok(parser::Action::Reduce(5)),
                         _ => Err(syntax_error!(token; EOL)),
                     },
-                    11 => match handle {
+                    11 | 12 | 13 | 14 | 15 => match handle {
                         Minus => Ok(parser::Action::Shift(8)),
                         LPR => Ok(parser::Action::Shift(7)),
                         Number => Ok(parser::Action::Shift(9)),
                         Id => Ok(parser::Action::Shift(17)),
                         _ => Err(syntax_error!(token; Minus, Number, Id, LPR)),
                     },
-                    100 => match handle {
-                        Plus => Ok(parser::Action::Shift(0)),
-                        Minus => Ok(parser::Action::Shift(0)),
-                        Times => Ok(parser::Action::Shift(0)),
-                        Divide => Ok(parser::Action::Shift(0)),
-                        Assign => Ok(parser::Action::Shift(0)),
-                        LPR => Ok(parser::Action::Shift(0)),
-                        RPR => Ok(parser::Action::Shift(0)),
-                        EOL => Ok(parser::Action::Shift(0)),
-                        Number => Ok(parser::Action::Shift(0)),
-                        Id => Ok(parser::Action::Shift(0)),
+                    16 => match handle {
+                        Plus => Ok(parser::Action::Shift(11)),
+                        Minus => Ok(parser::Action::Shift(12)),
+                        Times => Ok(parser::Action::Shift(13)),
+                        Divide => Ok(parser::Action::Shift(14)),
+                        RPR => Ok(parser::Action::Shift(24)),
+                        _ => Err(syntax_error!(token; Plus, Minus, Times, Divide, RPR)),
                     },
+                    17 => match handle {
+                        EOL | Plus | Minus | Times | Divide | RPR => {
+                            if self.variables.contains_key(&self.attribute(2, 1).id) {
+                                Ok(parser::Action::Reduce(26))
+                            } else {
+                                Ok(parser::Action::Reduce(27))
+                            }
+                        }
+                        _ => Err(syntax_error!(token; EOL, Plus, Minus, Times, Divide, RPR)),
+                    },
+                    18 => match handle {
+                        EOL | Plus | Minus | Times | Divide | RPR => Ok(parser::Action::Reduce(24)),
+                        _ => Err(syntax_error!(token; EOL, Plus, Minus, Times, Divide, RPR)),
+                    },
+                    19 => match handle {
+                        Times => Ok(parser::Action::Shift(13)),
+                        Divide => Ok(parser::Action::Shift(14)),
+                        EOL | Plus | Minus | RPR => {
+                            if self.attribute(4, 1).value == 0.0 {
+                                Ok(parser::Action::Reduce(9))
+                            } else if self.attribute(4, 3).value == 0.0 {
+                                Ok(parser::Action::Reduce(10))
+                            } else {
+                                Ok(parser::Action::Reduce(11))
+                            }
+                        }
+                        _ => Err(syntax_error!(token; EOL, Plus, Minus, Times, Divide, RPR)),
+                    },
+                    20 => match handle {
+                        Times => Ok(parser::Action::Shift(13)),
+                        Divide => Ok(parser::Action::Shift(14)),
+                        EOL | Plus | Minus | RPR => {
+                            if self.attribute(4, 1).value == 0.0 {
+                                Ok(parser::Action::Reduce(12))
+                            } else if self.attribute(4, 3).value == 0.0 {
+                                Ok(parser::Action::Reduce(13))
+                            } else {
+                                Ok(parser::Action::Reduce(14))
+                            }
+                        }
+                        _ => Err(syntax_error!(token; EOL, Plus, Minus, Times, Divide, RPR)),
+                    },
+                    21 => match handle {
+                        EOL | Plus | Minus | Times | Divide | RPR => {
+                            if self.attribute(4, 1).value == 0.0 || self.attribute(4, 3).value == 0.0 {
+                                Ok(parser::Action::Reduce(15))
+                            } else if self.attribute(4, 1).value == 1.0 {
+                                Ok(parser::Action::Reduce(16))
+                            } else if self.attribute(4, 3).value == 1.0 {
+                                Ok(parser::Action::Reduce(17))
+                            } else {
+                                Ok(parser::Action::Reduce(18))
+                            }
+                        }
+                        _ => Err(syntax_error!(token; EOL, Plus, Minus, Times, Divide, RPR)),
+                    },
+                    22 => match handle {
+                        EOL | Plus | Minus | Times | Divide | RPR => {
+                            if self.attribute(4, 1).value == 0.0 || self.attribute(4, 3).value == 0.0 {
+                                Ok(parser::Action::Reduce(19))
+                            } else if self.attribute(4, 1).value == 1.0 {
+                                Ok(parser::Action::Reduce(20))
+                            } else if self.attribute(4, 3).value == 1.0 {
+                                Ok(parser::Action::Reduce(21))
+                            } else {
+                                Ok(parser::Action::Reduce(22))
+                            }
+                        }
+                        _ => Err(syntax_error!(token; EOL, Plus, Minus, Times, Divide, RPR)),
+                    },
+                    23 => match handle {
+                        Plus => Ok(parser::Action::Shift(11)),
+                        Minus => Ok(parser::Action::Shift(12)),
+                        Times => Ok(parser::Action::Shift(13)),
+                        Divide => Ok(parser::Action::Shift(14)),
+                        EOL => {
+                            if self.errors == 0 {
+                                Ok(parser::Action::Reduce(3))
+                            } else {
+                                Ok(parser::Action::Reduce(4))
+                            }
+                        },
+                        _ => Err(syntax_error!(token; EOL, Plus, Minus, Times, Divide, RPR)),
+                    },
+                    24 => match handle {
+                        EOL | Plus | Minus | Times | Divide | RPR => Ok(parser::Action::Reduce(22)),
+                        _ => Err(syntax_error!(token; EOL, Plus, Minus, Times, Divide, RPR)),
+                    }
                     _ => panic!("illegal state: {}", state),
                 };
             } else {
@@ -197,7 +275,7 @@ mod tests {
                             Ok(parser::Action::Reduce(2))
                         }
                     }
-                    6 => {
+                    6 | 17 => {
                         if self.variables.contains_key(&self.attribute(2, 1).id) {
                             Ok(parser::Action::Reduce(26))
                         } else {
@@ -206,6 +284,55 @@ mod tests {
                     }
                     9 => Ok(parser::Action::Reduce(25)),
                     10 => Ok(parser::Action::Reduce(15)),
+                    18 => Ok(parser::Action::Reduce(24)),
+                    19 => {
+                        if self.attribute(4, 1).value == 0.0 {
+                            Ok(parser::Action::Reduce(9))
+                        } else if self.attribute(4, 3).value == 0.0 {
+                            Ok(parser::Action::Reduce(10))
+                        } else {
+                            Ok(parser::Action::Reduce(11))
+                        }
+                    }
+                    20 => {
+                        if self.attribute(4, 1).value == 0.0 {
+                            Ok(parser::Action::Reduce(12))
+                        } else if self.attribute(4, 3).value == 0.0 {
+                            Ok(parser::Action::Reduce(13))
+                        } else {
+                            Ok(parser::Action::Reduce(14))
+                        }
+                    }
+                    21 => {
+                        if self.attribute(4, 1).value == 0.0 || self.attribute(4, 3).value == 0.0 {
+                            Ok(parser::Action::Reduce(15))
+                        } else if self.attribute(4, 1).value == 1.0 {
+                            Ok(parser::Action::Reduce(16))
+                        } else if self.attribute(4, 3).value == 1.0 {
+                            Ok(parser::Action::Reduce(17))
+                        } else {
+                            Ok(parser::Action::Reduce(18))
+                        }
+                    }
+                    22 => {
+                        if self.attribute(4, 1).value == 0.0 || self.attribute(4, 3).value == 0.0 {
+                            Ok(parser::Action::Reduce(19))
+                        } else if self.attribute(4, 1).value == 1.0 {
+                            Ok(parser::Action::Reduce(20))
+                        } else if self.attribute(4, 3).value == 1.0 {
+                            Ok(parser::Action::Reduce(21))
+                        } else {
+                            Ok(parser::Action::Reduce(22))
+                        }
+                    }
+                    23 => {
+                        if self.errors == 0 {
+                            Ok(parser::Action::Reduce(3))
+                        } else {
+                            Ok(parser::Action::Reduce(4))
+                        }
+                    },
+                    24 => Ok(parser::Action::Reduce(23)),
                     _ => Err(parser::Error::UnexpectedEndOfInput),
                 };
             }
