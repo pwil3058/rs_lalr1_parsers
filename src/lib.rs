@@ -6,7 +6,9 @@ pub mod parser;
 mod tests {
     use super::parser;
 
+    use std::cell::RefCell;
     use std::collections::HashMap;
+    use std::convert::From;
 
     #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
     enum Handle {
@@ -22,6 +24,13 @@ mod tests {
         Id,
     }
 
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+    enum NonTerminal {
+        Line,
+        SetUp,
+        Expr
+    }
+
     #[derive(Debug, Clone)]
     struct AttributeData {
         id: String,
@@ -30,6 +39,7 @@ mod tests {
 
     struct Calc {
         lexicon: lexan::Lexicon<Handle>,
+        state_stack: RefCell<Vec<(parser::Symbol<Handle, NonTerminal>, u32)>>,
         attributes: Vec<AttributeData>,
         errors: u32,
         variables: HashMap<String, f64>,
@@ -59,6 +69,7 @@ mod tests {
             Self {
                 lexicon,
                 attributes: vec![],
+                state_stack: RefCell::new(vec![]),
                 errors: 0,
                 variables: HashMap::new(),
             }
@@ -75,7 +86,7 @@ mod tests {
         };
     }
 
-    impl parser::Parser<Handle, AttributeData> for Calc {
+    impl parser::Parser<Handle, NonTerminal, AttributeData> for Calc {
         fn lexicon(&self) -> &lexan::Lexicon<Handle> {
             &self.lexicon
         }
@@ -83,6 +94,14 @@ mod tests {
         fn attribute<'b>(&'b self, attr_num: usize, num_attrs: usize) -> &'b AttributeData {
             let index = self.attributes.len() - num_attrs - 1 + attr_num;
             &self.attributes[index]
+        }
+
+        fn current_state(&self) -> u32 {
+            self.state_stack.borrow().last().unwrap().1
+        }
+
+        fn push_state(&self, state:u32, symbol: parser::Symbol<Handle, NonTerminal>) {
+            self.state_stack.borrow_mut().push((symbol, state));
         }
 
         fn next_action<'a>(
@@ -342,7 +361,7 @@ mod tests {
     #[test]
     fn calc_works() {
         use crate::parser::Parser;
-        let calc = Calc::new();
+        let mut calc = Calc::new();
         assert!(!calc.parse_text("a = 3 + 4", "raw"));
     }
 }

@@ -9,6 +9,16 @@ pub enum Error<H: Copy + Debug> {
     UnexpectedEndOfInput,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub enum Symbol<H, N> {
+    Terminal(H),
+    NonTerminal(N),
+    Start,
+    End,
+    Error,
+    Invalid,
+}
+
 #[derive(Debug, Clone)]
 pub enum Action {
     Shift(u32),
@@ -22,9 +32,11 @@ pub struct SyntaxErrorData<'a, H> {
     matched_text: &'a str,
 }
 
-pub trait Parser<H: Ord + Copy + Debug, A> {
+pub trait Parser<H: Ord + Copy + Debug, N, A> {
     fn lexicon(&self) -> &lexan::Lexicon<H>;
     fn attribute<'b>(&'b self, attr_num: usize, num_attrs: usize) -> &'b A;
+    fn current_state(&self) -> u32;
+    fn push_state(&self, state:u32, symbol: Symbol<H, N>);
     fn next_action<'a>(
         &self,
         state: u32,
@@ -46,10 +58,10 @@ pub trait Parser<H: Ord + Copy + Debug, A> {
         false
     }
 
-    fn parse_text<'b>(&'b self, text: &'b str, label: &'b str) -> bool {
+    fn parse_text<'b>(&'b mut self, text: &'b str, label: &'b str) -> bool {
         let mut tokens = self.lexicon().injectable_token_stream(text, label);
+        self.push_state(0, Symbol::Start);
         let mut o_r_token = tokens.next();
-        let mut state: u32 = 0;
         let mut result: bool = true;
         loop {
             if let Some(r_token) = o_r_token {
@@ -62,9 +74,11 @@ pub trait Parser<H: Ord + Copy + Debug, A> {
                             return result;
                         }
                     }
-                    Ok(token) => match self.next_action(state, Some(&token)) {
+                    Ok(token) => match self.next_action(self.current_state(), Some(&token)) {
                         Ok(action) => match action {
-                            Action::Shift(state) => println!("shift: {}", state),
+                            Action::Shift(state) => {
+                                println!("shift: {}", state);
+                            },
                             Action::Reduce(production) => println!("reduce: {}", production),
                             _ => panic!("unexpected action"),
                         },
@@ -78,7 +92,7 @@ pub trait Parser<H: Ord + Copy + Debug, A> {
                     },
                 }
             } else {
-                match self.next_action(state, None) {
+                match self.next_action(self.current_state(), None) {
                     Ok(action) => match action {
                         Action::Reduce(production) => println!("reduce: {}", production),
                         Action::Accept => break,
