@@ -1,6 +1,5 @@
 use std::fmt::Debug;
 
-use crate::analyzer::{InjectableTokenStream, TokenStream};
 use crate::error::LexanError;
 use crate::matcher::{LiteralMatcher, RegexMatcher, SkipMatcher};
 
@@ -23,6 +22,41 @@ where
         regex_lexemes: &[(H, &'a str)],
         skip_regex_strs: &[&'a str],
     ) -> Result<Self, LexanError<'a, H>> {
+        let mut handles = vec![];
+        let mut literals = vec![];
+        let mut regexes = vec![];
+        for (handle, literal) in literal_lexemes.iter() {
+            if literal.len() == 0 {
+                return Err(LexanError::EmptyPattern(*handle));
+            }
+            match handles.binary_search(handle) {
+                Ok(_) => return Err(LexanError::DuplicateHandle(*handle)),
+                Err(index) => handles.insert(index, *handle),
+            }
+            match literals.binary_search(literal) {
+                Ok(_) => return Err(LexanError::DuplicatePattern(literal)),
+                Err(index) => literals.insert(index, literal),
+            }
+        }
+        for (handle, regex) in regex_lexemes.iter() {
+            if regex.len() == 0 {
+                return Err(LexanError::EmptyPattern(*handle));
+            }
+            match handles.binary_search(handle) {
+                Ok(_) => return Err(LexanError::DuplicateHandle(*handle)),
+                Err(index) => handles.insert(index, *handle),
+            }
+            match regexes.binary_search(regex) {
+                Ok(_) => return Err(LexanError::DuplicatePattern(regex)),
+                Err(index) => regexes.insert(index, regex),
+            }
+        }
+        for regex in skip_regex_strs.iter() {
+            match regexes.binary_search(regex) {
+                Ok(_) => return Err(LexanError::DuplicatePattern(regex)),
+                Err(index) => regexes.insert(index, regex),
+            }
+        }
         let literal_matcher = LiteralMatcher::new(literal_lexemes)?;
         let regex_matcher = RegexMatcher::new(regex_lexemes)?;
         let skip_matcher = SkipMatcher::new(skip_regex_strs)?;
@@ -63,22 +97,12 @@ where
         }
         text.len()
     }
-
-    pub fn token_stream<'a>(&'a self, text: &'a str, label: &'a str) -> TokenStream<'a, H> {
-        TokenStream::new(self, text, label)
-    }
-
-    pub fn injectable_token_stream<'a>(
-        &'a self,
-        text: &'a str,
-        label: &'a str,
-    ) -> InjectableTokenStream<'a, H> {
-        InjectableTokenStream::new(self, text, label)
-    }
 }
 
 #[cfg(test)]
 mod tests {
+    use std::rc::Rc;
+
     use super::*;
     use crate::analyzer::*;
 
@@ -98,7 +122,7 @@ mod tests {
     #[test]
     fn streamer_basic() {
         use self::Handle::*;
-        let lexicon = Lexicon::<Handle>::new(
+        let lexicon = Rc::new(Lexicon::<Handle>::new(
             &[(If, "if"), (When, "when")],
             &[
                 (Ident, "\\A[a-zA-Z]+[\\w_]*"),
@@ -111,8 +135,9 @@ mod tests {
             ],
             &[r"\A(/\*(.|[\n\r])*?\*/)", r"\A(//[^\n\r]*)", r"\A(\s+)"],
         )
-        .unwrap();
-        let mut token_stream = lexicon.token_stream(
+        .unwrap());
+        let mut token_stream = TokenStream::new(
+            &lexicon,
             "if iffy\n \"quoted\" \"if\" \n9 $ \tname &{ one \n two &} and so ?{on?}",
             "raw text",
         );
@@ -214,7 +239,7 @@ mod tests {
     #[test]
     fn streamer_injectable() {
         use self::Handle::*;
-        let lexicon = Lexicon::<Handle>::new(
+        let lexicon = Rc::new(Lexicon::<Handle>::new(
             &[(If, "if"), (When, "when")],
             &[
                 (Ident, "\\A[a-zA-Z]+[\\w_]*"),
@@ -227,8 +252,9 @@ mod tests {
             ],
             &[r"\A(/\*(.|[\n\r])*?\*/)", r"\A(//[^\n\r]*)", r"\A(\s+)"],
         )
-        .unwrap();
-        let mut token_stream = lexicon.injectable_token_stream(
+        .unwrap());
+        let mut token_stream = InjectableTokenStream::new(
+            &lexicon,
             "if iffy\n \"quoted\" \"if\" \n9 $ \tname &{ one \n two &} and so ?{on?}",
             "raw text",
         );

@@ -1,4 +1,4 @@
-use std::fmt::{self, Debug};
+use std::{fmt::{self, Debug}, rc::Rc};
 
 use crate::lexicon::Lexicon;
 
@@ -85,7 +85,7 @@ pub struct TokenStream<'a, H>
 where
     H: Debug + Copy + Eq,
 {
-    lexicon: &'a Lexicon<H>,
+    lexicon: Rc<Lexicon<H>>,
     text: &'a str,
     index: usize,
     location: Location<'a>,
@@ -95,10 +95,10 @@ impl<'a, H> TokenStream<'a, H>
 where
     H: Debug + Copy + Eq,
 {
-    pub fn new(lexicon: &'a Lexicon<H>, text: &'a str, label: &'a str) -> Self {
+    pub fn new(lexicon: &Rc<Lexicon<H>>, text: &'a str, label: &'a str) -> Self {
         let location = Location::new(label);
         Self {
-            lexicon,
+            lexicon: Rc::clone(lexicon),
             text,
             location,
             index: 0,
@@ -197,7 +197,7 @@ pub struct InjectableTokenStream<'a, H>
 where
     H: Debug + Copy + Eq,
 {
-    lexicon: &'a Lexicon<H>,
+    lexicon: Rc<Lexicon<H>>,
     token_stream_stack: Vec<TokenStream<'a, H>>,
 }
 
@@ -205,9 +205,9 @@ impl<'a, H> InjectableTokenStream<'a, H>
 where
     H: Debug + Copy + Eq + Ord,
 {
-    pub fn new(lexicon: &'a Lexicon<H>, text: &'a str, label: &'a str) -> Self {
+    pub fn new(lexicon: &Rc<Lexicon<H>>, text: &'a str, label: &'a str) -> Self {
         let mut stream = Self {
-            lexicon,
+            lexicon: Rc::clone(lexicon),
             token_stream_stack: vec![],
         };
         stream.inject(text, label);
@@ -215,7 +215,7 @@ where
     }
 
     pub fn inject(&mut self, text: &'a str, label: &'a str) {
-        let token_stream = self.lexicon.token_stream(text, label);
+        let token_stream = TokenStream::new(&self.lexicon, text, label);
         self.token_stream_stack.push(token_stream);
     }
 }
@@ -264,9 +264,9 @@ mod tests {
 
     #[test]
     fn incr_index_and_location() {
-        let lexicon = Lexicon::<u32>::new(&[], &[], &[]).unwrap();
+        let lexicon = Rc::new(Lexicon::<u32>::new(&[], &[], &[]).unwrap());
         let mut token_stream = TokenStream {
-            lexicon: &lexicon,
+            lexicon: lexicon,
             text: &"String\nwith a new line in it".to_string(),
             location: Location::new("whatever"),
             index: 0,
