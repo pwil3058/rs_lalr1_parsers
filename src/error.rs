@@ -2,9 +2,8 @@ use std::convert::From;
 
 use regex;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum LexanError<'a, H> {
-    AmbiguousMatch(&'a str, Vec<H>),
     DuplicateHandle(H),
     DuplicatePattern(&'a str),
     EmptyPattern(H),

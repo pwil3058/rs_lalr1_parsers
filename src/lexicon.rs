@@ -3,7 +3,7 @@ use std::fmt::Debug;
 use crate::error::LexanError;
 use crate::matcher::{LiteralMatcher, RegexMatcher, SkipMatcher};
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct Lexicon<H>
 where
     H: Copy + PartialEq + Debug,
@@ -23,38 +23,24 @@ where
         skip_regex_strs: &[&'a str],
     ) -> Result<Self, LexanError<'a, H>> {
         let mut handles = vec![];
-        let mut literals = vec![];
-        let mut regexes = vec![];
-        for (handle, literal) in literal_lexemes.iter() {
-            if literal.len() == 0 {
+        let mut patterns = vec![];
+        for (handle, pattern) in literal_lexemes.iter().chain(regex_lexemes.iter()) {
+            if pattern.len() == 0 {
                 return Err(LexanError::EmptyPattern(*handle));
             }
             match handles.binary_search(handle) {
                 Ok(_) => return Err(LexanError::DuplicateHandle(*handle)),
                 Err(index) => handles.insert(index, *handle),
             }
-            match literals.binary_search(literal) {
-                Ok(_) => return Err(LexanError::DuplicatePattern(literal)),
-                Err(index) => literals.insert(index, literal),
-            }
-        }
-        for (handle, regex) in regex_lexemes.iter() {
-            if regex.len() == 0 {
-                return Err(LexanError::EmptyPattern(*handle));
-            }
-            match handles.binary_search(handle) {
-                Ok(_) => return Err(LexanError::DuplicateHandle(*handle)),
-                Err(index) => handles.insert(index, *handle),
-            }
-            match regexes.binary_search(regex) {
-                Ok(_) => return Err(LexanError::DuplicatePattern(regex)),
-                Err(index) => regexes.insert(index, regex),
+            match patterns.binary_search(pattern) {
+                Ok(_) => return Err(LexanError::DuplicatePattern(pattern)),
+                Err(index) => patterns.insert(index, pattern),
             }
         }
         for regex in skip_regex_strs.iter() {
-            match regexes.binary_search(regex) {
+            match patterns.binary_search(regex) {
                 Ok(_) => return Err(LexanError::DuplicatePattern(regex)),
-                Err(index) => regexes.insert(index, regex),
+                Err(index) => patterns.insert(index, regex),
             }
         }
         let literal_matcher = LiteralMatcher::new(literal_lexemes)?;
@@ -120,9 +106,9 @@ mod tests {
     }
 
     #[test]
-    fn streamer_basic() {
+    fn lexicon_ok() {
         use self::Handle::*;
-        let lexicon = Rc::new(Lexicon::<Handle>::new(
+        let lexicon = Lexicon::<Handle>::new(
             &[(If, "if"), (When, "when")],
             &[
                 (Ident, "\\A[a-zA-Z]+[\\w_]*"),
@@ -134,113 +120,15 @@ mod tests {
                 (Code, r"\A(%\{(.|[\n\r])*?%\})"),
             ],
             &[r"\A(/\*(.|[\n\r])*?\*/)", r"\A(//[^\n\r]*)", r"\A(\s+)"],
-        )
-        .unwrap());
-        let mut token_stream = TokenStream::new(
-            &lexicon,
-            "if iffy\n \"quoted\" \"if\" \n9 $ \tname &{ one \n two &} and so ?{on?}",
-            "raw text",
         );
-        match token_stream.next().unwrap() {
-            Ok(token) => {
-                assert_eq!(*token.handle(), If);
-                assert_eq!(token.matched_text(), "if");
-                assert_eq!(format!("{}", token.location()), "\"raw text\":1:1");
-            }
-            _ => assert!(false),
-        };
-        match token_stream.next().unwrap() {
-            Ok(token) => {
-                assert_eq!(*token.handle(), Ident);
-                assert_eq!(token.matched_text(), "iffy");
-                assert_eq!(format!("{}", token.location()), "\"raw text\":1:4");
-            }
-            _ => assert!(false),
-        };
-        match token_stream.next().unwrap() {
-            Ok(token) => {
-                assert_eq!(*token.handle(), Literal);
-                assert_eq!(token.matched_text(), "\"quoted\"");
-                assert_eq!(format!("{}", token.location()), "\"raw text\":2:2");
-            }
-            _ => assert!(false),
-        };
-        match token_stream.next().unwrap() {
-            Ok(token) => {
-                assert_eq!(*token.handle(), Literal);
-                assert_eq!(token.matched_text(), "\"if\"");
-                assert_eq!(format!("{}", token.location()), "\"raw text\":2:11");
-            }
-            _ => assert!(false),
-        };
-        match token_stream.next().unwrap() {
-            Err(err) => match err {
-                Error::UnexpectedText(text, location) => {
-                    assert_eq!(text, "9");
-                    assert_eq!(format!("{}", location), "\"raw text\":3:1");
-                }
-                _ => assert!(false),
-            },
-            _ => assert!(false),
-        };
-        match token_stream.next().unwrap() {
-            Err(err) => match err {
-                Error::UnexpectedText(text, location) => {
-                    assert_eq!(text, "$");
-                    assert_eq!(format!("{}", location), "\"raw text\":3:3");
-                }
-                _ => assert!(false),
-            },
-            _ => assert!(false),
-        };
-        match token_stream.next().unwrap() {
-            Ok(token) => {
-                assert_eq!(*token.handle(), Ident);
-                assert_eq!(token.matched_text(), "name");
-                assert_eq!(format!("{}", token.location()), "\"raw text\":3:6");
-            }
-            _ => assert!(false),
-        };
-        match token_stream.next().unwrap() {
-            Ok(token) => {
-                assert_eq!(*token.handle(), Btextl);
-                assert_eq!(token.matched_text(), "&{ one \n two &}");
-                assert_eq!(format!("{}", token.location()), "\"raw text\":3:11");
-            }
-            _ => assert!(false),
-        };
-        match token_stream.next().unwrap() {
-            Ok(token) => {
-                assert_eq!(*token.handle(), Ident);
-                assert_eq!(token.matched_text(), "and");
-                assert_eq!(format!("{}", token.location()), "\"raw text\":4:9");
-            }
-            _ => assert!(false),
-        };
-        match token_stream.next().unwrap() {
-            Ok(token) => {
-                assert_eq!(*token.handle(), Ident);
-                assert_eq!(token.matched_text(), "so");
-                assert_eq!(format!("{}", token.location()), "\"raw text\":4:13");
-            }
-            _ => assert!(false),
-        };
-        match token_stream.next().unwrap() {
-            Ok(token) => {
-                assert_eq!(*token.handle(), Pred);
-                assert_eq!(token.matched_text(), "?{on?}");
-                assert_eq!(format!("{}", token.location()), "\"raw text\":4:16");
-            }
-            _ => assert!(false),
-        };
-        assert!(token_stream.next().is_none());
+        assert!(lexicon.is_ok());
     }
 
     #[test]
-    fn streamer_injectable() {
+    fn lexicon_fail() {
         use self::Handle::*;
-        let lexicon = Rc::new(Lexicon::<Handle>::new(
-            &[(If, "if"), (When, "when")],
+        let lexicon = Lexicon::<Handle>::new(
+            &[(If, "if"), (If, "when")],
             &[
                 (Ident, "\\A[a-zA-Z]+[\\w_]*"),
                 (Btextl, r"\A&\{(.|[\n\r])*&\}"),
@@ -251,148 +139,144 @@ mod tests {
                 (Code, r"\A(%\{(.|[\n\r])*?%\})"),
             ],
             &[r"\A(/\*(.|[\n\r])*?\*/)", r"\A(//[^\n\r]*)", r"\A(\s+)"],
-        )
-        .unwrap());
-        let mut token_stream = InjectableTokenStream::new(
-            &lexicon,
-            "if iffy\n \"quoted\" \"if\" \n9 $ \tname &{ one \n two &} and so ?{on?}",
-            "raw text",
         );
-        match token_stream.next().unwrap() {
-            Ok(token) => {
-                assert_eq!(*token.handle(), If);
-                assert_eq!(token.matched_text(), "if");
-                assert_eq!(format!("{}", token.location()), "\"raw text\":1:1");
-            }
-            _ => assert!(false),
-        };
-        match token_stream.next().unwrap() {
-            Ok(token) => {
-                assert_eq!(*token.handle(), Ident);
-                assert_eq!(token.matched_text(), "iffy");
-                assert_eq!(format!("{}", token.location()), "\"raw text\":1:4");
-            }
-            _ => assert!(false),
-        };
-        match token_stream.next().unwrap() {
-            Ok(token) => {
-                assert_eq!(*token.handle(), Literal);
-                assert_eq!(token.matched_text(), "\"quoted\"");
-                assert_eq!(format!("{}", token.location()), "\"raw text\":2:2");
-            }
-            _ => assert!(false),
-        };
-        match token_stream.next().unwrap() {
-            Ok(token) => {
-                assert_eq!(*token.handle(), Literal);
-                assert_eq!(token.matched_text(), "\"if\"");
-                assert_eq!(format!("{}", token.location()), "\"raw text\":2:11");
-            }
-            _ => assert!(false),
-        };
-        token_stream.inject("if one \"name\"", "\"injected text\"");
-        match token_stream.next().unwrap() {
-            Ok(token) => {
-                assert_eq!(*token.handle(), If);
-                assert_eq!(token.matched_text(), "if");
-                assert_eq!(format!("{}", token.location()), "\"\"injected text\"\":1:1");
-            }
-            _ => assert!(false),
-        };
-        match token_stream.next().unwrap() {
-            Ok(token) => {
-                assert_eq!(*token.handle(), Ident);
-                assert_eq!(token.matched_text(), "one");
-                assert_eq!(format!("{}", token.location()), "\"\"injected text\"\":1:4");
-            }
-            _ => assert!(false),
-        };
-        token_stream.inject("  two", "another text");
-        match token_stream.next().unwrap() {
-            Ok(token) => {
-                assert_eq!(*token.handle(), Ident);
-                assert_eq!(token.matched_text(), "two");
-                assert_eq!(format!("{}", token.location()), "\"another text\":1:3");
-            }
-            _ => assert!(false),
-        };
-        match token_stream.next().unwrap() {
-            Ok(token) => {
-                assert_eq!(*token.handle(), Literal);
-                assert_eq!(token.matched_text(), "\"name\"");
-                assert_eq!(format!("{}", token.location()), "\"\"injected text\"\":1:8");
-            }
-            _ => assert!(false),
-        };
-        token_stream.inject("   three", "yet another text");
-        match token_stream.next().unwrap() {
-            Ok(token) => {
-                assert_eq!(*token.handle(), Ident);
-                assert_eq!(token.matched_text(), "three");
-                assert_eq!(format!("{}", token.location()), "\"yet another text\":1:4");
-            }
-            _ => assert!(false),
-        };
-        match token_stream.next().unwrap() {
-            Err(err) => match err {
-                Error::UnexpectedText(text, location) => {
-                    assert_eq!(text, "9");
-                    assert_eq!(format!("{}", location), "\"raw text\":3:1");
-                }
-                _ => assert!(false),
-            },
-            _ => assert!(false),
-        };
-        match token_stream.next().unwrap() {
-            Err(err) => match err {
-                Error::UnexpectedText(text, location) => {
-                    assert_eq!(text, "$");
-                    assert_eq!(format!("{}", location), "\"raw text\":3:3");
-                }
-                _ => assert!(false),
-            },
-            _ => assert!(false),
-        };
-        match token_stream.next().unwrap() {
-            Ok(token) => {
-                assert_eq!(*token.handle(), Ident);
-                assert_eq!(token.matched_text(), "name");
-                assert_eq!(format!("{}", token.location()), "\"raw text\":3:6");
-            }
-            _ => assert!(false),
-        };
-        match token_stream.next().unwrap() {
-            Ok(token) => {
-                assert_eq!(*token.handle(), Btextl);
-                assert_eq!(token.matched_text(), "&{ one \n two &}");
-                assert_eq!(format!("{}", token.location()), "\"raw text\":3:11");
-            }
-            _ => assert!(false),
-        };
-        match token_stream.next().unwrap() {
-            Ok(token) => {
-                assert_eq!(*token.handle(), Ident);
-                assert_eq!(token.matched_text(), "and");
-                assert_eq!(format!("{}", token.location()), "\"raw text\":4:9");
-            }
-            _ => assert!(false),
-        };
-        match token_stream.next().unwrap() {
-            Ok(token) => {
-                assert_eq!(*token.handle(), Ident);
-                assert_eq!(token.matched_text(), "so");
-                assert_eq!(format!("{}", token.location()), "\"raw text\":4:13");
-            }
-            _ => assert!(false),
-        };
-        match token_stream.next().unwrap() {
-            Ok(token) => {
-                assert_eq!(*token.handle(), Pred);
-                assert_eq!(token.matched_text(), "?{on?}");
-                assert_eq!(format!("{}", token.location()), "\"raw text\":4:16");
-            }
-            _ => assert!(false),
-        };
-        assert!(token_stream.next().is_none());
+        if let Err(err) = lexicon {
+            assert_eq!(err, LexanError::DuplicateHandle(If));
+        } else {
+            assert!(false)
+        }
+
+        let lexicon = Lexicon::<Handle>::new(
+            &[(If, "if"), (When, "when")],
+            &[
+                (Action, "\\A[a-zA-Z]+[\\w_]*"),
+                (Btextl, r"\A&\{(.|[\n\r])*&\}"),
+                (Pred, r"\A\?\{(.|[\n\r])*\?\}"),
+                (Literal, "\\A(\"\\S+\")"),
+                (Action, r"\A(!\{(.|[\n\r])*?!\})"),
+                (Predicate, r"\A(\?\((.|[\n\r])*?\?\))"),
+                (Code, r"\A(%\{(.|[\n\r])*?%\})"),
+            ],
+            &[r"\A(/\*(.|[\n\r])*?\*/)", r"\A(//[^\n\r]*)", r"\A(\s+)"],
+        );
+        if let Err(err) = lexicon {
+            assert_eq!(err, LexanError::DuplicateHandle(Action));
+        } else {
+            assert!(false)
+        }
+
+        let lexicon = Lexicon::<Handle>::new(
+            &[(If, "if"), (When, "when")],
+            &[
+                (Ident, "\\A[a-zA-Z]+[\\w_]*"),
+                (Btextl, r"\A&\{(.|[\n\r])*&\}"),
+                (Pred, r"\A\?\{(.|[\n\r])*\?\}"),
+                (Literal, "\\A(\"\\S+\")"),
+                (When, r"\A(!\{(.|[\n\r])*?!\})"),
+                (Predicate, r"\A(\?\((.|[\n\r])*?\?\))"),
+                (Code, r"\A(%\{(.|[\n\r])*?%\})"),
+            ],
+            &[r"\A(/\*(.|[\n\r])*?\*/)", r"\A(//[^\n\r]*)", r"\A(\s+)"],
+        );
+        if let Err(err) = lexicon {
+            assert_eq!(err, LexanError::DuplicateHandle(When));
+        } else {
+            assert!(false)
+        }
+
+        let lexicon = Lexicon::<Handle>::new(
+            &[(If, "if"), (When, "if")],
+            &[
+                (Ident, "\\A[a-zA-Z]+[\\w_]*"),
+                (Btextl, r"\A&\{(.|[\n\r])*&\}"),
+                (Pred, r"\A\?\{(.|[\n\r])*\?\}"),
+                (Literal, "\\A(\"\\S+\")"),
+                (Action, r"\A(!\{(.|[\n\r])*?!\})"),
+                (Predicate, r"\A(\?\((.|[\n\r])*?\?\))"),
+                (Code, r"\A(%\{(.|[\n\r])*?%\})"),
+            ],
+            &[r"\A(/\*(.|[\n\r])*?\*/)", r"\A(//[^\n\r]*)", r"\A(\s+)"],
+        );
+        if let Err(err) = lexicon {
+            assert_eq!(err, LexanError::DuplicatePattern("if"));
+        } else {
+            assert!(false)
+        }
+
+        let lexicon = Lexicon::<Handle>::new(
+            &[(If, "if"), (When, "when")],
+            &[
+                (Ident, "\\A[a-zA-Z]+[\\w_]*"),
+                (Btextl, r"\A&\{(.|[\n\r])*&\}"),
+                (Pred, r"\A\?\{(.|[\n\r])*\?\}"),
+                (Literal, "when"),
+                (Action, r"\A(!\{(.|[\n\r])*?!\})"),
+                (Predicate, r"\A(\?\((.|[\n\r])*?\?\))"),
+                (Code, r"\A(%\{(.|[\n\r])*?%\})"),
+            ],
+            &[r"\A(/\*(.|[\n\r])*?\*/)", r"\A(//[^\n\r]*)", r"\A(\s+)"],
+        );
+        if let Err(err) = lexicon {
+            assert_eq!(err, LexanError::DuplicatePattern("when"));
+        } else {
+            assert!(false)
+        }
+
+        let lexicon = Lexicon::<Handle>::new(
+            &[(If, "if"), (When, "when")],
+            &[
+                (Ident, "\\A(\"\\S+\")"),
+                (Btextl, r"\A&\{(.|[\n\r])*&\}"),
+                (Pred, r"\A\?\{(.|[\n\r])*\?\}"),
+                (Literal, "\\A(\"\\S+\")"),
+                (Action, r"\A(!\{(.|[\n\r])*?!\})"),
+                (Predicate, r"\A(\?\((.|[\n\r])*?\?\))"),
+                (Code, r"\A(%\{(.|[\n\r])*?%\})"),
+            ],
+            &[r"\A(/\*(.|[\n\r])*?\*/)", r"\A(//[^\n\r]*)", r"\A(\s+)"],
+        );
+        if let Err(err) = lexicon {
+            assert_eq!(err, LexanError::DuplicatePattern("\\A(\"\\S+\")"));
+        } else {
+            assert!(false)
+        }
+
+        let lexicon = Lexicon::<Handle>::new(
+            &[(If, "if"), (When, "when")],
+            &[
+                (Ident, "\\A[a-zA-Z]+[\\w_]*"),
+                (Btextl, r"\A&\{(.|[\n\r])*&\}"),
+                (Pred, r"\A\?\{(.|[\n\r])*\?\}"),
+                (Literal, "\\A(\"\\S+\")"),
+                (Action, r"\A(!\{(.|[\n\r])*?!\})"),
+                (Predicate, r"\A(\?\((.|[\n\r])*?\?\))"),
+                (Code, r"\A(%\{(.|[\n\r])*?%\})"),
+            ],
+            &[r"\A(/\*(.|[\n\r])*?\*/)", r"\A(//[^\n\r]*)", "\\A(\"\\S+\")"],
+        );
+        if let Err(err) = lexicon {
+            assert_eq!(err, LexanError::DuplicatePattern("\\A(\"\\S+\")"));
+        } else {
+            assert!(false)
+        }
+
+        let lexicon = Lexicon::<Handle>::new(
+            &[(If, "if"), (When, "when")],
+            &[
+                (Ident, "\\A[a-zA-Z]+[\\w_]*"),
+                (Btextl, r"\A&\{(.|[\n\r])*&\}"),
+                (Pred, r"\A\?\{(.|[\n\r])*\?\}"),
+                (Literal, "\\A(\"\\S+\")"),
+                (Action, r"\A(!\{(.|[\n\r])*?!\})"),
+                (Predicate, r"(\?\((.|[\n\r])*?\?\))"),
+                (Code, r"\A(%\{(.|[\n\r])*?%\})"),
+            ],
+            &[r"\A(/\*(.|[\n\r])*?\*/)", r"\A(//[^\n\r]*)", r"\A(\s+)"],
+        );
+        if let Err(err) = lexicon {
+            assert_eq!(err, LexanError::UnanchoredRegex(r"(\?\((.|[\n\r])*?\?\))"));
+        } else {
+            assert!(false)
+        }
     }
 }
