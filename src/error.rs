@@ -6,7 +6,7 @@ use regex;
 pub enum LexanError<'a, H> {
     DuplicateHandle(H),
     DuplicatePattern(&'a str),
-    EmptyPattern(H),
+    EmptyPattern(Option<H>),
     RegexError(regex::Error),
     UnanchoredRegex(&'a str),
 }

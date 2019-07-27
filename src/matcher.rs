@@ -68,23 +68,18 @@ impl<H: PartialEq + Debug + Copy> LiteralMatcherNode<H> {
 }
 
 #[derive(Debug, Default)]
-pub struct LiteralMatcher<H: PartialEq + Debug + Copy> {
+pub(crate) struct LiteralMatcher<H: PartialEq + Debug + Copy> {
     lexemes: HashMap<u8, LiteralMatcherNode<H>>,
 }
 
 impl<H: Eq + Debug + Copy + Ord> LiteralMatcher<H> {
     pub fn new<'a>(lexemes: &[(H, &'a str)]) -> Result<LiteralMatcher<H>, LexanError<'a, H>> {
-        let mut handles = vec![];
         let mut lexes = HashMap::<u8, LiteralMatcherNode<H>>::new();
         for &(handle, pattern) in lexemes.iter() {
             // make sure that handles are unique and strings are not empty
             if pattern.len() == 0 {
-                return Err(LexanError::EmptyPattern(handle));
+                return Err(LexanError::EmptyPattern(Some(handle)));
             }
-            match handles.binary_search(&handle) {
-                Ok(_) => return Err(LexanError::DuplicateHandle(handle)),
-                Err(index) => handles.insert(index, handle),
-            };
 
             let key = pattern.as_bytes()[0];
             if lexes.contains_key(&key) {
@@ -131,30 +126,20 @@ impl<H: Eq + Debug + Copy + Ord> LiteralMatcher<H> {
 }
 
 #[derive(Debug, Default)]
-pub struct RegexMatcher<H: Copy + Debug> {
+pub(crate) struct RegexMatcher<H: Copy + Debug> {
     lexemes: Vec<(H, Regex)>,
 }
 
 impl<H: Copy + Ord + Debug> RegexMatcher<H> {
     pub fn new<'a>(lexeme_patterns: &[(H, &'a str)]) -> Result<RegexMatcher<H>, LexanError<'a, H>> {
-        let mut handles = vec![];
-        let mut patterns = vec![];
         let mut lexemes = vec![];
         for (handle, pattern) in lexeme_patterns.iter() {
             if !pattern.starts_with("\\A") {
                 return Err(LexanError::UnanchoredRegex(pattern));
             };
             if pattern.len() <= "\\A".len() {
-                return Err(LexanError::EmptyPattern(*handle));
+                return Err(LexanError::EmptyPattern(Some(*handle)));
             };
-            match handles.binary_search(handle) {
-                Ok(_) => return Err(LexanError::DuplicateHandle(*handle)),
-                Err(index) => handles.insert(index, *handle),
-            }
-            match patterns.binary_search(pattern) {
-                Ok(_) => return Err(LexanError::DuplicatePattern(pattern)),
-                Err(index) => patterns.insert(index, *pattern),
-            }
             lexemes.push((*handle, Regex::new(pattern)?));
         }
         Ok(Self { lexemes })
@@ -189,7 +174,7 @@ impl<H: Copy + Ord + Debug> RegexMatcher<H> {
 }
 
 #[derive(Debug, Default)]
-pub struct SkipMatcher {
+pub(crate) struct SkipMatcher {
     regexes: Vec<Regex>,
 }
 
@@ -199,6 +184,9 @@ impl SkipMatcher {
         for regex_str in regex_strs.iter() {
             if !regex_str.starts_with("\\A") {
                 return Err(LexanError::UnanchoredRegex(regex_str));
+            };
+            if regex_str.len() <= "\\A".len() {
+                return Err(LexanError::EmptyPattern(None));
             };
             regexes.push(Regex::new(regex_str)?);
         }

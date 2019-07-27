@@ -25,9 +25,6 @@ where
         let mut handles = vec![];
         let mut patterns = vec![];
         for (handle, pattern) in literal_lexemes.iter().chain(regex_lexemes.iter()) {
-            if pattern.len() == 0 {
-                return Err(LexanError::EmptyPattern(*handle));
-            }
             match handles.binary_search(handle) {
                 Ok(_) => return Err(LexanError::DuplicateHandle(*handle)),
                 Err(index) => handles.insert(index, *handle),
