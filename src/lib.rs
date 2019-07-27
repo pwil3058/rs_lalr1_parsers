@@ -11,7 +11,7 @@ mod tests {
     use std::convert::From;
 
     #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-    enum Handle {
+    enum Terminal {
         Plus,
         Minus,
         Times,
@@ -28,7 +28,7 @@ mod tests {
     enum NonTerminal {
         Line,
         SetUp,
-        Expr
+        Expr,
     }
 
     #[derive(Debug, Clone)]
@@ -38,8 +38,8 @@ mod tests {
     }
 
     struct Calc {
-        lexicon: lexan::Lexicon<Handle>,
-        state_stack: RefCell<Vec<(parser::Symbol<Handle, NonTerminal>, u32)>>,
+        lexical_analyzer: lexan::LexicalAnalyzer<Terminal>,
+        state_stack: RefCell<Vec<(parser::Symbol<Terminal, NonTerminal>, u32)>>,
         attributes: Vec<AttributeData>,
         errors: u32,
         variables: HashMap<String, f64>,
@@ -47,8 +47,8 @@ mod tests {
 
     impl Calc {
         pub fn new() -> Self {
-            use Handle::*;
-            let lexicon = lexan::Lexicon::new(
+            use Terminal::*;
+            let lexical_analyzer = lexan::LexicalAnalyzer::new(
                 &[
                     (Plus, "+"),
                     (Minus, "-"),
@@ -64,10 +64,9 @@ mod tests {
                     (Id, r"\A([a-zA-Z]+)"),
                 ],
                 &[r"\A([\t\r ]+)"],
-            )
-            .unwrap();
+            );
             Self {
-                lexicon,
+                lexical_analyzer,
                 attributes: vec![],
                 state_stack: RefCell::new(vec![]),
                 errors: 0,
@@ -86,9 +85,9 @@ mod tests {
         };
     }
 
-    impl parser::Parser<Handle, NonTerminal, AttributeData> for Calc {
-        fn lexicon(&self) -> &lexan::Lexicon<Handle> {
-            &self.lexicon
+    impl parser::Parser<Terminal, NonTerminal, AttributeData> for Calc {
+        fn lexical_analyzer(&self) -> &lexan::LexicalAnalyzer<Terminal> {
+            &self.lexical_analyzer
         }
 
         fn attribute<'b>(&'b self, attr_num: usize, num_attrs: usize) -> &'b AttributeData {
@@ -100,17 +99,17 @@ mod tests {
             self.state_stack.borrow().last().unwrap().1
         }
 
-        fn push_state(&self, state:u32, symbol: parser::Symbol<Handle, NonTerminal>) {
+        fn push_state(&self, state: u32, symbol: parser::Symbol<Terminal, NonTerminal>) {
             self.state_stack.borrow_mut().push((symbol, state));
         }
 
         fn next_action<'a>(
             &self,
             state: u32,
-            o_token: Option<&lexan::Token<'a, Handle>>,
-        ) -> Result<parser::Action, parser::Error<Handle>> {
+            o_token: Option<&lexan::Token<'a, Terminal>>,
+        ) -> Result<parser::Action, parser::Error<Terminal>> {
             if let Some(token) = o_token {
-                use Handle::*;
+                use Terminal::*;
                 let handle = *token.handle();
                 return match state {
                     0 => match handle {
@@ -236,7 +235,9 @@ mod tests {
                     },
                     21 => match handle {
                         EOL | Plus | Minus | Times | Divide | RPR => {
-                            if self.attribute(4, 1).value == 0.0 || self.attribute(4, 3).value == 0.0 {
+                            if self.attribute(4, 1).value == 0.0
+                                || self.attribute(4, 3).value == 0.0
+                            {
                                 Ok(parser::Action::Reduce(15))
                             } else if self.attribute(4, 1).value == 1.0 {
                                 Ok(parser::Action::Reduce(16))
@@ -250,7 +251,9 @@ mod tests {
                     },
                     22 => match handle {
                         EOL | Plus | Minus | Times | Divide | RPR => {
-                            if self.attribute(4, 1).value == 0.0 || self.attribute(4, 3).value == 0.0 {
+                            if self.attribute(4, 1).value == 0.0
+                                || self.attribute(4, 3).value == 0.0
+                            {
                                 Ok(parser::Action::Reduce(19))
                             } else if self.attribute(4, 1).value == 1.0 {
                                 Ok(parser::Action::Reduce(20))
@@ -273,13 +276,13 @@ mod tests {
                             } else {
                                 Ok(parser::Action::Reduce(4))
                             }
-                        },
+                        }
                         _ => Err(syntax_error!(token; EOL, Plus, Minus, Times, Divide, RPR)),
                     },
                     24 => match handle {
                         EOL | Plus | Minus | Times | Divide | RPR => Ok(parser::Action::Reduce(22)),
                         _ => Err(syntax_error!(token; EOL, Plus, Minus, Times, Divide, RPR)),
-                    }
+                    },
                     _ => panic!("illegal state: {}", state),
                 };
             } else {
@@ -350,7 +353,7 @@ mod tests {
                         } else {
                             Ok(parser::Action::Reduce(4))
                         }
-                    },
+                    }
                     24 => Ok(parser::Action::Reduce(23)),
                     _ => Err(parser::Error::UnexpectedEndOfInput),
                 };
