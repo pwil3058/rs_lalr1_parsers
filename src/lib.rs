@@ -76,10 +76,10 @@ mod tests {
     }
 
     macro_rules! syntax_error {
-        ( $token:expr; $( $handle:expr),* ) => {
+        ( $token:expr; $( $symbol:expr),* ) => {
             parser::Error::SyntaxError(
-                *$token.handle(),
-                vec![ $( $handle),* ],
+                *$token.symbol(),
+                vec![ $( $symbol),* ],
                 $token.location().to_string(),
             )
         };
@@ -109,33 +109,33 @@ mod tests {
             token: &lexan::Token<'a, Terminal>,
         ) -> Result<parser::Action, parser::Error<'a, Terminal>> {
             use Terminal::*;
-            let handle = *token.handle();
+            let symbol = *token.symbol();
             return match state {
-                0 => match handle {
+                0 => match symbol {
                     Minus | LPR | Number | Id => Ok(parser::Action::Reduce(8)),
                     _ => Err(syntax_error!(token; Minus, LPR, Number, Id)),
                 },
-                1 => match handle {
+                1 => match symbol {
                     EOL => Ok(parser::Action::Shift(4)),
                     _ => Err(syntax_error!(token; EOL)),
                 },
-                2 => match handle {
+                2 => match symbol {
                     Minus => Ok(parser::Action::Shift(8)),
                     LPR => Ok(parser::Action::Shift(7)),
                     Number => Ok(parser::Action::Shift(9)),
                     Id => Ok(parser::Action::Shift(6)),
                     _ => Err(syntax_error!(token; Minus, LPR, Number, Id)),
                 },
-                3 => match handle {
+                3 => match symbol {
                     EOL => Ok(parser::Action::Reduce(7)),
                     _ => Err(syntax_error!(token; EOL)),
                 },
-                4 => match handle {
+                4 => match symbol {
                     EOL => Ok(parser::Action::Reduce(6)),
                     Minus | Number | Id | LPR => Ok(parser::Action::Reduce(8)),
                     _ => Err(syntax_error!(token; EOL, Minus, Number, Id, LPR)),
                 },
-                5 => match handle {
+                5 => match symbol {
                     Plus => Ok(parser::Action::Shift(11)),
                     Minus => Ok(parser::Action::Shift(12)),
                     Times => Ok(parser::Action::Shift(13)),
@@ -149,7 +149,7 @@ mod tests {
                     }
                     _ => Err(syntax_error!(token; EOL, Plus, Minus, Times, Divide)),
                 },
-                6 => match handle {
+                6 => match symbol {
                     Assign => Ok(parser::Action::Shift(15)),
                     EOL | Plus | Minus | Times | Divide => {
                         if self.variables.contains_key(&self.attribute(2, 1).id) {
@@ -160,29 +160,29 @@ mod tests {
                     }
                     _ => Err(syntax_error!(token; EOL, Plus, Minus, Times, Divide, Assign)),
                 },
-                7 | 8 => match handle {
+                7 | 8 => match symbol {
                     Minus => Ok(parser::Action::Shift(8)),
                     LPR => Ok(parser::Action::Shift(17)),
                     Number => Ok(parser::Action::Shift(9)),
                     Id => Ok(parser::Action::Shift(17)),
                     _ => Err(syntax_error!(token; Minus, Number, Id, LPR)),
                 },
-                9 => match handle {
+                9 => match symbol {
                     EOL | Plus | Minus | Times | Divide | RPR => Ok(parser::Action::Reduce(25)),
                     _ => Err(syntax_error!(token; EOL, Plus, Minus, Times, Divide, RPR)),
                 },
-                10 => match handle {
+                10 => match symbol {
                     EOL => Ok(parser::Action::Reduce(5)),
                     _ => Err(syntax_error!(token; EOL)),
                 },
-                11 | 12 | 13 | 14 | 15 => match handle {
+                11 | 12 | 13 | 14 | 15 => match symbol {
                     Minus => Ok(parser::Action::Shift(8)),
                     LPR => Ok(parser::Action::Shift(7)),
                     Number => Ok(parser::Action::Shift(9)),
                     Id => Ok(parser::Action::Shift(17)),
                     _ => Err(syntax_error!(token; Minus, Number, Id, LPR)),
                 },
-                16 => match handle {
+                16 => match symbol {
                     Plus => Ok(parser::Action::Shift(11)),
                     Minus => Ok(parser::Action::Shift(12)),
                     Times => Ok(parser::Action::Shift(13)),
@@ -190,7 +190,7 @@ mod tests {
                     RPR => Ok(parser::Action::Shift(24)),
                     _ => Err(syntax_error!(token; Plus, Minus, Times, Divide, RPR)),
                 },
-                17 => match handle {
+                17 => match symbol {
                     EOL | Plus | Minus | Times | Divide | RPR => {
                         if self.variables.contains_key(&self.attribute(2, 1).id) {
                             Ok(parser::Action::Reduce(26))
@@ -200,11 +200,11 @@ mod tests {
                     }
                     _ => Err(syntax_error!(token; EOL, Plus, Minus, Times, Divide, RPR)),
                 },
-                18 => match handle {
+                18 => match symbol {
                     EOL | Plus | Minus | Times | Divide | RPR => Ok(parser::Action::Reduce(24)),
                     _ => Err(syntax_error!(token; EOL, Plus, Minus, Times, Divide, RPR)),
                 },
-                19 => match handle {
+                19 => match symbol {
                     Times => Ok(parser::Action::Shift(13)),
                     Divide => Ok(parser::Action::Shift(14)),
                     EOL | Plus | Minus | RPR => {
@@ -218,7 +218,7 @@ mod tests {
                     }
                     _ => Err(syntax_error!(token; EOL, Plus, Minus, Times, Divide, RPR)),
                 },
-                20 => match handle {
+                20 => match symbol {
                     Times => Ok(parser::Action::Shift(13)),
                     Divide => Ok(parser::Action::Shift(14)),
                     EOL | Plus | Minus | RPR => {
@@ -232,7 +232,7 @@ mod tests {
                     }
                     _ => Err(syntax_error!(token; EOL, Plus, Minus, Times, Divide, RPR)),
                 },
-                21 => match handle {
+                21 => match symbol {
                     EOL | Plus | Minus | Times | Divide | RPR => {
                         if self.attribute(4, 1).value == 0.0 || self.attribute(4, 3).value == 0.0 {
                             Ok(parser::Action::Reduce(15))
@@ -246,7 +246,7 @@ mod tests {
                     }
                     _ => Err(syntax_error!(token; EOL, Plus, Minus, Times, Divide, RPR)),
                 },
-                22 => match handle {
+                22 => match symbol {
                     EOL | Plus | Minus | Times | Divide | RPR => {
                         if self.attribute(4, 1).value == 0.0 || self.attribute(4, 3).value == 0.0 {
                             Ok(parser::Action::Reduce(19))
@@ -260,7 +260,7 @@ mod tests {
                     }
                     _ => Err(syntax_error!(token; EOL, Plus, Minus, Times, Divide, RPR)),
                 },
-                23 => match handle {
+                23 => match symbol {
                     Plus => Ok(parser::Action::Shift(11)),
                     Minus => Ok(parser::Action::Shift(12)),
                     Times => Ok(parser::Action::Shift(13)),
@@ -274,7 +274,7 @@ mod tests {
                     }
                     _ => Err(syntax_error!(token; EOL, Plus, Minus, Times, Divide, RPR)),
                 },
-                24 => match handle {
+                24 => match symbol {
                     EOL | Plus | Minus | Times | Divide | RPR => Ok(parser::Action::Reduce(22)),
                     _ => Err(syntax_error!(token; EOL, Plus, Minus, Times, Divide, RPR)),
                 },

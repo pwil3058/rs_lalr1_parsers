@@ -85,7 +85,7 @@ pub trait Parser<T: Ord + Copy + Debug, N, A> {
                     Ok(action) => match action {
                         Action::Shift(state) => {
                             println!("shift: {}", state);
-                            self.push_state(state, Symbol::Terminal(*token.handle()));
+                            self.push_state(state, Symbol::Terminal(*token.symbol()));
                         }
                         Action::Reduce(production) => {
                             println!("reduce: {}", production);
