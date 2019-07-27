@@ -1,4 +1,7 @@
-use std::{fmt::{self, Debug}, rc::Rc};
+use std::{
+    fmt::{self, Debug},
+    rc::Rc,
+};
 
 use crate::lexicon::Lexicon;
 
@@ -27,7 +30,11 @@ impl<'a> fmt::Display for Location<'a> {
     fn fmt(&self, dest: &mut fmt::Formatter) -> fmt::Result {
         if self.label.len() > 0 {
             if self.label.contains(' ') || self.label.contains('\t') {
-                write!(dest, "\"{}\":{}:{}", self.label, self.line_number, self.offset)
+                write!(
+                    dest,
+                    "\"{}\":{}:{}",
+                    self.label, self.line_number, self.offset
+                )
             } else {
                 write!(dest, "{}:{}:{}", self.label, self.line_number, self.offset)
             }
@@ -38,12 +45,12 @@ impl<'a> fmt::Display for Location<'a> {
 }
 
 #[derive(Debug, Clone)]
-pub enum Error<H: Debug + Copy> {
-    UnexpectedText(String, String),
-    AmbiguousMatches(Vec<H>, String, String),
+pub enum Error<'a, H: Debug + Copy> {
+    UnexpectedText(&'a str, Location<'a>),
+    AmbiguousMatches(Vec<H>, &'a str, Location<'a>),
 }
 
-impl<H: Debug + Copy> fmt::Display for Error<H> {
+impl<'a, H: Debug + Copy> fmt::Display for Error<'a, H> {
     fn fmt(&self, dest: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Error::UnexpectedText(text, location) => {
@@ -58,7 +65,7 @@ impl<H: Debug + Copy> fmt::Display for Error<H> {
     }
 }
 
-impl<H: Debug + Copy> std::error::Error for Error<H> {}
+impl<'a, H: Debug + Copy> std::error::Error for Error<'a, H> {}
 
 #[derive(Debug, Clone, Copy)]
 pub struct Token<'a, H: Debug + Copy + Eq> {
@@ -131,7 +138,7 @@ impl<'a, H> Iterator for TokenStream<'a, H>
 where
     H: Debug + Copy + Eq + Ord,
 {
-    type Item = Result<Token<'a, H>, Error<H>>;
+    type Item = Result<Token<'a, H>, Error<'a, H>>;
 
     fn next(&mut self) -> Option<Self::Item> {
         let text = &self.text[self.index..];
@@ -150,8 +157,8 @@ where
                 self.incr_index_and_location(lrems.1);
                 Some(Err(Error::AmbiguousMatches(
                     lrems.0,
-                    text[..lrems.1].to_string(),
-                    current_location.to_string(),
+                    &text[..lrems.1],
+                    current_location,
                 )))
             } else if lrems.0.len() == 1 && lrems.1 > llm.1 {
                 self.incr_index_and_location(lrems.1);
@@ -179,15 +186,15 @@ where
             self.incr_index_and_location(lrems.1);
             Some(Err(Error::AmbiguousMatches(
                 lrems.0,
-                text[..lrems.1].to_string(),
-                current_location.to_string(),
+                &text[..lrems.1],
+                current_location,
             )))
         } else {
             let distance = self.lexicon.distance_to_next_valid_byte(text);
             self.incr_index_and_location(distance);
             Some(Err(Error::UnexpectedText(
-                text[..distance].to_string(),
-                current_location.to_string(),
+                &text[..distance],
+                current_location,
             )))
         }
     }
@@ -224,7 +231,7 @@ impl<'a, H> Iterator for InjectableTokenStream<'a, H>
 where
     H: Debug + Copy + Eq + Ord,
 {
-    type Item = Result<Token<'a, H>, Error<H>>;
+    type Item = Result<Token<'a, H>, Error<'a, H>>;
 
     fn next(&mut self) -> Option<Self::Item> {
         loop {

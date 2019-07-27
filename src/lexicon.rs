@@ -249,7 +249,11 @@ mod tests {
                 (Predicate, r"\A(\?\((.|[\n\r])*?\?\))"),
                 (Code, r"\A(%\{(.|[\n\r])*?%\})"),
             ],
-            &[r"\A(/\*(.|[\n\r])*?\*/)", r"\A(//[^\n\r]*)", "\\A(\"\\S+\")"],
+            &[
+                r"\A(/\*(.|[\n\r])*?\*/)",
+                r"\A(//[^\n\r]*)",
+                "\\A(\"\\S+\")",
+            ],
         );
         if let Err(err) = lexicon {
             assert_eq!(err, LexanError::DuplicatePattern("\\A(\"\\S+\")"));

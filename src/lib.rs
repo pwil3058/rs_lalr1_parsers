@@ -29,7 +29,7 @@ where
     ) -> Self {
         let lexicon = match Lexicon::new(literal_lexemes, regex_lexemes, skip_regex_strs) {
             Ok(lexicon) => Rc::new(lexicon),
-            Err(err) => panic!("Fatal Error: {:?}", err)
+            Err(err) => panic!("Fatal Error: {:?}", err),
         };
         Self { lexicon }
     }
