@@ -3,15 +3,15 @@ use std::convert::From;
 use regex;
 
 #[derive(Debug, PartialEq)]
-pub enum LexanError<'a, H> {
-    DuplicateHandle(H),
+pub enum LexanError<'a, T> {
+    DuplicateHandle(T),
     DuplicatePattern(&'a str),
-    EmptyPattern(Option<H>),
+    EmptyPattern(Option<T>),
     RegexError(regex::Error),
     UnanchoredRegex(&'a str),
 }
 
-impl<'a, H> From<regex::Error> for LexanError<'a, H> {
+impl<'a, T> From<regex::Error> for LexanError<'a, T> {
     fn from(error: regex::Error) -> Self {
         LexanError::RegexError(error)
     }

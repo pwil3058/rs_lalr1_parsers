@@ -45,38 +45,38 @@ impl<'a> fmt::Display for Location<'a> {
 }
 
 #[derive(Debug, Clone)]
-pub enum Error<'a, H: Debug + Copy> {
+pub enum Error<'a, T: Debug + Copy> {
     UnexpectedText(&'a str, Location<'a>),
-    AmbiguousMatches(Vec<H>, &'a str, Location<'a>),
+    AmbiguousMatches(Vec<T>, &'a str, Location<'a>),
 }
 
-impl<'a, H: Debug + Copy> fmt::Display for Error<'a, H> {
+impl<'a, T: Debug + Copy> fmt::Display for Error<'a, T> {
     fn fmt(&self, dest: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Error::UnexpectedText(text, location) => {
                 write!(dest, "Enexpected text \"{}\" at: {}", text, location)
             }
-            Error::AmbiguousMatches(handles, text, location) => write!(
+            Error::AmbiguousMatches(symbols, text, location) => write!(
                 dest,
                 "Ambiguous matches {:?} \"{}\" at: {}",
-                handles, text, location
+                symbols, text, location
             ),
         }
     }
 }
 
-impl<'a, H: Debug + Copy> std::error::Error for Error<'a, H> {}
+impl<'a, T: Debug + Copy> std::error::Error for Error<'a, T> {}
 
 #[derive(Debug, Clone, Copy)]
-pub struct Token<'a, H: Debug + Copy + Eq> {
-    handle: H,
+pub struct Token<'a, T: Debug + Copy + Eq> {
+    symbol: T,
     matched_text: &'a str,
     location: Location<'a>,
 }
 
-impl<'a, H: Debug + Copy + Eq> Token<'a, H> {
-    pub fn handle<'h>(&'h self) -> &'h H {
-        &self.handle
+impl<'a, T: Debug + Copy + Eq> Token<'a, T> {
+    pub fn symbol<'h>(&'h self) -> &'h T {
+        &self.symbol
     }
 
     pub fn matched_text(&'a self) -> &'a str {
@@ -88,21 +88,21 @@ impl<'a, H: Debug + Copy + Eq> Token<'a, H> {
     }
 }
 
-pub struct TokenStream<'a, H>
+pub struct TokenStream<'a, T>
 where
-    H: Debug + Copy + Eq,
+    T: Debug + Copy + Eq,
 {
-    lexicon: Rc<Lexicon<H>>,
+    lexicon: Rc<Lexicon<T>>,
     text: &'a str,
     index: usize,
     location: Location<'a>,
 }
 
-impl<'a, H> TokenStream<'a, H>
+impl<'a, T> TokenStream<'a, T>
 where
-    H: Debug + Copy + Eq,
+    T: Debug + Copy + Eq,
 {
-    pub fn new(lexicon: &Rc<Lexicon<H>>, text: &'a str, label: &'a str) -> Self {
+    pub fn new(lexicon: &Rc<Lexicon<T>>, text: &'a str, label: &'a str) -> Self {
         let location = Location::new(label);
         Self {
             lexicon: Rc::clone(lexicon),
@@ -134,11 +134,11 @@ where
     }
 }
 
-impl<'a, H> Iterator for TokenStream<'a, H>
+impl<'a, T> Iterator for TokenStream<'a, T>
 where
-    H: Debug + Copy + Eq + Ord,
+    T: Debug + Copy + Eq + Ord,
 {
-    type Item = Result<Token<'a, H>, Error<'a, H>>;
+    type Item = Result<Token<'a, T>, Error<'a, T>>;
 
     fn next(&mut self) -> Option<Self::Item> {
         let text = &self.text[self.index..];
@@ -163,14 +163,14 @@ where
             } else if lrems.0.len() == 1 && lrems.1 > llm.1 {
                 self.incr_index_and_location(lrems.1);
                 Some(Ok(Token {
-                    handle: lrems.0[0],
+                    symbol: lrems.0[0],
                     matched_text: &text[..lrems.1],
                     location: current_location,
                 }))
             } else {
                 self.incr_index_and_location(llm.1);
                 Some(Ok(Token {
-                    handle: llm.0,
+                    symbol: llm.0,
                     matched_text: &text[..llm.1],
                     location: current_location,
                 }))
@@ -178,7 +178,7 @@ where
         } else if lrems.0.len() == 1 {
             self.incr_index_and_location(lrems.1);
             Some(Ok(Token {
-                handle: lrems.0[0],
+                symbol: lrems.0[0],
                 matched_text: &text[..lrems.1],
                 location: current_location,
             }))
@@ -200,19 +200,19 @@ where
     }
 }
 
-pub struct InjectableTokenStream<'a, H>
+pub struct InjectableTokenStream<'a, T>
 where
-    H: Debug + Copy + Eq,
+    T: Debug + Copy + Eq,
 {
-    lexicon: Rc<Lexicon<H>>,
-    token_stream_stack: Vec<TokenStream<'a, H>>,
+    lexicon: Rc<Lexicon<T>>,
+    token_stream_stack: Vec<TokenStream<'a, T>>,
 }
 
-impl<'a, H> InjectableTokenStream<'a, H>
+impl<'a, T> InjectableTokenStream<'a, T>
 where
-    H: Debug + Copy + Eq + Ord,
+    T: Debug + Copy + Eq + Ord,
 {
-    pub fn new(lexicon: &Rc<Lexicon<H>>, text: &'a str, label: &'a str) -> Self {
+    pub fn new(lexicon: &Rc<Lexicon<T>>, text: &'a str, label: &'a str) -> Self {
         let mut stream = Self {
             lexicon: Rc::clone(lexicon),
             token_stream_stack: vec![],
@@ -227,11 +227,11 @@ where
     }
 }
 
-impl<'a, H> Iterator for InjectableTokenStream<'a, H>
+impl<'a, T> Iterator for InjectableTokenStream<'a, T>
 where
-    H: Debug + Copy + Eq + Ord,
+    T: Debug + Copy + Eq + Ord,
 {
-    type Item = Result<Token<'a, H>, Error<'a, H>>;
+    type Item = Result<Token<'a, T>, Error<'a, T>>;
 
     fn next(&mut self) -> Option<Self::Item> {
         loop {

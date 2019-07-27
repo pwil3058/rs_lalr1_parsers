@@ -4,30 +4,30 @@ use crate::error::LexanError;
 use crate::matcher::{LiteralMatcher, RegexMatcher, SkipMatcher};
 
 #[derive(Default, Debug)]
-pub struct Lexicon<H>
+pub struct Lexicon<T>
 where
-    H: Copy + PartialEq + Debug,
+    T: Copy + PartialEq + Debug,
 {
-    literal_matcher: LiteralMatcher<H>,
-    regex_matcher: RegexMatcher<H>,
+    literal_matcher: LiteralMatcher<T>,
+    regex_matcher: RegexMatcher<T>,
     skip_matcher: SkipMatcher,
 }
 
-impl<H> Lexicon<H>
+impl<T> Lexicon<T>
 where
-    H: Copy + Eq + Debug + Ord,
+    T: Copy + Eq + Debug + Ord,
 {
     pub fn new<'a>(
-        literal_lexemes: &[(H, &'a str)],
-        regex_lexemes: &[(H, &'a str)],
+        literal_lexemes: &[(T, &'a str)],
+        regex_lexemes: &[(T, &'a str)],
         skip_regex_strs: &[&'a str],
-    ) -> Result<Self, LexanError<'a, H>> {
-        let mut handles = vec![];
+    ) -> Result<Self, LexanError<'a, T>> {
+        let mut symbols = vec![];
         let mut patterns = vec![];
-        for (handle, pattern) in literal_lexemes.iter().chain(regex_lexemes.iter()) {
-            match handles.binary_search(handle) {
-                Ok(_) => return Err(LexanError::DuplicateHandle(*handle)),
-                Err(index) => handles.insert(index, *handle),
+        for (symbol, pattern) in literal_lexemes.iter().chain(regex_lexemes.iter()) {
+            match symbols.binary_search(symbol) {
+                Ok(_) => return Err(LexanError::DuplicateHandle(*symbol)),
+                Err(index) => symbols.insert(index, *symbol),
             }
             match patterns.binary_search(pattern) {
                 Ok(_) => return Err(LexanError::DuplicatePattern(pattern)),
@@ -56,12 +56,12 @@ where
     }
 
     /// Returns the longest literal match at start of `text`.
-    pub fn longest_literal_match(&self, text: &str) -> Option<(H, usize)> {
+    pub fn longest_literal_match(&self, text: &str) -> Option<(T, usize)> {
         self.literal_matcher.longest_match(text)
     }
 
     /// Returns the longest regular expression match at start of `text`.
-    pub fn longest_regex_matches(&self, text: &str) -> (Vec<H>, usize) {
+    pub fn longest_regex_matches(&self, text: &str) -> (Vec<T>, usize) {
         self.regex_matcher.longest_matches(text)
     }
 
@@ -84,13 +84,10 @@ where
 
 #[cfg(test)]
 mod tests {
-    use std::rc::Rc;
-
     use super::*;
-    use crate::analyzer::*;
 
     #[derive(PartialEq, Eq, Clone, Copy, Hash, Debug, PartialOrd, Ord)]
-    enum Handle {
+    enum Symbol {
         If,
         When,
         Ident,
@@ -104,8 +101,8 @@ mod tests {
 
     #[test]
     fn lexicon_ok() {
-        use self::Handle::*;
-        let lexicon = Lexicon::<Handle>::new(
+        use self::Symbol::*;
+        let lexicon = Lexicon::<Symbol>::new(
             &[(If, "if"), (When, "when")],
             &[
                 (Ident, "\\A[a-zA-Z]+[\\w_]*"),
@@ -123,8 +120,8 @@ mod tests {
 
     #[test]
     fn lexicon_fail() {
-        use self::Handle::*;
-        let lexicon = Lexicon::<Handle>::new(
+        use self::Symbol::*;
+        let lexicon = Lexicon::<Symbol>::new(
             &[(If, "if"), (If, "when")],
             &[
                 (Ident, "\\A[a-zA-Z]+[\\w_]*"),
@@ -143,7 +140,7 @@ mod tests {
             assert!(false)
         }
 
-        let lexicon = Lexicon::<Handle>::new(
+        let lexicon = Lexicon::<Symbol>::new(
             &[(If, "if"), (When, "when")],
             &[
                 (Action, "\\A[a-zA-Z]+[\\w_]*"),
@@ -162,7 +159,7 @@ mod tests {
             assert!(false)
         }
 
-        let lexicon = Lexicon::<Handle>::new(
+        let lexicon = Lexicon::<Symbol>::new(
             &[(If, "if"), (When, "when")],
             &[
                 (Ident, "\\A[a-zA-Z]+[\\w_]*"),
@@ -181,7 +178,7 @@ mod tests {
             assert!(false)
         }
 
-        let lexicon = Lexicon::<Handle>::new(
+        let lexicon = Lexicon::<Symbol>::new(
             &[(If, "if"), (When, "if")],
             &[
                 (Ident, "\\A[a-zA-Z]+[\\w_]*"),
@@ -200,7 +197,7 @@ mod tests {
             assert!(false)
         }
 
-        let lexicon = Lexicon::<Handle>::new(
+        let lexicon = Lexicon::<Symbol>::new(
             &[(If, "if"), (When, "when")],
             &[
                 (Ident, "\\A[a-zA-Z]+[\\w_]*"),
@@ -219,7 +216,7 @@ mod tests {
             assert!(false)
         }
 
-        let lexicon = Lexicon::<Handle>::new(
+        let lexicon = Lexicon::<Symbol>::new(
             &[(If, "if"), (When, "when")],
             &[
                 (Ident, "\\A(\"\\S+\")"),
@@ -238,7 +235,7 @@ mod tests {
             assert!(false)
         }
 
-        let lexicon = Lexicon::<Handle>::new(
+        let lexicon = Lexicon::<Symbol>::new(
             &[(If, "if"), (When, "when")],
             &[
                 (Ident, "\\A[a-zA-Z]+[\\w_]*"),
@@ -261,7 +258,7 @@ mod tests {
             assert!(false)
         }
 
-        let lexicon = Lexicon::<Handle>::new(
+        let lexicon = Lexicon::<Symbol>::new(
             &[(If, "if"), (When, "when")],
             &[
                 (Ident, "\\A[a-zA-Z]+[\\w_]*"),

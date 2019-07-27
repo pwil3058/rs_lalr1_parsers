@@ -5,19 +5,19 @@ use regex::Regex;
 use crate::error::LexanError;
 
 #[derive(Debug, Default)]
-struct LiteralMatcherNode<H: PartialEq + Debug + Copy> {
-    handle: Option<H>,
+struct LiteralMatcherNode<T: PartialEq + Debug + Copy> {
+    symbol: Option<T>,
     length: usize,
-    tails: HashMap<u8, LiteralMatcherNode<H>>,
+    tails: HashMap<u8, LiteralMatcherNode<T>>,
 }
 
-impl<H: PartialEq + Debug + Copy> LiteralMatcherNode<H> {
-    fn new(handle: H, string: &str, s_index: usize) -> LiteralMatcherNode<H> {
+impl<T: PartialEq + Debug + Copy> LiteralMatcherNode<T> {
+    fn new(symbol: T, string: &str, s_index: usize) -> LiteralMatcherNode<T> {
         debug_assert!(string.len() > 0);
-        let mut t = HashMap::<u8, LiteralMatcherNode<H>>::new();
+        let mut t = HashMap::<u8, LiteralMatcherNode<T>>::new();
         if string.len() == s_index {
             LiteralMatcherNode {
-                handle: Some(handle),
+                symbol: Some(symbol),
                 length: string.len(),
                 tails: t,
             }
@@ -25,10 +25,10 @@ impl<H: PartialEq + Debug + Copy> LiteralMatcherNode<H> {
             let key = string.as_bytes()[s_index];
             t.insert(
                 key,
-                LiteralMatcherNode::<H>::new(handle, string, s_index + 1),
+                LiteralMatcherNode::<T>::new(symbol, string, s_index + 1),
             );
             LiteralMatcherNode {
-                handle: None,
+                symbol: None,
                 length: s_index,
                 tails: t,
             }
@@ -37,16 +37,16 @@ impl<H: PartialEq + Debug + Copy> LiteralMatcherNode<H> {
 
     fn add<'a>(
         &mut self,
-        handle: H,
+        symbol: T,
         string: &'a str,
         s_index: usize,
-    ) -> Result<(), LexanError<'a, H>> {
+    ) -> Result<(), LexanError<'a, T>> {
         debug_assert!(string.len() > 0);
         if string.len() == s_index {
-            if self.handle.is_some() {
+            if self.symbol.is_some() {
                 return Err(LexanError::DuplicatePattern(string));
             }
-            self.handle = Some(handle);
+            self.symbol = Some(symbol);
             self.length = string.len();
         } else {
             let key = string.as_bytes()[s_index];
@@ -55,11 +55,11 @@ impl<H: PartialEq + Debug + Copy> LiteralMatcherNode<H> {
                 self.tails
                     .get_mut(&key)
                     .unwrap()
-                    .add(handle, string, s_index + 1)?;
+                    .add(symbol, string, s_index + 1)?;
             } else {
                 self.tails.insert(
                     key,
-                    LiteralMatcherNode::<H>::new(handle, string, s_index + 1),
+                    LiteralMatcherNode::<T>::new(symbol, string, s_index + 1),
                 );
             }
         }
@@ -68,38 +68,38 @@ impl<H: PartialEq + Debug + Copy> LiteralMatcherNode<H> {
 }
 
 #[derive(Debug, Default)]
-pub(crate) struct LiteralMatcher<H: PartialEq + Debug + Copy> {
-    lexemes: HashMap<u8, LiteralMatcherNode<H>>,
+pub(crate) struct LiteralMatcher<T: PartialEq + Debug + Copy> {
+    lexemes: HashMap<u8, LiteralMatcherNode<T>>,
 }
 
-impl<H: Eq + Debug + Copy + Ord> LiteralMatcher<H> {
-    pub fn new<'a>(lexemes: &[(H, &'a str)]) -> Result<LiteralMatcher<H>, LexanError<'a, H>> {
-        let mut lexes = HashMap::<u8, LiteralMatcherNode<H>>::new();
-        for &(handle, pattern) in lexemes.iter() {
-            // make sure that handles are unique and strings are not empty
+impl<T: Eq + Debug + Copy + Ord> LiteralMatcher<T> {
+    pub fn new<'a>(lexemes: &[(T, &'a str)]) -> Result<LiteralMatcher<T>, LexanError<'a, T>> {
+        let mut lexes = HashMap::<u8, LiteralMatcherNode<T>>::new();
+        for &(symbol, pattern) in lexemes.iter() {
+            // make sure that symbols are unique and strings are not empty
             if pattern.len() == 0 {
-                return Err(LexanError::EmptyPattern(Some(handle)));
+                return Err(LexanError::EmptyPattern(Some(symbol)));
             }
 
             let key = pattern.as_bytes()[0];
             if lexes.contains_key(&key) {
-                lexes.get_mut(&key).unwrap().add(handle, pattern, 1)?;
+                lexes.get_mut(&key).unwrap().add(symbol, pattern, 1)?;
             } else {
-                lexes.insert(key, LiteralMatcherNode::<H>::new(handle, pattern, 1));
+                lexes.insert(key, LiteralMatcherNode::<T>::new(symbol, pattern, 1));
             }
         }
         Ok(LiteralMatcher { lexemes: lexes })
     }
 
-    pub fn longest_match(&self, string: &str) -> Option<(H, usize)> {
-        let mut rval: Option<(H, usize)> = None;
+    pub fn longest_match(&self, string: &str) -> Option<(T, usize)> {
+        let mut rval: Option<(T, usize)> = None;
         let mut lexemes = &self.lexemes;
         for key in string.as_bytes().iter() {
             match lexemes.get(&key) {
                 None => break,
                 Some(node) => {
-                    if let Some(handle) = node.handle {
-                        rval = Some((handle, node.length));
+                    if let Some(symbol) = node.symbol {
+                        rval = Some((symbol, node.length));
                     }
                     lexemes = &node.tails;
                 }
@@ -114,7 +114,7 @@ impl<H: Eq + Debug + Copy + Ord> LiteralMatcher<H> {
             match lexemes.get(&key) {
                 None => break,
                 Some(node) => {
-                    if node.handle.is_some() {
+                    if node.symbol.is_some() {
                         return true;
                     }
                     lexemes = &node.tails;
@@ -126,36 +126,36 @@ impl<H: Eq + Debug + Copy + Ord> LiteralMatcher<H> {
 }
 
 #[derive(Debug, Default)]
-pub(crate) struct RegexMatcher<H: Copy + Debug> {
-    lexemes: Vec<(H, Regex)>,
+pub(crate) struct RegexMatcher<T: Copy + Debug> {
+    lexemes: Vec<(T, Regex)>,
 }
 
-impl<H: Copy + Ord + Debug> RegexMatcher<H> {
-    pub fn new<'a>(lexeme_patterns: &[(H, &'a str)]) -> Result<RegexMatcher<H>, LexanError<'a, H>> {
+impl<T: Copy + Ord + Debug> RegexMatcher<T> {
+    pub fn new<'a>(lexeme_patterns: &[(T, &'a str)]) -> Result<RegexMatcher<T>, LexanError<'a, T>> {
         let mut lexemes = vec![];
-        for (handle, pattern) in lexeme_patterns.iter() {
+        for (symbol, pattern) in lexeme_patterns.iter() {
             if !pattern.starts_with("\\A") {
                 return Err(LexanError::UnanchoredRegex(pattern));
             };
             if pattern.len() <= "\\A".len() {
-                return Err(LexanError::EmptyPattern(Some(*handle)));
+                return Err(LexanError::EmptyPattern(Some(*symbol)));
             };
-            lexemes.push((*handle, Regex::new(pattern)?));
+            lexemes.push((*symbol, Regex::new(pattern)?));
         }
         Ok(Self { lexemes })
     }
 
     /// Returns the longest regular expression matches at start of `text`.
-    pub fn longest_matches(&self, text: &str) -> (Vec<H>, usize) {
+    pub fn longest_matches(&self, text: &str) -> (Vec<T>, usize) {
         let mut matches = vec![];
         let mut largest_end = 0;
-        for (handle, regex) in self.lexemes.iter() {
+        for (symbol, regex) in self.lexemes.iter() {
             if let Some(m) = regex.find(text) {
                 if m.end() == largest_end {
-                    matches.push(*handle);
+                    matches.push(*symbol);
                 } else if m.end() > largest_end {
                     largest_end = m.end();
-                    matches = vec![*handle];
+                    matches = vec![*symbol];
                 }
             }
         }
@@ -179,7 +179,7 @@ pub(crate) struct SkipMatcher {
 }
 
 impl SkipMatcher {
-    pub fn new<'a, H>(regex_strs: &[&'a str]) -> Result<Self, LexanError<'a, H>> {
+    pub fn new<'a, T>(regex_strs: &[&'a str]) -> Result<Self, LexanError<'a, T>> {
         let mut regexes = vec![];
         for regex_str in regex_strs.iter() {
             if !regex_str.starts_with("\\A") {
