@@ -23,7 +23,13 @@ pub enum Symbol<T, N> {
 pub enum Action {
     Shift(u32),
     Reduce(u32),
+}
+
+#[derive(Debug, Clone)]
+pub enum Coda {
+    Reduce(u32),
     Accept,
+    UnexpectedEndOfInput,
 }
 
 #[derive(Debug, Clone)]
@@ -40,8 +46,9 @@ pub trait Parser<T: Ord + Copy + Debug, N, A> {
     fn next_action<'a>(
         &self,
         state: u32,
-        o_token: Option<&lexan::Token<'a, T>>,
+        o_token: &lexan::Token<'a, T>,
     ) -> Result<Action, Error<'a, T>>;
+    fn next_coda<'a>(&self, state: u32) -> Coda;
 
     fn report_error(error: &Error<T>) {
         match error {
@@ -61,54 +68,50 @@ pub trait Parser<T: Ord + Copy + Debug, N, A> {
     fn parse_text<'a>(&mut self, text: &'a str, label: &'a str) -> Result<(), Error<'a, T>> {
         let mut tokens = self.lexical_analyzer().injectable_token_stream(text, label);
         self.push_state(0, Symbol::Start);
-        let mut o_r_token = tokens.next();
         let mut result: Result<(), Error<'a, T>> = Ok(());
-        loop {
-            if let Some(r_token) = o_r_token {
-                match r_token {
+
+        let mut o_r_token = tokens.next();
+        while let Some(ref r_token) = o_r_token {
+            match r_token {
+                Err(err) => {
+                    let err = Error::LexicalError(err.clone());
+                    Self::report_error(&err);
+                    result = Err(err);
+                    if Self::short_circuit() {
+                        return result;
+                    }
+                }
+                Ok(token) => match self.next_action(self.current_state(), &token) {
+                    Ok(action) => match action {
+                        Action::Shift(state) => {
+                            println!("shift: {}", state);
+                            self.push_state(state, Symbol::Terminal(*token.handle()));
+                        }
+                        Action::Reduce(production) => {
+                            println!("reduce: {}", production);
+                            //continue;
+                        }
+                    },
                     Err(err) => {
-                        let err = Error::LexicalError(err);
                         Self::report_error(&err);
                         result = Err(err);
                         if Self::short_circuit() {
                             return result;
                         }
                     }
-                    Ok(token) => match self.next_action(self.current_state(), Some(&token)) {
-                        Ok(action) => match action {
-                            Action::Shift(state) => {
-                                println!("shift: {}", state);
-                            }
-                            Action::Reduce(production) => {
-                                println!("reduce: {}", production);
-                            },
-                            _ => panic!("unexpected action"),
-                        },
-                        Err(err) => {
-                            Self::report_error(&err);
-                            result = Err(err);
-                            if Self::short_circuit() {
-                                return result;
-                            }
-                        }
-                    },
-                };
-                o_r_token = tokens.next();
-            } else {
-                match self.next_action(self.current_state(), None) {
-                    Ok(action) => match action {
-                        Action::Reduce(production) => {
-                            println!("reduce: {}", production)
-                        },
-                        Action::Accept => break,
-                        _ => panic!("unexpected action"),
-                    },
-                    Err(err) => {
-                        Self::report_error(&err);
-                        return Err(err);
-                    }
-                }
-            }
+                },
+            };
+            o_r_token = tokens.next();
+        }
+        let mut coda = self.next_coda(self.current_state());
+        while let Coda::Reduce(production) = coda {
+            println!("reduce: {}", production);
+            coda = self.next_coda(self.current_state());
+        }
+        if let Coda::UnexpectedEndOfInput = coda {
+            let err = Error::UnexpectedEndOfInput;
+            Self::report_error(&err);
+            return Err(err);
         }
         result
     }
