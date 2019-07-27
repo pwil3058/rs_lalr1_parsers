@@ -365,6 +365,6 @@ mod tests {
     fn calc_works() {
         use crate::parser::Parser;
         let mut calc = Calc::new();
-        assert!(!calc.parse_text("a = 3 + 4", "raw"));
+        assert!(calc.parse_text("a = 3 + 4", "raw").is_err());
     }
 }

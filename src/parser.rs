@@ -58,18 +58,18 @@ pub trait Parser<T: Ord + Copy + Debug, N, A> {
         false
     }
 
-    fn parse_text<'b>(&mut self, text: &'b str, label: &'b str) -> bool {
+    fn parse_text<'a>(&mut self, text: &'a str, label: &'a str) -> Result<(), Error<T>> {
         let mut tokens = self.lexical_analyzer().injectable_token_stream(text, label);
         self.push_state(0, Symbol::Start);
         let mut o_r_token = tokens.next();
-        let mut result: bool = true;
+        let mut result: Result<(), Error<T>> = Ok(());
         loop {
             if let Some(r_token) = o_r_token {
                 match r_token {
                     Err(err) => {
                         let err = Error::LexicalError(err);
                         Self::report_error(&err);
-                        result = false;
+                        result = Err(err);
                         if Self::short_circuit() {
                             return result;
                         }
@@ -84,7 +84,7 @@ pub trait Parser<T: Ord + Copy + Debug, N, A> {
                         },
                         Err(err) => {
                             Self::report_error(&err);
-                            result = false;
+                            result = Err(err);
                             if Self::short_circuit() {
                                 return result;
                             }
@@ -100,7 +100,7 @@ pub trait Parser<T: Ord + Copy + Debug, N, A> {
                     },
                     Err(err) => {
                         Self::report_error(&err);
-                        return false;
+                        return Err(err);
                     }
                 }
             }
