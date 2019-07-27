@@ -107,7 +107,7 @@ mod tests {
             &self,
             state: u32,
             o_token: Option<&lexan::Token<'a, Terminal>>,
-        ) -> Result<parser::Action, parser::Error<Terminal>> {
+        ) -> Result<parser::Action, parser::Error<'a, Terminal>> {
             if let Some(token) = o_token {
                 use Terminal::*;
                 let handle = *token.handle();

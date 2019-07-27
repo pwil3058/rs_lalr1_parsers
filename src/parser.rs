@@ -3,8 +3,8 @@ use std::fmt::Debug;
 use lexan;
 
 #[derive(Debug)]
-pub enum Error<T: Copy + Debug> {
-    LexicalError(lexan::Error<T>),
+pub enum Error<'a, T: Copy + Debug> {
+    LexicalError(lexan::Error<'a, T>),
     SyntaxError(T, Vec<T>, String),
     UnexpectedEndOfInput,
 }
@@ -41,7 +41,7 @@ pub trait Parser<T: Ord + Copy + Debug, N, A> {
         &self,
         state: u32,
         o_token: Option<&lexan::Token<'a, T>>,
-    ) -> Result<Action, Error<T>>;
+    ) -> Result<Action, Error<'a, T>>;
 
     fn report_error(error: &Error<T>) {
         match error {
@@ -58,11 +58,11 @@ pub trait Parser<T: Ord + Copy + Debug, N, A> {
         false
     }
 
-    fn parse_text<'a>(&mut self, text: &'a str, label: &'a str) -> Result<(), Error<T>> {
+    fn parse_text<'a>(&mut self, text: &'a str, label: &'a str) -> Result<(), Error<'a, T>> {
         let mut tokens = self.lexical_analyzer().injectable_token_stream(text, label);
         self.push_state(0, Symbol::Start);
         let mut o_r_token = tokens.next();
-        let mut result: Result<(), Error<T>> = Ok(());
+        let mut result: Result<(), Error<'a, T>> = Ok(());
         loop {
             if let Some(r_token) = o_r_token {
                 match r_token {
@@ -79,7 +79,9 @@ pub trait Parser<T: Ord + Copy + Debug, N, A> {
                             Action::Shift(state) => {
                                 println!("shift: {}", state);
                             }
-                            Action::Reduce(production) => println!("reduce: {}", production),
+                            Action::Reduce(production) => {
+                                println!("reduce: {}", production);
+                            },
                             _ => panic!("unexpected action"),
                         },
                         Err(err) => {
@@ -90,11 +92,14 @@ pub trait Parser<T: Ord + Copy + Debug, N, A> {
                             }
                         }
                     },
-                }
+                };
+                o_r_token = tokens.next();
             } else {
                 match self.next_action(self.current_state(), None) {
                     Ok(action) => match action {
-                        Action::Reduce(production) => println!("reduce: {}", production),
+                        Action::Reduce(production) => {
+                            println!("reduce: {}", production)
+                        },
                         Action::Accept => break,
                         _ => panic!("unexpected action"),
                     },
@@ -104,7 +109,6 @@ pub trait Parser<T: Ord + Copy + Debug, N, A> {
                     }
                 }
             }
-            o_r_token = tokens.next();
         }
         result
     }
