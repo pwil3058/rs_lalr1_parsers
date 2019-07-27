@@ -95,6 +95,11 @@ mod tests {
             &self.attributes[index]
         }
 
+        fn pop_attributes(&mut self, n: usize) -> Vec<AttributeData> {
+            self.attributes.split_off(n)
+        }
+
+
         fn current_state(&self) -> u32 {
             self.state_stack.borrow().last().unwrap().1
         }

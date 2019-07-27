@@ -41,6 +41,7 @@ pub struct SyntaxErrorData<'a, T> {
 pub trait Parser<T: Ord + Copy + Debug, N, A> {
     fn lexical_analyzer(&self) -> &lexan::LexicalAnalyzer<T>;
     fn attribute<'b>(&'b self, attr_num: usize, num_attrs: usize) -> &'b A;
+    fn pop_attributes(&mut self, n: usize) -> Vec<A>;
     fn current_state(&self) -> u32;
     fn push_state(&self, state: u32, symbol: Symbol<T, N>);
     fn next_action<'a>(
@@ -89,6 +90,7 @@ pub trait Parser<T: Ord + Copy + Debug, N, A> {
                         }
                         Action::Reduce(production) => {
                             println!("reduce: {}", production);
+                            let _attrs = self.pop_attributes(1);
                             //continue;
                         }
                     },
