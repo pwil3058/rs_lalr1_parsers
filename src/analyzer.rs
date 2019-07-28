@@ -82,7 +82,7 @@ impl<'a, T: Debug + Copy> std::error::Error for Error<'a, T> {}
 #[derive(Debug, Clone, Copy)]
 pub struct Token<'a, T: Debug + Copy + Eq> {
     tag: T,
-    matched_text: &'a str,
+    lexeme: &'a str,
     location: Location<'a>,
 }
 
@@ -91,8 +91,8 @@ impl<'a, T: Debug + Copy + Eq> Token<'a, T> {
         &self.tag
     }
 
-    pub fn matched_text(&'a self) -> &'a str {
-        &self.matched_text
+    pub fn lexeme(&'a self) -> &'a str {
+        &self.lexeme
     }
 
     pub fn location(&'a self) -> &'a Location<'a> {
@@ -176,14 +176,14 @@ where
                 self.incr_index_and_location(lrems.1);
                 Some(Ok(Token {
                     tag: lrems.0[0],
-                    matched_text: &text[..lrems.1],
+                    lexeme: &text[..lrems.1],
                     location: current_location,
                 }))
             } else {
                 self.incr_index_and_location(llm.1);
                 Some(Ok(Token {
                     tag: llm.0,
-                    matched_text: &text[..llm.1],
+                    lexeme: &text[..llm.1],
                     location: current_location,
                 }))
             }
@@ -191,7 +191,7 @@ where
             self.incr_index_and_location(lrems.1);
             Some(Ok(Token {
                 tag: lrems.0[0],
-                matched_text: &text[..lrems.1],
+                lexeme: &text[..lrems.1],
                 location: current_location,
             }))
         } else if lrems.0.len() > 1 {
