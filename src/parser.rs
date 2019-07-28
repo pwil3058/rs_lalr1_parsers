@@ -36,7 +36,7 @@ pub enum Coda {
 pub trait Parser<T: Ord + Copy + Debug, N, A>
 where
     T: Ord + Copy + Debug,
-    N: Ord + Display,
+    N: Ord + Display + Debug,
     A: Default,
 {
     fn lexical_analyzer(&self) -> &lexan::LexicalAnalyzer<T>;
@@ -76,6 +76,7 @@ where
 
         let mut o_r_token = tokens.next();
         while let Some(ref r_token) = o_r_token {
+            println!("token = {:?}", r_token);
             match r_token {
                 Err(err) => {
                     let err = Error::LexicalError(err.clone());
@@ -91,14 +92,16 @@ where
                             println!("shift: {}", state);
                             self.push_state(state, Symbol::Terminal(*token.tag()));
                             self.push_attribute(A::default());
+                            o_r_token = tokens.next();
                         }
                         Action::Reduce(production_id) => {
                             println!("reduce: {}", production_id);
                             let (lhs, rhs) = self.production_data(production_id);
+                            println!("{:?}:{:?} -> {} : {:?}", lhs, rhs.len(), self.current_state(), token);
                             let next_state = Self::goto_state(&lhs, self.current_state());
+                            println!("{:?}:{:?} -> {}", lhs, rhs.len(), next_state);
                             self.push_state(next_state, Symbol::NonTerminal(lhs));
                             self.push_attribute(A::default());
-                            continue;
                         }
                     },
                     Err(err) => {
@@ -110,7 +113,6 @@ where
                     }
                 },
             };
-            o_r_token = tokens.next();
         }
         let mut coda = self.next_coda(self.current_state());
         while let Coda::Reduce(production) = coda {
