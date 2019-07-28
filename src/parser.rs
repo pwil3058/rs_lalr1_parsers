@@ -1,4 +1,5 @@
-use std::fmt::Debug;
+use std::default::Default;
+use std::fmt::{Debug, Display};
 
 use lexan;
 
@@ -32,24 +33,26 @@ pub enum Coda {
     UnexpectedEndOfInput,
 }
 
-#[derive(Debug, Clone)]
-pub struct SyntaxErrorData<'a, T> {
-    unexpected_symbol: T,
-    matched_text: &'a str,
-}
-
-pub trait Parser<T: Ord + Copy + Debug, N, A> {
+pub trait Parser<T: Ord + Copy + Debug, N, A>
+where
+    T: Ord + Copy + Debug,
+    N: Ord + Display,
+    A: Default,
+{
     fn lexical_analyzer(&self) -> &lexan::LexicalAnalyzer<T>;
     fn attribute<'b>(&'b self, attr_num: usize, num_attrs: usize) -> &'b A;
     fn pop_attributes(&mut self, n: usize) -> Vec<A>;
+    fn push_attribute(&mut self, attribute: A);
     fn current_state(&self) -> u32;
-    fn push_state(&self, state: u32, symbol: Symbol<T, N>);
+    fn push_state(&mut self, state: u32, symbol: Symbol<T, N>);
     fn next_action<'a>(
         &self,
         state: u32,
         o_token: &lexan::Token<'a, T>,
     ) -> Result<Action, Error<'a, T>>;
     fn next_coda<'a>(&self, state: u32) -> Coda;
+    fn production_data(&mut self, production_id: u32) -> (N, Vec<A>);
+    fn goto_state(lhs: &N, current_state: u32) -> u32;
 
     fn report_error(error: &Error<T>) {
         match error {
@@ -86,12 +89,16 @@ pub trait Parser<T: Ord + Copy + Debug, N, A> {
                     Ok(action) => match action {
                         Action::Shift(state) => {
                             println!("shift: {}", state);
-                            self.push_state(state, Symbol::Terminal(*token.symbol()));
+                            self.push_state(state, Symbol::Terminal(*token.tag()));
+                            self.push_attribute(A::default());
                         }
-                        Action::Reduce(production) => {
-                            println!("reduce: {}", production);
-                            let _attrs = self.pop_attributes(1);
-                            //continue;
+                        Action::Reduce(production_id) => {
+                            println!("reduce: {}", production_id);
+                            let (lhs, rhs) = self.production_data(production_id);
+                            let next_state = Self::goto_state(&lhs, self.current_state());
+                            self.push_state(next_state, Symbol::NonTerminal(lhs));
+                            self.push_attribute(A::default());
+                            continue;
                         }
                     },
                     Err(err) => {

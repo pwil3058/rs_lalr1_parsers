@@ -6,9 +6,9 @@ pub mod parser;
 mod tests {
     use super::parser;
 
-    use std::cell::RefCell;
     use std::collections::HashMap;
     use std::convert::From;
+    use std::fmt;
 
     #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
     enum Terminal {
@@ -24,6 +24,23 @@ mod tests {
         Id,
     }
 
+    impl fmt::Display for Terminal {
+        fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+            match self {
+                Terminal::Plus => write!(f, "+"),
+                Terminal::Minus => write!(f, "-"),
+                Terminal::Times => write!(f, "*"),
+                Terminal::Divide => write!(f, "/"),
+                Terminal::Assign => write!(f, "="),
+                Terminal::LPR => write!(f, "("),
+                Terminal::RPR => write!(f, ")"),
+                Terminal::EOL => write!(f, "EOL"),
+                Terminal::Number => write!(f, "Number"),
+                Terminal::Id => write!(f, "Id"),
+            }
+        }
+    }
+
     #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
     enum NonTerminal {
         Line,
@@ -31,7 +48,17 @@ mod tests {
         Expr,
     }
 
-    #[derive(Debug, Clone)]
+    impl fmt::Display for NonTerminal {
+        fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+            match self {
+                NonTerminal::Line => write!(f, "Line"),
+                NonTerminal::SetUp => write!(f, "SetUp"),
+                NonTerminal::Expr => write!(f, "Expr"),
+            }
+        }
+    }
+
+    #[derive(Debug, Default, Clone)]
     struct AttributeData {
         id: String,
         value: f64,
@@ -39,7 +66,7 @@ mod tests {
 
     struct Calc {
         lexical_analyzer: lexan::LexicalAnalyzer<Terminal>,
-        state_stack: RefCell<Vec<(parser::Symbol<Terminal, NonTerminal>, u32)>>,
+        state_stack: Vec<(parser::Symbol<Terminal, NonTerminal>, u32)>,
         attributes: Vec<AttributeData>,
         errors: u32,
         variables: HashMap<String, f64>,
@@ -68,7 +95,7 @@ mod tests {
             Self {
                 lexical_analyzer,
                 attributes: vec![],
-                state_stack: RefCell::new(vec![]),
+                state_stack: vec![],
                 errors: 0,
                 variables: HashMap::new(),
             }
@@ -76,10 +103,10 @@ mod tests {
     }
 
     macro_rules! syntax_error {
-        ( $token:expr; $( $symbol:expr),* ) => {
+        ( $token:expr; $( $tag:expr),* ) => {
             parser::Error::SyntaxError(
-                *$token.symbol(),
-                vec![ $( $symbol),* ],
+                *$token.tag(),
+                vec![ $( $tag),* ],
                 $token.location().to_string(),
             )
         };
@@ -99,13 +126,16 @@ mod tests {
             self.attributes.split_off(n)
         }
 
-
-        fn current_state(&self) -> u32 {
-            self.state_stack.borrow().last().unwrap().1
+        fn push_attribute(&mut self, attribute: AttributeData) {
+            self.attributes.push(attribute);
         }
 
-        fn push_state(&self, state: u32, symbol: parser::Symbol<Terminal, NonTerminal>) {
-            self.state_stack.borrow_mut().push((symbol, state));
+        fn current_state(&self) -> u32 {
+            self.state_stack.last().unwrap().1
+        }
+
+        fn push_state(&mut self, state: u32, symbol: parser::Symbol<Terminal, NonTerminal>) {
+            self.state_stack.push((symbol, state));
         }
 
         fn next_action<'a>(
@@ -114,33 +144,33 @@ mod tests {
             token: &lexan::Token<'a, Terminal>,
         ) -> Result<parser::Action, parser::Error<'a, Terminal>> {
             use Terminal::*;
-            let symbol = *token.symbol();
+            let tag = *token.tag();
             return match state {
-                0 => match symbol {
+                0 => match tag {
                     Minus | LPR | Number | Id => Ok(parser::Action::Reduce(8)),
                     _ => Err(syntax_error!(token; Minus, LPR, Number, Id)),
                 },
-                1 => match symbol {
+                1 => match tag {
                     EOL => Ok(parser::Action::Shift(4)),
                     _ => Err(syntax_error!(token; EOL)),
                 },
-                2 => match symbol {
+                2 => match tag {
                     Minus => Ok(parser::Action::Shift(8)),
                     LPR => Ok(parser::Action::Shift(7)),
                     Number => Ok(parser::Action::Shift(9)),
                     Id => Ok(parser::Action::Shift(6)),
                     _ => Err(syntax_error!(token; Minus, LPR, Number, Id)),
                 },
-                3 => match symbol {
+                3 => match tag {
                     EOL => Ok(parser::Action::Reduce(7)),
                     _ => Err(syntax_error!(token; EOL)),
                 },
-                4 => match symbol {
+                4 => match tag {
                     EOL => Ok(parser::Action::Reduce(6)),
                     Minus | Number | Id | LPR => Ok(parser::Action::Reduce(8)),
                     _ => Err(syntax_error!(token; EOL, Minus, Number, Id, LPR)),
                 },
-                5 => match symbol {
+                5 => match tag {
                     Plus => Ok(parser::Action::Shift(11)),
                     Minus => Ok(parser::Action::Shift(12)),
                     Times => Ok(parser::Action::Shift(13)),
@@ -154,7 +184,7 @@ mod tests {
                     }
                     _ => Err(syntax_error!(token; EOL, Plus, Minus, Times, Divide)),
                 },
-                6 => match symbol {
+                6 => match tag {
                     Assign => Ok(parser::Action::Shift(15)),
                     EOL | Plus | Minus | Times | Divide => {
                         if self.variables.contains_key(&self.attribute(2, 1).id) {
@@ -165,29 +195,29 @@ mod tests {
                     }
                     _ => Err(syntax_error!(token; EOL, Plus, Minus, Times, Divide, Assign)),
                 },
-                7 | 8 => match symbol {
-                    Minus => Ok(parser::Action::Shift(8)),
-                    LPR => Ok(parser::Action::Shift(17)),
-                    Number => Ok(parser::Action::Shift(9)),
-                    Id => Ok(parser::Action::Shift(17)),
-                    _ => Err(syntax_error!(token; Minus, Number, Id, LPR)),
-                },
-                9 => match symbol {
-                    EOL | Plus | Minus | Times | Divide | RPR => Ok(parser::Action::Reduce(25)),
-                    _ => Err(syntax_error!(token; EOL, Plus, Minus, Times, Divide, RPR)),
-                },
-                10 => match symbol {
-                    EOL => Ok(parser::Action::Reduce(5)),
-                    _ => Err(syntax_error!(token; EOL)),
-                },
-                11 | 12 | 13 | 14 | 15 => match symbol {
+                7 | 8 => match tag {
                     Minus => Ok(parser::Action::Shift(8)),
                     LPR => Ok(parser::Action::Shift(7)),
                     Number => Ok(parser::Action::Shift(9)),
                     Id => Ok(parser::Action::Shift(17)),
                     _ => Err(syntax_error!(token; Minus, Number, Id, LPR)),
                 },
-                16 => match symbol {
+                9 => match tag {
+                    EOL | Plus | Minus | Times | Divide | RPR => Ok(parser::Action::Reduce(25)),
+                    _ => Err(syntax_error!(token; EOL, Plus, Minus, Times, Divide, RPR)),
+                },
+                10 => match tag {
+                    EOL => Ok(parser::Action::Reduce(5)),
+                    _ => Err(syntax_error!(token; EOL)),
+                },
+                11 | 12 | 13 | 14 | 15 => match tag {
+                    Minus => Ok(parser::Action::Shift(8)),
+                    LPR => Ok(parser::Action::Shift(7)),
+                    Number => Ok(parser::Action::Shift(9)),
+                    Id => Ok(parser::Action::Shift(17)),
+                    _ => Err(syntax_error!(token; Minus, Number, Id, LPR)),
+                },
+                16 => match tag {
                     Plus => Ok(parser::Action::Shift(11)),
                     Minus => Ok(parser::Action::Shift(12)),
                     Times => Ok(parser::Action::Shift(13)),
@@ -195,7 +225,7 @@ mod tests {
                     RPR => Ok(parser::Action::Shift(24)),
                     _ => Err(syntax_error!(token; Plus, Minus, Times, Divide, RPR)),
                 },
-                17 => match symbol {
+                17 => match tag {
                     EOL | Plus | Minus | Times | Divide | RPR => {
                         if self.variables.contains_key(&self.attribute(2, 1).id) {
                             Ok(parser::Action::Reduce(26))
@@ -205,11 +235,11 @@ mod tests {
                     }
                     _ => Err(syntax_error!(token; EOL, Plus, Minus, Times, Divide, RPR)),
                 },
-                18 => match symbol {
+                18 => match tag {
                     EOL | Plus | Minus | Times | Divide | RPR => Ok(parser::Action::Reduce(24)),
                     _ => Err(syntax_error!(token; EOL, Plus, Minus, Times, Divide, RPR)),
                 },
-                19 => match symbol {
+                19 => match tag {
                     Times => Ok(parser::Action::Shift(13)),
                     Divide => Ok(parser::Action::Shift(14)),
                     EOL | Plus | Minus | RPR => {
@@ -223,7 +253,7 @@ mod tests {
                     }
                     _ => Err(syntax_error!(token; EOL, Plus, Minus, Times, Divide, RPR)),
                 },
-                20 => match symbol {
+                20 => match tag {
                     Times => Ok(parser::Action::Shift(13)),
                     Divide => Ok(parser::Action::Shift(14)),
                     EOL | Plus | Minus | RPR => {
@@ -237,7 +267,7 @@ mod tests {
                     }
                     _ => Err(syntax_error!(token; EOL, Plus, Minus, Times, Divide, RPR)),
                 },
-                21 => match symbol {
+                21 => match tag {
                     EOL | Plus | Minus | Times | Divide | RPR => {
                         if self.attribute(4, 1).value == 0.0 || self.attribute(4, 3).value == 0.0 {
                             Ok(parser::Action::Reduce(15))
@@ -251,7 +281,7 @@ mod tests {
                     }
                     _ => Err(syntax_error!(token; EOL, Plus, Minus, Times, Divide, RPR)),
                 },
-                22 => match symbol {
+                22 => match tag {
                     EOL | Plus | Minus | Times | Divide | RPR => {
                         if self.attribute(4, 1).value == 0.0 || self.attribute(4, 3).value == 0.0 {
                             Ok(parser::Action::Reduce(19))
@@ -265,7 +295,7 @@ mod tests {
                     }
                     _ => Err(syntax_error!(token; EOL, Plus, Minus, Times, Divide, RPR)),
                 },
-                23 => match symbol {
+                23 => match tag {
                     Plus => Ok(parser::Action::Shift(11)),
                     Minus => Ok(parser::Action::Shift(12)),
                     Times => Ok(parser::Action::Shift(13)),
@@ -279,8 +309,8 @@ mod tests {
                     }
                     _ => Err(syntax_error!(token; EOL, Plus, Minus, Times, Divide, RPR)),
                 },
-                24 => match symbol {
-                    EOL | Plus | Minus | Times | Divide | RPR => Ok(parser::Action::Reduce(22)),
+                24 => match tag {
+                    EOL | Plus | Minus | Times | Divide | RPR => Ok(parser::Action::Reduce(23)),
                     _ => Err(syntax_error!(token; EOL, Plus, Minus, Times, Divide, RPR)),
                 },
                 _ => panic!("illegal state: {}", state),
@@ -307,7 +337,7 @@ mod tests {
                     }
                 }
                 9 => parser::Coda::Reduce(25),
-                10 => parser::Coda::Reduce(15),
+                10 => parser::Coda::Reduce(5),
                 18 => parser::Coda::Reduce(24),
                 19 => {
                     if self.attribute(4, 1).value == 0.0 {
@@ -360,12 +390,93 @@ mod tests {
                 _ => parser::Coda::UnexpectedEndOfInput,
             };
         }
+
+        fn production_data(&mut self, production_id: u32) -> (NonTerminal, Vec<AttributeData>) {
+            match production_id {
+                1 => (NonTerminal::Line, self.pop_attributes(2)),
+                2 => (NonTerminal::Line, self.pop_attributes(2)),
+                3 => (NonTerminal::Line, self.pop_attributes(4)),
+                4 => (NonTerminal::Line, self.pop_attributes(4)),
+                5 => (NonTerminal::Line, self.pop_attributes(3)),
+                6 => (NonTerminal::Line, self.pop_attributes(2)),
+                7 => (NonTerminal::Line, self.pop_attributes(1)),
+                8 => (NonTerminal::SetUp, self.pop_attributes(0)),
+                9 => (NonTerminal::Expr, self.pop_attributes(3)),
+                10 => (NonTerminal::Expr, self.pop_attributes(3)),
+                11 => (NonTerminal::Expr, self.pop_attributes(3)),
+                12 => (NonTerminal::Expr, self.pop_attributes(3)),
+                13 => (NonTerminal::Expr, self.pop_attributes(3)),
+                14 => (NonTerminal::Expr, self.pop_attributes(3)),
+                15 => (NonTerminal::Expr, self.pop_attributes(3)),
+                16 => (NonTerminal::Expr, self.pop_attributes(3)),
+                17 => (NonTerminal::Expr, self.pop_attributes(3)),
+                18 => (NonTerminal::Expr, self.pop_attributes(3)),
+                19 => (NonTerminal::Expr, self.pop_attributes(3)),
+                20 => (NonTerminal::Expr, self.pop_attributes(3)),
+                21 => (NonTerminal::Expr, self.pop_attributes(3)),
+                22 => (NonTerminal::Expr, self.pop_attributes(3)),
+                23 => (NonTerminal::Expr, self.pop_attributes(3)),
+                24 => (NonTerminal::Expr, self.pop_attributes(2)),
+                25 => (NonTerminal::Expr, self.pop_attributes(1)),
+                26 => (NonTerminal::Expr, self.pop_attributes(1)),
+                27 => (NonTerminal::Expr, self.pop_attributes(1)),
+                _ => panic!("malformed production data table"),
+            }
+        }
+
+        fn goto_state(lhs: &NonTerminal, current_state: u32) -> u32 {
+            match current_state {
+                0 => match lhs {
+                    NonTerminal::Line => 1,
+                    NonTerminal::SetUp => 2,
+                    _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
+                },
+                2 => match lhs {
+                    NonTerminal::Expr => 5,
+                    _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
+                },
+                4 => match lhs {
+                    NonTerminal::Line => 10,
+                    NonTerminal::SetUp => 2,
+                    _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
+                },
+                7 => match lhs {
+                    NonTerminal::Expr => 16,
+                    _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
+                },
+                8 => match lhs {
+                    NonTerminal::Expr => 18,
+                    _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
+                },
+                11 => match lhs {
+                    NonTerminal::Expr => 19,
+                    _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
+                },
+                12 => match lhs {
+                    NonTerminal::Expr => 20,
+                    _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
+                },
+                13 => match lhs {
+                    NonTerminal::Expr => 21,
+                    _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
+                },
+                14 => match lhs {
+                    NonTerminal::Expr => 22,
+                    _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
+                },
+                15 => match lhs {
+                    NonTerminal::Expr => 23,
+                    _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
+                },
+                _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
+            }
+        }
     }
 
     #[test]
     fn calc_works() {
         use crate::parser::Parser;
         let mut calc = Calc::new();
-        assert!(calc.parse_text("a = 3 + 4", "raw").is_err());
+        assert!(calc.parse_text("a = 3 + 4", "raw").is_ok());
     }
 }
