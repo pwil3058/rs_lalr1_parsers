@@ -123,7 +123,7 @@ mod tests {
         }
 
         fn pop_attributes(&mut self, n: usize) -> Vec<AttributeData> {
-            self.attributes.split_off(n)
+            self.attributes.split_off(self.attributes.len() - n)
         }
 
         fn push_attribute(&mut self, attribute: AttributeData) {
@@ -477,6 +477,6 @@ mod tests {
     fn calc_works() {
         use crate::parser::Parser;
         let mut calc = Calc::new();
-        assert!(calc.parse_text("a = 3 + 4", "raw").is_ok());
+        assert!(calc.parse_text("a = (3 + 4)\n", "raw").is_ok());
     }
 }
