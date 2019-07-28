@@ -22,12 +22,12 @@ where
         regex_lexemes: &[(T, &'a str)],
         skip_regex_strs: &[&'a str],
     ) -> Result<Self, LexanError<'a, T>> {
-        let mut symbols = vec![];
+        let mut tags = vec![];
         let mut patterns = vec![];
-        for (symbol, pattern) in literal_lexemes.iter().chain(regex_lexemes.iter()) {
-            match symbols.binary_search(symbol) {
-                Ok(_) => return Err(LexanError::DuplicateHandle(*symbol)),
-                Err(index) => symbols.insert(index, *symbol),
+        for (tag, pattern) in literal_lexemes.iter().chain(regex_lexemes.iter()) {
+            match tags.binary_search(tag) {
+                Ok(_) => return Err(LexanError::DuplicateHandle(*tag)),
+                Err(index) => tags.insert(index, *tag),
             }
             match patterns.binary_search(pattern) {
                 Ok(_) => return Err(LexanError::DuplicatePattern(pattern)),
@@ -87,7 +87,7 @@ mod tests {
     use super::*;
 
     #[derive(PartialEq, Eq, Clone, Copy, Hash, Debug, PartialOrd, Ord)]
-    enum Symbol {
+    enum Tag {
         If,
         When,
         Ident,
@@ -101,8 +101,8 @@ mod tests {
 
     #[test]
     fn lexicon_ok() {
-        use self::Symbol::*;
-        let lexicon = Lexicon::<Symbol>::new(
+        use self::Tag::*;
+        let lexicon = Lexicon::<Tag>::new(
             &[(If, "if"), (When, "when")],
             &[
                 (Ident, "\\A[a-zA-Z]+[\\w_]*"),
@@ -120,8 +120,8 @@ mod tests {
 
     #[test]
     fn lexicon_fail() {
-        use self::Symbol::*;
-        let lexicon = Lexicon::<Symbol>::new(
+        use self::Tag::*;
+        let lexicon = Lexicon::<Tag>::new(
             &[(If, "if"), (If, "when")],
             &[
                 (Ident, "\\A[a-zA-Z]+[\\w_]*"),
@@ -140,7 +140,7 @@ mod tests {
             assert!(false)
         }
 
-        let lexicon = Lexicon::<Symbol>::new(
+        let lexicon = Lexicon::<Tag>::new(
             &[(If, "if"), (When, "when")],
             &[
                 (Action, "\\A[a-zA-Z]+[\\w_]*"),
@@ -159,7 +159,7 @@ mod tests {
             assert!(false)
         }
 
-        let lexicon = Lexicon::<Symbol>::new(
+        let lexicon = Lexicon::<Tag>::new(
             &[(If, "if"), (When, "when")],
             &[
                 (Ident, "\\A[a-zA-Z]+[\\w_]*"),
@@ -178,7 +178,7 @@ mod tests {
             assert!(false)
         }
 
-        let lexicon = Lexicon::<Symbol>::new(
+        let lexicon = Lexicon::<Tag>::new(
             &[(If, "if"), (When, "if")],
             &[
                 (Ident, "\\A[a-zA-Z]+[\\w_]*"),
@@ -197,7 +197,7 @@ mod tests {
             assert!(false)
         }
 
-        let lexicon = Lexicon::<Symbol>::new(
+        let lexicon = Lexicon::<Tag>::new(
             &[(If, "if"), (When, "when")],
             &[
                 (Ident, "\\A[a-zA-Z]+[\\w_]*"),
@@ -216,7 +216,7 @@ mod tests {
             assert!(false)
         }
 
-        let lexicon = Lexicon::<Symbol>::new(
+        let lexicon = Lexicon::<Tag>::new(
             &[(If, "if"), (When, "when")],
             &[
                 (Ident, "\\A(\"\\S+\")"),
@@ -235,7 +235,7 @@ mod tests {
             assert!(false)
         }
 
-        let lexicon = Lexicon::<Symbol>::new(
+        let lexicon = Lexicon::<Tag>::new(
             &[(If, "if"), (When, "when")],
             &[
                 (Ident, "\\A[a-zA-Z]+[\\w_]*"),
@@ -258,7 +258,7 @@ mod tests {
             assert!(false)
         }
 
-        let lexicon = Lexicon::<Symbol>::new(
+        let lexicon = Lexicon::<Tag>::new(
             &[(If, "if"), (When, "when")],
             &[
                 (Ident, "\\A[a-zA-Z]+[\\w_]*"),

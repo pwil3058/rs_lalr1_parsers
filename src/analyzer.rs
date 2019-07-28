@@ -24,6 +24,18 @@ impl<'a> Location<'a> {
             label: label,
         }
     }
+
+    pub fn line_number(&self) -> usize {
+        self.line_number
+    }
+
+    pub fn offset(&self) -> usize {
+        self.offset
+    }
+
+    pub fn label(&self) -> &'a str {
+        self.label
+    }
 }
 
 impl<'a> fmt::Display for Location<'a> {
@@ -56,10 +68,10 @@ impl<'a, T: Debug + Copy> fmt::Display for Error<'a, T> {
             Error::UnexpectedText(text, location) => {
                 write!(dest, "Enexpected text \"{}\" at: {}", text, location)
             }
-            Error::AmbiguousMatches(symbols, text, location) => write!(
+            Error::AmbiguousMatches(tags, text, location) => write!(
                 dest,
                 "Ambiguous matches {:?} \"{}\" at: {}",
-                symbols, text, location
+                tags, text, location
             ),
         }
     }
@@ -69,14 +81,14 @@ impl<'a, T: Debug + Copy> std::error::Error for Error<'a, T> {}
 
 #[derive(Debug, Clone, Copy)]
 pub struct Token<'a, T: Debug + Copy + Eq> {
-    symbol: T,
+    tag: T,
     matched_text: &'a str,
     location: Location<'a>,
 }
 
 impl<'a, T: Debug + Copy + Eq> Token<'a, T> {
-    pub fn symbol<'h>(&'h self) -> &'h T {
-        &self.symbol
+    pub fn tag<'h>(&'h self) -> &'h T {
+        &self.tag
     }
 
     pub fn matched_text(&'a self) -> &'a str {
@@ -163,14 +175,14 @@ where
             } else if lrems.0.len() == 1 && lrems.1 > llm.1 {
                 self.incr_index_and_location(lrems.1);
                 Some(Ok(Token {
-                    symbol: lrems.0[0],
+                    tag: lrems.0[0],
                     matched_text: &text[..lrems.1],
                     location: current_location,
                 }))
             } else {
                 self.incr_index_and_location(llm.1);
                 Some(Ok(Token {
-                    symbol: llm.0,
+                    tag: llm.0,
                     matched_text: &text[..llm.1],
                     location: current_location,
                 }))
@@ -178,7 +190,7 @@ where
         } else if lrems.0.len() == 1 {
             self.incr_index_and_location(lrems.1);
             Some(Ok(Token {
-                symbol: lrems.0[0],
+                tag: lrems.0[0],
                 matched_text: &text[..lrems.1],
                 location: current_location,
             }))

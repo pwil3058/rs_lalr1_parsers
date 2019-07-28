@@ -6,18 +6,18 @@ use crate::error::LexanError;
 
 #[derive(Debug, Default)]
 struct LiteralMatcherNode<T: PartialEq + Debug + Copy> {
-    symbol: Option<T>,
+    tag: Option<T>,
     length: usize,
     tails: HashMap<u8, LiteralMatcherNode<T>>,
 }
 
 impl<T: PartialEq + Debug + Copy> LiteralMatcherNode<T> {
-    fn new(symbol: T, string: &str, s_index: usize) -> LiteralMatcherNode<T> {
+    fn new(tag: T, string: &str, s_index: usize) -> LiteralMatcherNode<T> {
         debug_assert!(string.len() > 0);
         let mut t = HashMap::<u8, LiteralMatcherNode<T>>::new();
         if string.len() == s_index {
             LiteralMatcherNode {
-                symbol: Some(symbol),
+                tag: Some(tag),
                 length: string.len(),
                 tails: t,
             }
@@ -25,10 +25,10 @@ impl<T: PartialEq + Debug + Copy> LiteralMatcherNode<T> {
             let key = string.as_bytes()[s_index];
             t.insert(
                 key,
-                LiteralMatcherNode::<T>::new(symbol, string, s_index + 1),
+                LiteralMatcherNode::<T>::new(tag, string, s_index + 1),
             );
             LiteralMatcherNode {
-                symbol: None,
+                tag: None,
                 length: s_index,
                 tails: t,
             }
@@ -37,16 +37,16 @@ impl<T: PartialEq + Debug + Copy> LiteralMatcherNode<T> {
 
     fn add<'a>(
         &mut self,
-        symbol: T,
+        tag: T,
         string: &'a str,
         s_index: usize,
     ) -> Result<(), LexanError<'a, T>> {
         debug_assert!(string.len() > 0);
         if string.len() == s_index {
-            if self.symbol.is_some() {
+            if self.tag.is_some() {
                 return Err(LexanError::DuplicatePattern(string));
             }
-            self.symbol = Some(symbol);
+            self.tag = Some(tag);
             self.length = string.len();
         } else {
             let key = string.as_bytes()[s_index];
@@ -55,11 +55,11 @@ impl<T: PartialEq + Debug + Copy> LiteralMatcherNode<T> {
                 self.tails
                     .get_mut(&key)
                     .unwrap()
-                    .add(symbol, string, s_index + 1)?;
+                    .add(tag, string, s_index + 1)?;
             } else {
                 self.tails.insert(
                     key,
-                    LiteralMatcherNode::<T>::new(symbol, string, s_index + 1),
+                    LiteralMatcherNode::<T>::new(tag, string, s_index + 1),
                 );
             }
         }
@@ -75,17 +75,17 @@ pub(crate) struct LiteralMatcher<T: PartialEq + Debug + Copy> {
 impl<T: Eq + Debug + Copy + Ord> LiteralMatcher<T> {
     pub fn new<'a>(lexemes: &[(T, &'a str)]) -> Result<LiteralMatcher<T>, LexanError<'a, T>> {
         let mut lexes = HashMap::<u8, LiteralMatcherNode<T>>::new();
-        for &(symbol, pattern) in lexemes.iter() {
-            // make sure that symbols are unique and strings are not empty
+        for &(tag, pattern) in lexemes.iter() {
+            // make sure that tags are unique and strings are not empty
             if pattern.len() == 0 {
-                return Err(LexanError::EmptyPattern(Some(symbol)));
+                return Err(LexanError::EmptyPattern(Some(tag)));
             }
 
             let key = pattern.as_bytes()[0];
             if lexes.contains_key(&key) {
-                lexes.get_mut(&key).unwrap().add(symbol, pattern, 1)?;
+                lexes.get_mut(&key).unwrap().add(tag, pattern, 1)?;
             } else {
-                lexes.insert(key, LiteralMatcherNode::<T>::new(symbol, pattern, 1));
+                lexes.insert(key, LiteralMatcherNode::<T>::new(tag, pattern, 1));
             }
         }
         Ok(LiteralMatcher { lexemes: lexes })
@@ -98,8 +98,8 @@ impl<T: Eq + Debug + Copy + Ord> LiteralMatcher<T> {
             match lexemes.get(&key) {
                 None => break,
                 Some(node) => {
-                    if let Some(symbol) = node.symbol {
-                        rval = Some((symbol, node.length));
+                    if let Some(tag) = node.tag {
+                        rval = Some((tag, node.length));
                     }
                     lexemes = &node.tails;
                 }
@@ -114,7 +114,7 @@ impl<T: Eq + Debug + Copy + Ord> LiteralMatcher<T> {
             match lexemes.get(&key) {
                 None => break,
                 Some(node) => {
-                    if node.symbol.is_some() {
+                    if node.tag.is_some() {
                         return true;
                     }
                     lexemes = &node.tails;
@@ -133,14 +133,14 @@ pub(crate) struct RegexMatcher<T: Copy + Debug> {
 impl<T: Copy + Ord + Debug> RegexMatcher<T> {
     pub fn new<'a>(lexeme_patterns: &[(T, &'a str)]) -> Result<RegexMatcher<T>, LexanError<'a, T>> {
         let mut lexemes = vec![];
-        for (symbol, pattern) in lexeme_patterns.iter() {
+        for (tag, pattern) in lexeme_patterns.iter() {
             if !pattern.starts_with("\\A") {
                 return Err(LexanError::UnanchoredRegex(pattern));
             };
             if pattern.len() <= "\\A".len() {
-                return Err(LexanError::EmptyPattern(Some(*symbol)));
+                return Err(LexanError::EmptyPattern(Some(*tag)));
             };
-            lexemes.push((*symbol, Regex::new(pattern)?));
+            lexemes.push((*tag, Regex::new(pattern)?));
         }
         Ok(Self { lexemes })
     }
@@ -149,13 +149,13 @@ impl<T: Copy + Ord + Debug> RegexMatcher<T> {
     pub fn longest_matches(&self, text: &str) -> (Vec<T>, usize) {
         let mut matches = vec![];
         let mut largest_end = 0;
-        for (symbol, regex) in self.lexemes.iter() {
+        for (tag, regex) in self.lexemes.iter() {
             if let Some(m) = regex.find(text) {
                 if m.end() == largest_end {
-                    matches.push(*symbol);
+                    matches.push(*tag);
                 } else if m.end() > largest_end {
                     largest_end = m.end();
-                    matches = vec![*symbol];
+                    matches = vec![*tag];
                 }
             }
         }
