@@ -9,6 +9,7 @@ mod tests {
     use std::collections::HashMap;
     use std::convert::From;
     use std::fmt;
+    use std::str::FromStr;
 
     #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
     enum Terminal {
@@ -64,10 +65,24 @@ mod tests {
         value: f64,
     }
 
+    impl From<(Terminal, String)> for AttributeData {
+        fn from(input: (Terminal, String)) -> Self {
+            let mut attr = AttributeData::default();
+            match input.0 {
+                Terminal::Number => {
+                    attr.value = f64::from_str(&input.1).unwrap();
+                }
+                Terminal::Id => {
+                    attr.id = input.1;
+                }
+                _ => (),
+            };
+            attr
+        }
+    }
+
     struct Calc {
         lexical_analyzer: lexan::LexicalAnalyzer<Terminal>,
-        state_stack: Vec<(parser::Symbol<Terminal, NonTerminal>, u32)>,
-        attributes: Vec<AttributeData>,
         errors: u32,
         variables: HashMap<String, f64>,
     }
@@ -94,8 +109,6 @@ mod tests {
             );
             Self {
                 lexical_analyzer,
-                attributes: vec![],
-                state_stack: vec![],
                 errors: 0,
                 variables: HashMap::new(),
             }
@@ -117,35 +130,10 @@ mod tests {
             &self.lexical_analyzer
         }
 
-        fn attribute<'b>(&'b self, num_attrs: usize, attr_num: usize) -> &'b AttributeData {
-            let index = self.attributes.len() - num_attrs - 1 + attr_num;
-            &self.attributes[index]
-        }
-
-        fn pop_attributes(&mut self, n: usize) -> Vec<AttributeData> {
-            self.attributes.split_off(self.attributes.len() - n)
-        }
-
-        fn push_attribute(&mut self, attribute: AttributeData) {
-            self.attributes.push(attribute);
-        }
-
-        fn current_state(&self) -> u32 {
-            self.state_stack.last().unwrap().1
-        }
-
-        fn push_state(&mut self, state: u32, symbol: parser::Symbol<Terminal, NonTerminal>) {
-            self.state_stack.push((symbol, state));
-        }
-
-        fn pop_states(&mut self, n: usize) {
-            let len = self.state_stack.len();
-            self.state_stack.truncate(len - n);
-        }
-
         fn next_action<'a>(
             &self,
             state: u32,
+            attributes: &parser::ParseStack<Terminal, NonTerminal, AttributeData>,
             token: &lexan::Token<'a, Terminal>,
         ) -> Result<parser::Action, parser::Error<'a, Terminal>> {
             use Terminal::*;
@@ -192,7 +180,7 @@ mod tests {
                 6 => match tag {
                     Assign => Ok(parser::Action::Shift(15)),
                     EOL | Plus | Minus | Times | Divide => {
-                        if self.variables.contains_key(&self.attribute(2, 1).id) {
+                        if self.variables.contains_key(&attributes.attribute_n_from_end(2 - 1).id) {
                             Ok(parser::Action::Reduce(26))
                         } else {
                             Ok(parser::Action::Reduce(27))
@@ -232,7 +220,7 @@ mod tests {
                 },
                 17 => match tag {
                     EOL | Plus | Minus | Times | Divide | RPR => {
-                        if self.variables.contains_key(&self.attribute(2, 1).id) {
+                        if self.variables.contains_key(&attributes.attribute_n_from_end(2 - 1).id) {
                             Ok(parser::Action::Reduce(26))
                         } else {
                             Ok(parser::Action::Reduce(27))
@@ -248,9 +236,9 @@ mod tests {
                     Times => Ok(parser::Action::Shift(13)),
                     Divide => Ok(parser::Action::Shift(14)),
                     EOL | Plus | Minus | RPR => {
-                        if self.attribute(4, 1).value == 0.0 {
+                        if attributes.attribute_n_from_end(4 - 1).value == 0.0 {
                             Ok(parser::Action::Reduce(9))
-                        } else if self.attribute(4, 3).value == 0.0 {
+                        } else if attributes.attribute_n_from_end(4 - 3).value == 0.0 {
                             Ok(parser::Action::Reduce(10))
                         } else {
                             Ok(parser::Action::Reduce(11))
@@ -262,9 +250,9 @@ mod tests {
                     Times => Ok(parser::Action::Shift(13)),
                     Divide => Ok(parser::Action::Shift(14)),
                     EOL | Plus | Minus | RPR => {
-                        if self.attribute(4, 1).value == 0.0 {
+                        if attributes.attribute_n_from_end(4 - 1).value == 0.0 {
                             Ok(parser::Action::Reduce(12))
-                        } else if self.attribute(4, 3).value == 0.0 {
+                        } else if attributes.attribute_n_from_end(4 - 3).value == 0.0 {
                             Ok(parser::Action::Reduce(13))
                         } else {
                             Ok(parser::Action::Reduce(14))
@@ -274,11 +262,11 @@ mod tests {
                 },
                 21 => match tag {
                     EOL | Plus | Minus | Times | Divide | RPR => {
-                        if self.attribute(4, 1).value == 0.0 || self.attribute(4, 3).value == 0.0 {
+                        if attributes.attribute_n_from_end(4 - 1).value == 0.0 || attributes.attribute_n_from_end(4 - 3).value == 0.0 {
                             Ok(parser::Action::Reduce(15))
-                        } else if self.attribute(4, 1).value == 1.0 {
+                        } else if attributes.attribute_n_from_end(4 - 1).value == 1.0 {
                             Ok(parser::Action::Reduce(16))
-                        } else if self.attribute(4, 3).value == 1.0 {
+                        } else if attributes.attribute_n_from_end(4 - 3).value == 1.0 {
                             Ok(parser::Action::Reduce(17))
                         } else {
                             Ok(parser::Action::Reduce(18))
@@ -288,11 +276,11 @@ mod tests {
                 },
                 22 => match tag {
                     EOL | Plus | Minus | Times | Divide | RPR => {
-                        if self.attribute(4, 1).value == 0.0 || self.attribute(4, 3).value == 0.0 {
+                        if attributes.attribute_n_from_end(4 - 1).value == 0.0 || attributes.attribute_n_from_end(4 - 3).value == 0.0 {
                             Ok(parser::Action::Reduce(19))
-                        } else if self.attribute(4, 1).value == 1.0 {
+                        } else if attributes.attribute_n_from_end(4 - 1).value == 1.0 {
                             Ok(parser::Action::Reduce(20))
-                        } else if self.attribute(4, 3).value == 1.0 {
+                        } else if attributes.attribute_n_from_end(4 - 3).value == 1.0 {
                             Ok(parser::Action::Reduce(21))
                         } else {
                             Ok(parser::Action::Reduce(22))
@@ -322,7 +310,11 @@ mod tests {
             };
         }
 
-        fn next_coda(&self, state: u32) -> parser::Coda {
+        fn next_coda(
+            &self,
+            state: u32,
+            attributes: &parser::ParseStack<Terminal, NonTerminal, AttributeData>,
+        ) -> parser::Coda {
             return match state {
                 1 => parser::Coda::Accept,
                 3 => parser::Coda::Reduce(7),
@@ -335,7 +327,7 @@ mod tests {
                     }
                 }
                 6 | 17 => {
-                    if self.variables.contains_key(&self.attribute(2, 1).id) {
+                    if self.variables.contains_key(&attributes.attribute_n_from_end(2 - 1).id) {
                         parser::Coda::Reduce(26)
                     } else {
                         parser::Coda::Reduce(27)
@@ -345,40 +337,40 @@ mod tests {
                 10 => parser::Coda::Reduce(5),
                 18 => parser::Coda::Reduce(24),
                 19 => {
-                    if self.attribute(4, 1).value == 0.0 {
+                    if attributes.attribute_n_from_end(4 - 1).value == 0.0 {
                         parser::Coda::Reduce(9)
-                    } else if self.attribute(4, 3).value == 0.0 {
+                    } else if attributes.attribute_n_from_end(4 - 3).value == 0.0 {
                         parser::Coda::Reduce(10)
                     } else {
                         parser::Coda::Reduce(11)
                     }
                 }
                 20 => {
-                    if self.attribute(4, 1).value == 0.0 {
+                    if attributes.attribute_n_from_end(4 - 1).value == 0.0 {
                         parser::Coda::Reduce(12)
-                    } else if self.attribute(4, 3).value == 0.0 {
+                    } else if attributes.attribute_n_from_end(4 - 3).value == 0.0 {
                         parser::Coda::Reduce(13)
                     } else {
                         parser::Coda::Reduce(14)
                     }
                 }
                 21 => {
-                    if self.attribute(4, 1).value == 0.0 || self.attribute(4, 3).value == 0.0 {
+                    if attributes.attribute_n_from_end(4 - 1).value == 0.0 || attributes.attribute_n_from_end(4 - 3).value == 0.0 {
                         parser::Coda::Reduce(15)
-                    } else if self.attribute(4, 1).value == 1.0 {
+                    } else if attributes.attribute_n_from_end(4 - 1).value == 1.0 {
                         parser::Coda::Reduce(16)
-                    } else if self.attribute(4, 3).value == 1.0 {
+                    } else if attributes.attribute_n_from_end(4 - 3).value == 1.0 {
                         parser::Coda::Reduce(17)
                     } else {
                         parser::Coda::Reduce(18)
                     }
                 }
                 22 => {
-                    if self.attribute(4, 1).value == 0.0 || self.attribute(4, 3).value == 0.0 {
+                    if attributes.attribute_n_from_end(4 - 1).value == 0.0 || attributes.attribute_n_from_end(4 - 3).value == 0.0 {
                         parser::Coda::Reduce(19)
-                    } else if self.attribute(4, 1).value == 1.0 {
+                    } else if attributes.attribute_n_from_end(4 - 1).value == 1.0 {
                         parser::Coda::Reduce(20)
-                    } else if self.attribute(4, 3).value == 1.0 {
+                    } else if attributes.attribute_n_from_end(4 - 3).value == 1.0 {
                         parser::Coda::Reduce(21)
                     } else {
                         parser::Coda::Reduce(22)
@@ -396,35 +388,35 @@ mod tests {
             };
         }
 
-        fn production_data(&mut self, production_id: u32) -> (NonTerminal, Vec<AttributeData>) {
+        fn production_data(&mut self, production_id: u32) -> (NonTerminal, usize) {
             match production_id {
-                1 => (NonTerminal::Line, self.pop_attributes(2)),
-                2 => (NonTerminal::Line, self.pop_attributes(2)),
-                3 => (NonTerminal::Line, self.pop_attributes(4)),
-                4 => (NonTerminal::Line, self.pop_attributes(4)),
-                5 => (NonTerminal::Line, self.pop_attributes(3)),
-                6 => (NonTerminal::Line, self.pop_attributes(2)),
-                7 => (NonTerminal::Line, self.pop_attributes(1)),
-                8 => (NonTerminal::SetUp, self.pop_attributes(0)),
-                9 => (NonTerminal::Expr, self.pop_attributes(3)),
-                10 => (NonTerminal::Expr, self.pop_attributes(3)),
-                11 => (NonTerminal::Expr, self.pop_attributes(3)),
-                12 => (NonTerminal::Expr, self.pop_attributes(3)),
-                13 => (NonTerminal::Expr, self.pop_attributes(3)),
-                14 => (NonTerminal::Expr, self.pop_attributes(3)),
-                15 => (NonTerminal::Expr, self.pop_attributes(3)),
-                16 => (NonTerminal::Expr, self.pop_attributes(3)),
-                17 => (NonTerminal::Expr, self.pop_attributes(3)),
-                18 => (NonTerminal::Expr, self.pop_attributes(3)),
-                19 => (NonTerminal::Expr, self.pop_attributes(3)),
-                20 => (NonTerminal::Expr, self.pop_attributes(3)),
-                21 => (NonTerminal::Expr, self.pop_attributes(3)),
-                22 => (NonTerminal::Expr, self.pop_attributes(3)),
-                23 => (NonTerminal::Expr, self.pop_attributes(3)),
-                24 => (NonTerminal::Expr, self.pop_attributes(2)),
-                25 => (NonTerminal::Expr, self.pop_attributes(1)),
-                26 => (NonTerminal::Expr, self.pop_attributes(1)),
-                27 => (NonTerminal::Expr, self.pop_attributes(1)),
+                1 => (NonTerminal::Line, 2),
+                2 => (NonTerminal::Line, 2),
+                3 => (NonTerminal::Line, 4),
+                4 => (NonTerminal::Line, 4),
+                5 => (NonTerminal::Line, 3),
+                6 => (NonTerminal::Line, 2),
+                7 => (NonTerminal::Line, 1),
+                8 => (NonTerminal::SetUp, 0),
+                9 => (NonTerminal::Expr, 3),
+                10 => (NonTerminal::Expr, 3),
+                11 => (NonTerminal::Expr, 3),
+                12 => (NonTerminal::Expr, 3),
+                13 => (NonTerminal::Expr, 3),
+                14 => (NonTerminal::Expr, 3),
+                15 => (NonTerminal::Expr, 3),
+                16 => (NonTerminal::Expr, 3),
+                17 => (NonTerminal::Expr, 3),
+                18 => (NonTerminal::Expr, 3),
+                19 => (NonTerminal::Expr, 3),
+                20 => (NonTerminal::Expr, 3),
+                21 => (NonTerminal::Expr, 3),
+                22 => (NonTerminal::Expr, 3),
+                23 => (NonTerminal::Expr, 3),
+                24 => (NonTerminal::Expr, 2),
+                25 => (NonTerminal::Expr, 1),
+                26 => (NonTerminal::Expr, 1),
+                27 => (NonTerminal::Expr, 1),
                 _ => panic!("malformed production data table"),
             }
         }

@@ -61,6 +61,10 @@ where
         self.attributes.split_off(len - n)
     }
 
+    fn push_attribute(&mut self, attribute: A) {
+        self.attributes.push(attribute);
+    }
+
     fn push_terminal(&mut self, terminal: T, string: &str, new_state: u32) {
         let attribute = A::from((terminal, string.into()));
         self.attributes.push(attribute);
@@ -86,19 +90,13 @@ pub enum Coda {
     UnexpectedEndOfInput,
 }
 
-pub trait Parser<'t, T: Ord + Copy + Debug, N, A>
+pub trait Parser<T: Ord + Copy + Debug, N, A>
 where
     T: Ord + Copy + Debug,
     N: Ord + Display + Debug,
     A: Default + From<(T, String)>,
 {
     fn lexical_analyzer(&self) -> &lexan::LexicalAnalyzer<T>;
-    fn attribute<'b>(&'b self, attr_num: usize, num_attrs: usize) -> &'b A;
-    fn pop_attributes(&mut self, n: usize) -> Vec<A>;
-    fn push_attribute(&mut self, attribute: A);
-    fn current_state(&self) -> u32;
-    fn push_state(&mut self, state: u32, symbol: Symbol<T, N>);
-    fn pop_states(&mut self, n: usize);
     fn next_action<'a>(
         &self,
         state: u32,
@@ -153,7 +151,7 @@ where
                                 let next_state =
                                     Self::goto_state(&lhs, parse_stack.current_state());
                                 parse_stack.push_non_terminal(lhs, next_state);
-                                self.push_attribute(A::default());
+                                parse_stack.push_attribute(A::default());
                                 // TODO: do semantic actions here
                             }
                         },
@@ -174,7 +172,7 @@ where
             let _rhs = parse_stack.pop_n(rhs_len);
             let next_state = Self::goto_state(&lhs, parse_stack.current_state());
             parse_stack.push_non_terminal(lhs, next_state);
-            self.push_attribute(A::default());
+            parse_stack.push_attribute(A::default());
             // TODO: do semantic actions here
 
             coda = self.next_coda(parse_stack.current_state(), &parse_stack);
