@@ -117,7 +117,7 @@ mod tests {
             &self.lexical_analyzer
         }
 
-        fn attribute<'b>(&'b self, attr_num: usize, num_attrs: usize) -> &'b AttributeData {
+        fn attribute<'b>(&'b self, num_attrs: usize, attr_num: usize) -> &'b AttributeData {
             let index = self.attributes.len() - num_attrs - 1 + attr_num;
             &self.attributes[index]
         }
@@ -136,6 +136,11 @@ mod tests {
 
         fn push_state(&mut self, state: u32, symbol: parser::Symbol<Terminal, NonTerminal>) {
             self.state_stack.push((symbol, state));
+        }
+
+        fn pop_states(&mut self, n: usize) {
+            let len = self.state_stack.len();
+            self.state_stack.truncate(len - n);
         }
 
         fn next_action<'a>(

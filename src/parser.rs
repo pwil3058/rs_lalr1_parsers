@@ -45,6 +45,7 @@ where
     fn push_attribute(&mut self, attribute: A);
     fn current_state(&self) -> u32;
     fn push_state(&mut self, state: u32, symbol: Symbol<T, N>);
+    fn pop_states(&mut self, n: usize);
     fn next_action<'a>(
         &self,
         state: u32,
@@ -76,7 +77,6 @@ where
 
         let mut o_r_token = tokens.next();
         while let Some(ref r_token) = o_r_token {
-            println!("token = {:?}", r_token);
             match r_token {
                 Err(err) => {
                     let err = Error::LexicalError(err.clone());
@@ -89,17 +89,14 @@ where
                 Ok(token) => match self.next_action(self.current_state(), &token) {
                     Ok(action) => match action {
                         Action::Shift(state) => {
-                            println!("shift: {}", state);
                             self.push_state(state, Symbol::Terminal(*token.tag()));
                             self.push_attribute(A::default());
                             o_r_token = tokens.next();
                         }
                         Action::Reduce(production_id) => {
-                            println!("reduce: {}", production_id);
                             let (lhs, rhs) = self.production_data(production_id);
-                            println!("{:?}:{:?} -> {} : {:?}", lhs, rhs.len(), self.current_state(), token);
+                            self.pop_states(rhs.len());
                             let next_state = Self::goto_state(&lhs, self.current_state());
-                            println!("{:?}:{:?} -> {}", lhs, rhs.len(), next_state);
                             self.push_state(next_state, Symbol::NonTerminal(lhs));
                             self.push_attribute(A::default());
                         }
@@ -115,8 +112,14 @@ where
             };
         }
         let mut coda = self.next_coda(self.current_state());
-        while let Coda::Reduce(production) = coda {
-            println!("reduce: {}", production);
+        let mut x = 0;
+        while let Coda::Reduce(production_id) = coda {
+            let (lhs, rhs) = self.production_data(production_id);
+            self.pop_states(rhs.len());
+            let next_state = Self::goto_state(&lhs, self.current_state());
+            self.push_state(next_state, Symbol::NonTerminal(lhs));
+            self.push_attribute(A::default());
+
             coda = self.next_coda(self.current_state());
         }
         if let Coda::UnexpectedEndOfInput = coda {
