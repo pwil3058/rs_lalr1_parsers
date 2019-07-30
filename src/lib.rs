@@ -81,6 +81,11 @@ mod tests {
         }
     }
 
+    const UNDEFINED_VARIABLE: u32 = 1 << 0;
+    const DIVIDE_BY_ZERO: u32 = 1 << 1;
+    const SYNTAX_ERROR: u32 = 1 << 2;
+    const LEXICAL_ERROR: u32 = 1 << 3;
+
     struct Calc {
         lexical_analyzer: lexan::LexicalAnalyzer<Terminal>,
         errors: u32,
@@ -112,6 +117,26 @@ mod tests {
                 errors: 0,
                 variables: HashMap::new(),
             }
+        }
+
+        fn report_errors(&self) {
+            if self.errors == 0 {
+                println!("no errrs")
+            } else {
+                if self.errors & UNDEFINED_VARIABLE == UNDEFINED_VARIABLE {
+                    println!("undefined variable errors")
+                }
+                if self.errors & DIVIDE_BY_ZERO == DIVIDE_BY_ZERO {
+                    println!("divide by zero errors")
+                }
+                if self.errors & SYNTAX_ERROR == SYNTAX_ERROR {
+                    println!("syntax errors")
+                }
+                if self.errors & LEXICAL_ERROR == LEXICAL_ERROR {
+                    println!("lexical errors")
+                }
+            }
+            println!("#errors = {}", self.errors)
         }
     }
 
@@ -180,7 +205,10 @@ mod tests {
                 6 => match tag {
                     Assign => Ok(parser::Action::Shift(15)),
                     EOL | Plus | Minus | Times | Divide => {
-                        if self.variables.contains_key(&attributes.attribute_n_from_end(2 - 1).id) {
+                        if self
+                            .variables
+                            .contains_key(&attributes.attribute_n_from_end(2 - 1).id)
+                        {
                             Ok(parser::Action::Reduce(26))
                         } else {
                             Ok(parser::Action::Reduce(27))
@@ -220,7 +248,10 @@ mod tests {
                 },
                 17 => match tag {
                     EOL | Plus | Minus | Times | Divide | RPR => {
-                        if self.variables.contains_key(&attributes.attribute_n_from_end(2 - 1).id) {
+                        if self
+                            .variables
+                            .contains_key(&attributes.attribute_n_from_end(2 - 1).id)
+                        {
                             Ok(parser::Action::Reduce(26))
                         } else {
                             Ok(parser::Action::Reduce(27))
@@ -262,7 +293,9 @@ mod tests {
                 },
                 21 => match tag {
                     EOL | Plus | Minus | Times | Divide | RPR => {
-                        if attributes.attribute_n_from_end(4 - 1).value == 0.0 || attributes.attribute_n_from_end(4 - 3).value == 0.0 {
+                        if attributes.attribute_n_from_end(4 - 1).value == 0.0
+                            || attributes.attribute_n_from_end(4 - 3).value == 0.0
+                        {
                             Ok(parser::Action::Reduce(15))
                         } else if attributes.attribute_n_from_end(4 - 1).value == 1.0 {
                             Ok(parser::Action::Reduce(16))
@@ -276,7 +309,9 @@ mod tests {
                 },
                 22 => match tag {
                     EOL | Plus | Minus | Times | Divide | RPR => {
-                        if attributes.attribute_n_from_end(4 - 1).value == 0.0 || attributes.attribute_n_from_end(4 - 3).value == 0.0 {
+                        if attributes.attribute_n_from_end(4 - 1).value == 0.0
+                            || attributes.attribute_n_from_end(4 - 3).value == 0.0
+                        {
                             Ok(parser::Action::Reduce(19))
                         } else if attributes.attribute_n_from_end(4 - 1).value == 1.0 {
                             Ok(parser::Action::Reduce(20))
@@ -327,7 +362,10 @@ mod tests {
                     }
                 }
                 6 | 17 => {
-                    if self.variables.contains_key(&attributes.attribute_n_from_end(2 - 1).id) {
+                    if self
+                        .variables
+                        .contains_key(&attributes.attribute_n_from_end(2 - 1).id)
+                    {
                         parser::Coda::Reduce(26)
                     } else {
                         parser::Coda::Reduce(27)
@@ -355,7 +393,9 @@ mod tests {
                     }
                 }
                 21 => {
-                    if attributes.attribute_n_from_end(4 - 1).value == 0.0 || attributes.attribute_n_from_end(4 - 3).value == 0.0 {
+                    if attributes.attribute_n_from_end(4 - 1).value == 0.0
+                        || attributes.attribute_n_from_end(4 - 3).value == 0.0
+                    {
                         parser::Coda::Reduce(15)
                     } else if attributes.attribute_n_from_end(4 - 1).value == 1.0 {
                         parser::Coda::Reduce(16)
@@ -366,7 +406,9 @@ mod tests {
                     }
                 }
                 22 => {
-                    if attributes.attribute_n_from_end(4 - 1).value == 0.0 || attributes.attribute_n_from_end(4 - 3).value == 0.0 {
+                    if attributes.attribute_n_from_end(4 - 1).value == 0.0
+                        || attributes.attribute_n_from_end(4 - 3).value == 0.0
+                    {
                         parser::Coda::Reduce(19)
                     } else if attributes.attribute_n_from_end(4 - 1).value == 1.0 {
                         parser::Coda::Reduce(20)
@@ -468,6 +510,92 @@ mod tests {
                 _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
             }
         }
+
+        fn do_semantic_action(
+            &mut self,
+            production_id: u32,
+            rhs: Vec<AttributeData>,
+        ) -> AttributeData {
+            let mut lhs = AttributeData::default();
+            match production_id {
+                1 | 4 => {
+                    self.report_errors();
+                }
+                2 => {
+                    println!("{}", rhs[2 - 1].value);
+                }
+                3 => {
+                    self.variables
+                        .insert(rhs[2 - 1].id.clone(), rhs[4 - 1].value);
+                }
+                7 => {
+                    self.errors |= SYNTAX_ERROR;
+                }
+                8 => {
+                    self.errors = 0;
+                }
+                9 => {
+                    lhs.value = rhs[3 - 1].value;
+                }
+                10 => {
+                    lhs.value = rhs[1 - 1].value;
+                }
+                11 => {
+                    lhs.value = rhs[1 - 1].value + rhs[3 - 1].value;
+                }
+                12 => {
+                    lhs.value = -rhs[3 - 1].value;
+                }
+                13 => {
+                    lhs.value = rhs[1 - 1].value;
+                }
+                14 => {
+                    lhs.value = rhs[1 - 1].value - rhs[3 - 1].value;
+                }
+                15 => {
+                    lhs.value = -rhs[3 - 1].value;
+                }
+                16 => {
+                    lhs.value = rhs[3 - 1].value;
+                }
+                17 => {
+                    lhs.value = rhs[1 - 1].value;
+                }
+                18 => {
+                    lhs.value = rhs[1 - 1].value * rhs[3 - 1].value;
+                }
+                19 => {
+                    lhs.value = rhs[1 - 1].value;
+                }
+                20 => {
+                    self.errors |= DIVIDE_BY_ZERO;
+                }
+                21 => {
+                    lhs.value = 0.0;
+                }
+                22 => {
+                    lhs.value = rhs[1 - 1].value / rhs[3 - 1].value;
+                }
+                23 => {
+                    lhs.value = rhs[2 - 1].value;
+                }
+                24 => {
+                    lhs.value = -rhs[2 - 1].value;
+                }
+                25 => {
+                    lhs.value = rhs[1 - 1].value;
+                }
+                26 => {
+                    lhs.value = *self.variables.get(&rhs[1 - 1].id).unwrap();
+                }
+                27 => {
+                    self.errors |= UNDEFINED_VARIABLE;
+                    lhs.value = 0.0;
+                }
+                _ => (),
+            }
+            lhs
+        }
     }
 
     #[test]
@@ -475,5 +603,8 @@ mod tests {
         use crate::parser::Parser;
         let mut calc = Calc::new();
         assert!(calc.parse_text("a = (3 + 4)\n", "raw").is_ok());
+        assert_eq!(calc.variables.get("a"), Some(&7.0));
+        assert!(calc.parse_text("b = a * 5\n", "raw").is_ok());
+        assert_eq!(calc.variables.get("b"), Some(&35.0));
     }
 }
