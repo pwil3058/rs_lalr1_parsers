@@ -163,7 +163,7 @@ mod tests {
 
         fn viable_error_recovery_states(tag: &Terminal) -> Vec<u32> {
             use Terminal::*;
-            match tag{
+            match tag {
                 EOL => vec![0, 4],
                 _ => vec![],
             }
@@ -536,8 +536,10 @@ mod tests {
             &mut self,
             production_id: u32,
             rhs: Vec<AttributeData>,
+            token_stream: &mut lexan::InjectableTokenStream<Terminal>,
         ) -> AttributeData {
             let mut lhs = AttributeData::default();
+            token_stream.inject("", "");
             match production_id {
                 1 | 4 => {
                     self.report_errors();
