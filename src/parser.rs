@@ -6,9 +6,9 @@ use std::{
 
 use lexan;
 
-#[derive(Debug)]
-pub enum Error<'a, T: Copy + Debug> {
-    LexicalError(lexan::Error<'a, T>),
+#[derive(Debug, Clone)]
+pub enum Error<T: Copy + Debug> {
+    LexicalError(String),
     SyntaxError(T, Vec<T>, String),
     UnexpectedEndOfInput,
 }
@@ -27,7 +27,7 @@ pub enum Symbol<T, N> {
 pub struct ParseStack<T, N, A>
 where
     T: Copy + Ord + Debug,
-    A: From<(T, String)>,
+    A: From<(T, String)> + From<Error<T>>,
 {
     states: Vec<(Symbol<T, N>, u32)>,
     attributes: Vec<A>,
@@ -37,7 +37,7 @@ where
 impl<T, N, A> ParseStack<T, N, A>
 where
     T: Copy + Ord + Debug,
-    A: From<(T, String)>,
+    A: From<(T, String)> + From<Error<T>>,
 {
     fn new() -> Self {
         Self {
@@ -65,6 +65,11 @@ where
 
     fn push_attribute(&mut self, attribute: A) {
         self.attributes.push(attribute);
+    }
+
+    fn push_error(&mut self, state: u32, error: Error<T>) {
+        self.states.push((Symbol::Error, state));
+        self.attributes.push(A::from(error))
     }
 
     fn push_terminal(&mut self, terminal: T, string: &str, new_state: u32) {
@@ -113,7 +118,7 @@ pub trait Parser<T: Ord + Copy + Debug, N, A>
 where
     T: Ord + Copy + Debug,
     N: Ord + Display + Debug,
-    A: Default + From<(T, String)>,
+    A: Default + From<(T, String)> + From<Error<T>>,
 {
     fn lexical_analyzer(&self) -> &lexan::LexicalAnalyzer<T>;
     fn next_action<'a>(
@@ -142,20 +147,23 @@ where
         false
     }
 
-    fn viable_error_recovery_states(_tag: &T) -> Vec<u32> {
-        vec![]
-    }
+    fn viable_error_recovery_states(tag: &T) -> Vec<u32>;
 
-    fn parse_text<'a>(&mut self, text: &'a str, label: &'a str) -> Result<(), Error<'a, T>> {
+    fn error_go_state(state: u32) -> u32;
+
+    fn parse_text<'a>(&mut self, text: &'a str, label: &'a str) -> Result<(), Error<T>> {
         let mut tokens = self.lexical_analyzer().injectable_token_stream(text, label);
         let mut parse_stack = ParseStack::<T, N, A>::new();
-        let mut result: Result<(), Error<'a, T>> = Ok(());
+        let mut result: Result<(), Error<T>> = Ok(());
 
         let mut o_r_token = tokens.next();
         while let Some(ref r_token) = o_r_token {
             match r_token {
                 Err(err) => {
-                    let err = Error::LexicalError(err.clone());
+                    if err.is_ambiguous_match() {
+                        panic!("Fatal Error: {}", err);
+                    }
+                    let err = Error::LexicalError(err.to_string());
                     Self::report_error(&err);
                     result = Err(err);
                     if Self::short_circuit() {
@@ -178,7 +186,7 @@ where
                         Action::SyntaxError(found, expected, location) => {
                             let error = Error::SyntaxError(found, expected, location);
                             Self::report_error(&error);
-                            result = Err(error);
+                            result = Err(error.clone());
                             if Self::short_circuit() {
                                 return result;
                             }
@@ -194,6 +202,13 @@ where
                                 } else {
                                     break;
                                 }
+                            }
+                            if let Some(distance) = distance {
+                                parse_stack.pop_n(distance);
+                                let next_state = Self::error_go_state(parse_stack.current_state());
+                                parse_stack.push_error(next_state, error);
+                            } else {
+                                return result;
                             }
                         }
                     }

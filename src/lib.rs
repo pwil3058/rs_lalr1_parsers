@@ -81,6 +81,12 @@ mod tests {
         }
     }
 
+    impl From<parser::Error<Terminal>> for AttributeData {
+        fn from(_error: parser::Error<Terminal>) -> Self {
+            AttributeData::default()
+        }
+    }
+
     const UNDEFINED_VARIABLE: u32 = 1 << 0;
     const DIVIDE_BY_ZERO: u32 = 1 << 1;
     const SYNTAX_ERROR: u32 = 1 << 2;
@@ -153,6 +159,21 @@ mod tests {
     impl parser::Parser<Terminal, NonTerminal, AttributeData> for Calc {
         fn lexical_analyzer(&self) -> &lexan::LexicalAnalyzer<Terminal> {
             &self.lexical_analyzer
+        }
+
+        fn viable_error_recovery_states(tag: &Terminal) -> Vec<u32> {
+            use Terminal::*;
+            match tag{
+                EOL => vec![0, 4],
+                _ => vec![],
+            }
+        }
+
+        fn error_go_state(state: u32) -> u32 {
+            match state {
+                0 | 4 => 3,
+                _ => panic!("No error go to state for {}", state),
+            }
         }
 
         fn next_action<'a>(
