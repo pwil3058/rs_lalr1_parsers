@@ -142,7 +142,7 @@ mod tests {
 
     macro_rules! syntax_error {
         ( $token:expr; $( $tag:expr),* ) => {
-            parser::Error::SyntaxError(
+            parser::Action::SyntaxError(
                 *$token.tag(),
                 vec![ $( $tag),* ],
                 $token.location().to_string(),
@@ -160,91 +160,91 @@ mod tests {
             state: u32,
             attributes: &parser::ParseStack<Terminal, NonTerminal, AttributeData>,
             token: &lexan::Token<'a, Terminal>,
-        ) -> Result<parser::Action, parser::Error<'a, Terminal>> {
+        ) -> parser::Action<Terminal> {
             use Terminal::*;
             let tag = *token.tag();
             return match state {
                 0 => match tag {
-                    Minus | LPR | Number | Id => Ok(parser::Action::Reduce(8)),
-                    _ => Err(syntax_error!(token; Minus, LPR, Number, Id)),
+                    Minus | LPR | Number | Id => parser::Action::Reduce(8),
+                    _ => syntax_error!(token; Minus, LPR, Number, Id),
                 },
                 1 => match tag {
-                    EOL => Ok(parser::Action::Shift(4)),
-                    _ => Err(syntax_error!(token; EOL)),
+                    EOL => parser::Action::Shift(4),
+                    _ => syntax_error!(token; EOL),
                 },
                 2 => match tag {
-                    Minus => Ok(parser::Action::Shift(8)),
-                    LPR => Ok(parser::Action::Shift(7)),
-                    Number => Ok(parser::Action::Shift(9)),
-                    Id => Ok(parser::Action::Shift(6)),
-                    _ => Err(syntax_error!(token; Minus, LPR, Number, Id)),
+                    Minus => parser::Action::Shift(8),
+                    LPR => parser::Action::Shift(7),
+                    Number => parser::Action::Shift(9),
+                    Id => parser::Action::Shift(6),
+                    _ => syntax_error!(token; Minus, LPR, Number, Id),
                 },
                 3 => match tag {
-                    EOL => Ok(parser::Action::Reduce(7)),
-                    _ => Err(syntax_error!(token; EOL)),
+                    EOL => parser::Action::Reduce(7),
+                    _ => syntax_error!(token; EOL),
                 },
                 4 => match tag {
-                    EOL => Ok(parser::Action::Reduce(6)),
-                    Minus | Number | Id | LPR => Ok(parser::Action::Reduce(8)),
-                    _ => Err(syntax_error!(token; EOL, Minus, Number, Id, LPR)),
+                    EOL => parser::Action::Reduce(6),
+                    Minus | Number | Id | LPR => parser::Action::Reduce(8),
+                    _ => syntax_error!(token; EOL, Minus, Number, Id, LPR),
                 },
                 5 => match tag {
-                    Plus => Ok(parser::Action::Shift(11)),
-                    Minus => Ok(parser::Action::Shift(12)),
-                    Times => Ok(parser::Action::Shift(13)),
-                    Divide => Ok(parser::Action::Shift(14)),
+                    Plus => parser::Action::Shift(11),
+                    Minus => parser::Action::Shift(12),
+                    Times => parser::Action::Shift(13),
+                    Divide => parser::Action::Shift(14),
                     EOL => {
                         if self.errors > 0 {
-                            Ok(parser::Action::Reduce(1))
+                            parser::Action::Reduce(1)
                         } else {
-                            Ok(parser::Action::Reduce(2))
+                            parser::Action::Reduce(2)
                         }
                     }
-                    _ => Err(syntax_error!(token; EOL, Plus, Minus, Times, Divide)),
+                    _ => syntax_error!(token; EOL, Plus, Minus, Times, Divide),
                 },
                 6 => match tag {
-                    Assign => Ok(parser::Action::Shift(15)),
+                    Assign => parser::Action::Shift(15),
                     EOL | Plus | Minus | Times | Divide => {
                         if self
                             .variables
                             .contains_key(&attributes.attribute_n_from_end(2 - 1).id)
                         {
-                            Ok(parser::Action::Reduce(26))
+                            parser::Action::Reduce(26)
                         } else {
-                            Ok(parser::Action::Reduce(27))
+                            parser::Action::Reduce(27)
                         }
                     }
-                    _ => Err(syntax_error!(token; EOL, Plus, Minus, Times, Divide, Assign)),
+                    _ => syntax_error!(token; EOL, Plus, Minus, Times, Divide, Assign),
                 },
                 7 | 8 => match tag {
-                    Minus => Ok(parser::Action::Shift(8)),
-                    LPR => Ok(parser::Action::Shift(7)),
-                    Number => Ok(parser::Action::Shift(9)),
-                    Id => Ok(parser::Action::Shift(17)),
-                    _ => Err(syntax_error!(token; Minus, Number, Id, LPR)),
+                    Minus => parser::Action::Shift(8),
+                    LPR => parser::Action::Shift(7),
+                    Number => parser::Action::Shift(9),
+                    Id => parser::Action::Shift(17),
+                    _ => syntax_error!(token; Minus, Number, Id, LPR),
                 },
                 9 => match tag {
-                    EOL | Plus | Minus | Times | Divide | RPR => Ok(parser::Action::Reduce(25)),
-                    _ => Err(syntax_error!(token; EOL, Plus, Minus, Times, Divide, RPR)),
+                    EOL | Plus | Minus | Times | Divide | RPR => parser::Action::Reduce(25),
+                    _ => syntax_error!(token; EOL, Plus, Minus, Times, Divide, RPR),
                 },
                 10 => match tag {
-                    EOL => Ok(parser::Action::Reduce(5)),
-                    _ => Err(syntax_error!(token; EOL)),
+                    EOL => parser::Action::Reduce(5),
+                    _ => syntax_error!(token; EOL),
                 },
                 11 | 12 | 13 | 14 | 15 => match tag {
-                    Minus => Ok(parser::Action::Shift(8)),
-                    LPR => Ok(parser::Action::Shift(7)),
-                    Number => Ok(parser::Action::Shift(9)),
-                    Id => Ok(parser::Action::Shift(17)),
-                    _ => Err(syntax_error!(token; Minus, Number, Id, LPR)),
+                    Minus => parser::Action::Shift(8),
+                    LPR => parser::Action::Shift(7),
+                    Number => parser::Action::Shift(9),
+                    Id => parser::Action::Shift(17),
+                    _ => syntax_error!(token; Minus, Number, Id, LPR),
                 },
                 16 => match tag {
-                    Plus => Ok(parser::Action::Shift(11)),
-                    Minus => Ok(parser::Action::Shift(12)),
-                    Times => Ok(parser::Action::Shift(13)),
-                    Divide => Ok(parser::Action::Shift(14)),
-                    RPR => Ok(parser::Action::Shift(24)),
-                    _ => Err(syntax_error!(token; Plus, Minus, Times, Divide, RPR)),
+                    Plus => parser::Action::Shift(11),
+                    Minus => parser::Action::Shift(12),
+                    Times => parser::Action::Shift(13),
+                    Divide => parser::Action::Shift(14),
+                    RPR => parser::Action::Shift(24),
+                    _ => syntax_error!(token; Plus, Minus, Times, Divide, RPR),
                 },
                 17 => match tag {
                     EOL | Plus | Minus | Times | Divide | RPR => {
@@ -252,94 +252,94 @@ mod tests {
                             .variables
                             .contains_key(&attributes.attribute_n_from_end(2 - 1).id)
                         {
-                            Ok(parser::Action::Reduce(26))
+                            parser::Action::Reduce(26)
                         } else {
-                            Ok(parser::Action::Reduce(27))
+                            parser::Action::Reduce(27)
                         }
                     }
-                    _ => Err(syntax_error!(token; EOL, Plus, Minus, Times, Divide, RPR)),
+                    _ => syntax_error!(token; EOL, Plus, Minus, Times, Divide, RPR),
                 },
                 18 => match tag {
-                    EOL | Plus | Minus | Times | Divide | RPR => Ok(parser::Action::Reduce(24)),
-                    _ => Err(syntax_error!(token; EOL, Plus, Minus, Times, Divide, RPR)),
+                    EOL | Plus | Minus | Times | Divide | RPR => parser::Action::Reduce(24),
+                    _ => syntax_error!(token; EOL, Plus, Minus, Times, Divide, RPR),
                 },
                 19 => match tag {
-                    Times => Ok(parser::Action::Shift(13)),
-                    Divide => Ok(parser::Action::Shift(14)),
+                    Times => parser::Action::Shift(13),
+                    Divide => parser::Action::Shift(14),
                     EOL | Plus | Minus | RPR => {
                         if attributes.attribute_n_from_end(4 - 1).value == 0.0 {
-                            Ok(parser::Action::Reduce(9))
+                            parser::Action::Reduce(9)
                         } else if attributes.attribute_n_from_end(4 - 3).value == 0.0 {
-                            Ok(parser::Action::Reduce(10))
+                            parser::Action::Reduce(10)
                         } else {
-                            Ok(parser::Action::Reduce(11))
+                            parser::Action::Reduce(11)
                         }
                     }
-                    _ => Err(syntax_error!(token; EOL, Plus, Minus, Times, Divide, RPR)),
+                    _ => syntax_error!(token; EOL, Plus, Minus, Times, Divide, RPR),
                 },
                 20 => match tag {
-                    Times => Ok(parser::Action::Shift(13)),
-                    Divide => Ok(parser::Action::Shift(14)),
+                    Times => parser::Action::Shift(13),
+                    Divide => parser::Action::Shift(14),
                     EOL | Plus | Minus | RPR => {
                         if attributes.attribute_n_from_end(4 - 1).value == 0.0 {
-                            Ok(parser::Action::Reduce(12))
+                            parser::Action::Reduce(12)
                         } else if attributes.attribute_n_from_end(4 - 3).value == 0.0 {
-                            Ok(parser::Action::Reduce(13))
+                            parser::Action::Reduce(13)
                         } else {
-                            Ok(parser::Action::Reduce(14))
+                            parser::Action::Reduce(14)
                         }
                     }
-                    _ => Err(syntax_error!(token; EOL, Plus, Minus, Times, Divide, RPR)),
+                    _ => syntax_error!(token; EOL, Plus, Minus, Times, Divide, RPR),
                 },
                 21 => match tag {
                     EOL | Plus | Minus | Times | Divide | RPR => {
                         if attributes.attribute_n_from_end(4 - 1).value == 0.0
                             || attributes.attribute_n_from_end(4 - 3).value == 0.0
                         {
-                            Ok(parser::Action::Reduce(15))
+                            parser::Action::Reduce(15)
                         } else if attributes.attribute_n_from_end(4 - 1).value == 1.0 {
-                            Ok(parser::Action::Reduce(16))
+                            parser::Action::Reduce(16)
                         } else if attributes.attribute_n_from_end(4 - 3).value == 1.0 {
-                            Ok(parser::Action::Reduce(17))
+                            parser::Action::Reduce(17)
                         } else {
-                            Ok(parser::Action::Reduce(18))
+                            parser::Action::Reduce(18)
                         }
                     }
-                    _ => Err(syntax_error!(token; EOL, Plus, Minus, Times, Divide, RPR)),
+                    _ => syntax_error!(token; EOL, Plus, Minus, Times, Divide, RPR),
                 },
                 22 => match tag {
                     EOL | Plus | Minus | Times | Divide | RPR => {
                         if attributes.attribute_n_from_end(4 - 1).value == 0.0
                             || attributes.attribute_n_from_end(4 - 3).value == 0.0
                         {
-                            Ok(parser::Action::Reduce(19))
+                            parser::Action::Reduce(19)
                         } else if attributes.attribute_n_from_end(4 - 1).value == 1.0 {
-                            Ok(parser::Action::Reduce(20))
+                            parser::Action::Reduce(20)
                         } else if attributes.attribute_n_from_end(4 - 3).value == 1.0 {
-                            Ok(parser::Action::Reduce(21))
+                            parser::Action::Reduce(21)
                         } else {
-                            Ok(parser::Action::Reduce(22))
+                            parser::Action::Reduce(22)
                         }
                     }
-                    _ => Err(syntax_error!(token; EOL, Plus, Minus, Times, Divide, RPR)),
+                    _ => syntax_error!(token; EOL, Plus, Minus, Times, Divide, RPR),
                 },
                 23 => match tag {
-                    Plus => Ok(parser::Action::Shift(11)),
-                    Minus => Ok(parser::Action::Shift(12)),
-                    Times => Ok(parser::Action::Shift(13)),
-                    Divide => Ok(parser::Action::Shift(14)),
+                    Plus => parser::Action::Shift(11),
+                    Minus => parser::Action::Shift(12),
+                    Times => parser::Action::Shift(13),
+                    Divide => parser::Action::Shift(14),
                     EOL => {
                         if self.errors == 0 {
-                            Ok(parser::Action::Reduce(3))
+                            parser::Action::Reduce(3)
                         } else {
-                            Ok(parser::Action::Reduce(4))
+                            parser::Action::Reduce(4)
                         }
                     }
-                    _ => Err(syntax_error!(token; EOL, Plus, Minus, Times, Divide, RPR)),
+                    _ => syntax_error!(token; EOL, Plus, Minus, Times, Divide, RPR),
                 },
                 24 => match tag {
-                    EOL | Plus | Minus | Times | Divide | RPR => Ok(parser::Action::Reduce(23)),
-                    _ => Err(syntax_error!(token; EOL, Plus, Minus, Times, Divide, RPR)),
+                    EOL | Plus | Minus | Times | Divide | RPR => parser::Action::Reduce(23),
+                    _ => syntax_error!(token; EOL, Plus, Minus, Times, Divide, RPR),
                 },
                 _ => panic!("illegal state: {}", state),
             };
