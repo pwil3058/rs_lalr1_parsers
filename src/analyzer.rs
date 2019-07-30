@@ -62,6 +62,22 @@ pub enum Error<'a, T: Debug + Copy> {
     AmbiguousMatches(Vec<T>, &'a str, Location<'a>),
 }
 
+impl<'a, T: Debug + Copy> Error<'a, T> {
+    pub fn is_unexpected_text(&self) -> bool {
+        match self {
+            Error::UnexpectedText(_, _) => true,
+            Error::AmbiguousMatches(_, _, _) => false
+        }
+    }
+
+    pub fn is_ambiguous_match(&self) -> bool {
+        match self {
+            Error::UnexpectedText(_, _) => false,
+            Error::AmbiguousMatches(_, _, _) => true
+        }
+    }
+}
+
 impl<'a, T: Debug + Copy> fmt::Display for Error<'a, T> {
     fn fmt(&self, dest: &mut fmt::Formatter) -> fmt::Result {
         match self {
