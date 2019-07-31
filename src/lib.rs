@@ -1,7 +1,7 @@
 extern crate regex;
 
 use std::fmt::Debug;
-use std::rc::Rc;
+use std::sync::Arc;
 
 mod analyzer;
 mod error;
@@ -15,7 +15,7 @@ pub struct LexicalAnalyzer<T>
 where
     T: Ord + Copy + PartialEq + Debug,
 {
-    lexicon: Rc<Lexicon<T>>,
+    lexicon: Arc<Lexicon<T>>,
 }
 
 impl<T> LexicalAnalyzer<T>
@@ -28,7 +28,7 @@ where
         skip_regex_strs: &[&'a str],
     ) -> Self {
         let lexicon = match Lexicon::new(literal_lexemes, regex_lexemes, skip_regex_strs) {
-            Ok(lexicon) => Rc::new(lexicon),
+            Ok(lexicon) => Arc::new(lexicon),
             Err(err) => panic!("Fatal Error: {:?}", err),
         };
         Self { lexicon }

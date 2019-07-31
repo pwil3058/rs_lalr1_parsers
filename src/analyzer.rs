@@ -1,6 +1,6 @@
 use std::{
     fmt::{self, Debug},
-    rc::Rc,
+    sync::Arc,
 };
 
 use crate::lexicon::Lexicon;
@@ -120,7 +120,7 @@ struct BasicTokenStream<'a, T>
 where
     T: Debug + Copy + Eq,
 {
-    lexicon: Rc<Lexicon<T>>,
+    lexicon: Arc<Lexicon<T>>,
     text: &'a str,
     index: usize,
     location: Location<'a>,
@@ -130,10 +130,10 @@ impl<'a, T> BasicTokenStream<'a, T>
 where
     T: Debug + Copy + Eq,
 {
-    pub fn new(lexicon: &Rc<Lexicon<T>>, text: &'a str, label: &'a str) -> Self {
+    pub fn new(lexicon: &Arc<Lexicon<T>>, text: &'a str, label: &'a str) -> Self {
         let location = Location::new(label);
         Self {
-            lexicon: Rc::clone(lexicon),
+            lexicon: Arc::clone(lexicon),
             text,
             location,
             index: 0,
@@ -232,7 +232,7 @@ pub struct TokenStream<'a, T>
 where
     T: Debug + Copy + Eq,
 {
-    lexicon: Rc<Lexicon<T>>,
+    lexicon: Arc<Lexicon<T>>,
     token_stream_stack: Vec<BasicTokenStream<'a, T>>,
 }
 
@@ -240,9 +240,9 @@ impl<'a, T> TokenStream<'a, T>
 where
     T: Debug + Copy + Eq + Ord,
 {
-    pub fn new(lexicon: &Rc<Lexicon<T>>, text: &'a str, label: &'a str) -> Self {
+    pub fn new(lexicon: &Arc<Lexicon<T>>, text: &'a str, label: &'a str) -> Self {
         let mut stream = Self {
-            lexicon: Rc::clone(lexicon),
+            lexicon: Arc::clone(lexicon),
             token_stream_stack: vec![],
         };
         stream.inject(text, label);
@@ -299,7 +299,7 @@ mod tests {
 
     #[test]
     fn incr_index_and_location() {
-        let lexicon = Rc::new(Lexicon::<u32>::new(&[], &[], &[]).unwrap());
+        let lexicon = Arc::new(Lexicon::<u32>::new(&[], &[], &[]).unwrap());
         let mut token_stream = BasicTokenStream {
             lexicon: lexicon,
             text: &"String\nwith a new line in it".to_string(),
