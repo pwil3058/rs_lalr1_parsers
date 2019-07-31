@@ -4,6 +4,8 @@ extern crate lexan;
 
 pub mod parser;
 
+pub use parser::*;
+
 #[cfg(test)]
 mod tests {
     use super::parser;
