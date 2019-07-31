@@ -134,13 +134,12 @@ impl<T: Copy + Ord + Debug> RegexMatcher<T> {
     pub fn new<'a>(lexeme_patterns: &[(T, &'a str)]) -> Result<RegexMatcher<T>, LexanError<'a, T>> {
         let mut lexemes = vec![];
         for (tag, pattern) in lexeme_patterns.iter() {
-            if !pattern.starts_with("\\A") {
-                return Err(LexanError::UnanchoredRegex(pattern));
-            };
-            if pattern.len() <= "\\A".len() {
+            if pattern.len() == 0 {
                 return Err(LexanError::EmptyPattern(Some(*tag)));
             };
-            lexemes.push((*tag, Regex::new(pattern)?));
+            let mut anchored_pattern = "\\A".to_string();
+            anchored_pattern.push_str(pattern);
+            lexemes.push((*tag, Regex::new(&anchored_pattern)?));
         }
         Ok(Self { lexemes })
     }
@@ -182,13 +181,12 @@ impl SkipMatcher {
     pub fn new<'a, T>(regex_strs: &[&'a str]) -> Result<Self, LexanError<'a, T>> {
         let mut regexes = vec![];
         for regex_str in regex_strs.iter() {
-            if !regex_str.starts_with("\\A") {
-                return Err(LexanError::UnanchoredRegex(regex_str));
-            };
-            if regex_str.len() <= "\\A".len() {
+            if regex_str.len() == 0 {
                 return Err(LexanError::EmptyPattern(None));
             };
-            regexes.push(Regex::new(regex_str)?);
+            let mut anchored_pattern = "\\A".to_string();
+            anchored_pattern.push_str(regex_str);
+            regexes.push(Regex::new(&anchored_pattern)?);
         }
         Ok(Self { regexes })
     }

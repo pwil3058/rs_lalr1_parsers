@@ -8,7 +8,6 @@ pub enum LexanError<'a, T> {
     DuplicatePattern(&'a str),
     EmptyPattern(Option<T>),
     RegexError(regex::Error),
-    UnanchoredRegex(&'a str),
 }
 
 impl<'a, T> From<regex::Error> for LexanError<'a, T> {

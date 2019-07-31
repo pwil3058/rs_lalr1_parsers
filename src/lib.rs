@@ -63,15 +63,15 @@ mod tests {
         let lexan = super::LexicalAnalyzer::new(
             &[(If, "if"), (When, "when")],
             &[
-                (Ident, "\\A[a-zA-Z]+[\\w_]*"),
-                (Btextl, r"\A&\{(.|[\n\r])*&\}"),
-                (Pred, r"\A\?\{(.|[\n\r])*\?\}"),
-                (Literal, "\\A(\"\\S+\")"),
-                (Action, r"\A(!\{(.|[\n\r])*?!\})"),
-                (Predicate, r"\A(\?\((.|[\n\r])*?\?\))"),
-                (Code, r"\A(%\{(.|[\n\r])*?%\})"),
+                (Ident, "[a-zA-Z]+[\\w_]*"),
+                (Btextl, r"&\{(.|[\n\r])*&\}"),
+                (Pred, r"\?\{(.|[\n\r])*\?\}"),
+                (Literal, "(\"\\S+\")"),
+                (Action, r"(!\{(.|[\n\r])*?!\})"),
+                (Predicate, r"(\?\((.|[\n\r])*?\?\))"),
+                (Code, r"(%\{(.|[\n\r])*?%\})"),
             ],
-            &[r"\A(/\*(.|[\n\r])*?\*/)", r"\A(//[^\n\r]*)", r"\A(\s+)"],
+            &[r"(/\*(.|[\n\r])*?\*/)", r"(//[^\n\r]*)", r"(\s+)"],
         );
 
         let mut token_stream = lexan.token_stream(

@@ -105,15 +105,15 @@ mod tests {
         let lexicon = Lexicon::<Tag>::new(
             &[(If, "if"), (When, "when")],
             &[
-                (Ident, "\\A[a-zA-Z]+[\\w_]*"),
-                (Btextl, r"\A&\{(.|[\n\r])*&\}"),
-                (Pred, r"\A\?\{(.|[\n\r])*\?\}"),
-                (Literal, "\\A(\"\\S+\")"),
-                (Action, r"\A(!\{(.|[\n\r])*?!\})"),
-                (Predicate, r"\A(\?\((.|[\n\r])*?\?\))"),
-                (Code, r"\A(%\{(.|[\n\r])*?%\})"),
+                (Ident, "[a-zA-Z]+[\\w_]*"),
+                (Btextl, r"&\{(.|[\n\r])*&\}"),
+                (Pred, r"\?\{(.|[\n\r])*\?\}"),
+                (Literal, "(\"\\S+\")"),
+                (Action, r"(!\{(.|[\n\r])*?!\})"),
+                (Predicate, r"(\?\((.|[\n\r])*?\?\))"),
+                (Code, r"(%\{(.|[\n\r])*?%\})"),
             ],
-            &[r"\A(/\*(.|[\n\r])*?\*/)", r"\A(//[^\n\r]*)", r"\A(\s+)"],
+            &[r"(/\*(.|[\n\r])*?\*/)", r"(//[^\n\r]*)", r"(\s+)"],
         );
         assert!(lexicon.is_ok());
     }
@@ -124,15 +124,15 @@ mod tests {
         let lexicon = Lexicon::<Tag>::new(
             &[(If, "if"), (If, "when")],
             &[
-                (Ident, "\\A[a-zA-Z]+[\\w_]*"),
-                (Btextl, r"\A&\{(.|[\n\r])*&\}"),
-                (Pred, r"\A\?\{(.|[\n\r])*\?\}"),
-                (Literal, "\\A(\"\\S+\")"),
-                (Action, r"\A(!\{(.|[\n\r])*?!\})"),
-                (Predicate, r"\A(\?\((.|[\n\r])*?\?\))"),
-                (Code, r"\A(%\{(.|[\n\r])*?%\})"),
+                (Ident, "[a-zA-Z]+[\\w_]*"),
+                (Btextl, r"&\{(.|[\n\r])*&\}"),
+                (Pred, r"\?\{(.|[\n\r])*\?\}"),
+                (Literal, "(\"\\S+\")"),
+                (Action, r"(!\{(.|[\n\r])*?!\})"),
+                (Predicate, r"(\?\((.|[\n\r])*?\?\))"),
+                (Code, r"(%\{(.|[\n\r])*?%\})"),
             ],
-            &[r"\A(/\*(.|[\n\r])*?\*/)", r"\A(//[^\n\r]*)", r"\A(\s+)"],
+            &[r"(/\*(.|[\n\r])*?\*/)", r"(//[^\n\r]*)", r"(\s+)"],
         );
         if let Err(err) = lexicon {
             assert_eq!(err, LexanError::DuplicateHandle(If));
@@ -143,15 +143,15 @@ mod tests {
         let lexicon = Lexicon::<Tag>::new(
             &[(If, "if"), (When, "when")],
             &[
-                (Action, "\\A[a-zA-Z]+[\\w_]*"),
-                (Btextl, r"\A&\{(.|[\n\r])*&\}"),
-                (Pred, r"\A\?\{(.|[\n\r])*\?\}"),
-                (Literal, "\\A(\"\\S+\")"),
-                (Action, r"\A(!\{(.|[\n\r])*?!\})"),
-                (Predicate, r"\A(\?\((.|[\n\r])*?\?\))"),
-                (Code, r"\A(%\{(.|[\n\r])*?%\})"),
+                (Action, "[a-zA-Z]+[\\w_]*"),
+                (Btextl, r"&\{(.|[\n\r])*&\}"),
+                (Pred, r"\?\{(.|[\n\r])*\?\}"),
+                (Literal, "(\"\\S+\")"),
+                (Action, r"(!\{(.|[\n\r])*?!\})"),
+                (Predicate, r"(\?\((.|[\n\r])*?\?\))"),
+                (Code, r"(%\{(.|[\n\r])*?%\})"),
             ],
-            &[r"\A(/\*(.|[\n\r])*?\*/)", r"\A(//[^\n\r]*)", r"\A(\s+)"],
+            &[r"(/\*(.|[\n\r])*?\*/)", r"(//[^\n\r]*)", r"(\s+)"],
         );
         if let Err(err) = lexicon {
             assert_eq!(err, LexanError::DuplicateHandle(Action));
@@ -162,15 +162,15 @@ mod tests {
         let lexicon = Lexicon::<Tag>::new(
             &[(If, "if"), (When, "when")],
             &[
-                (Ident, "\\A[a-zA-Z]+[\\w_]*"),
-                (Btextl, r"\A&\{(.|[\n\r])*&\}"),
-                (Pred, r"\A\?\{(.|[\n\r])*\?\}"),
-                (Literal, "\\A(\"\\S+\")"),
-                (When, r"\A(!\{(.|[\n\r])*?!\})"),
-                (Predicate, r"\A(\?\((.|[\n\r])*?\?\))"),
-                (Code, r"\A(%\{(.|[\n\r])*?%\})"),
+                (Ident, "[a-zA-Z]+[\\w_]*"),
+                (Btextl, r"&\{(.|[\n\r])*&\}"),
+                (Pred, r"\?\{(.|[\n\r])*\?\}"),
+                (Literal, "(\"\\S+\")"),
+                (When, r"(!\{(.|[\n\r])*?!\})"),
+                (Predicate, r"(\?\((.|[\n\r])*?\?\))"),
+                (Code, r"(%\{(.|[\n\r])*?%\})"),
             ],
-            &[r"\A(/\*(.|[\n\r])*?\*/)", r"\A(//[^\n\r]*)", r"\A(\s+)"],
+            &[r"(/\*(.|[\n\r])*?\*/)", r"(//[^\n\r]*)", r"(\s+)"],
         );
         if let Err(err) = lexicon {
             assert_eq!(err, LexanError::DuplicateHandle(When));
@@ -181,15 +181,15 @@ mod tests {
         let lexicon = Lexicon::<Tag>::new(
             &[(If, "if"), (When, "if")],
             &[
-                (Ident, "\\A[a-zA-Z]+[\\w_]*"),
-                (Btextl, r"\A&\{(.|[\n\r])*&\}"),
-                (Pred, r"\A\?\{(.|[\n\r])*\?\}"),
-                (Literal, "\\A(\"\\S+\")"),
-                (Action, r"\A(!\{(.|[\n\r])*?!\})"),
-                (Predicate, r"\A(\?\((.|[\n\r])*?\?\))"),
-                (Code, r"\A(%\{(.|[\n\r])*?%\})"),
+                (Ident, "[a-zA-Z]+[\\w_]*"),
+                (Btextl, r"&\{(.|[\n\r])*&\}"),
+                (Pred, r"\?\{(.|[\n\r])*\?\}"),
+                (Literal, "(\"\\S+\")"),
+                (Action, r"(!\{(.|[\n\r])*?!\})"),
+                (Predicate, r"(\?\((.|[\n\r])*?\?\))"),
+                (Code, r"(%\{(.|[\n\r])*?%\})"),
             ],
-            &[r"\A(/\*(.|[\n\r])*?\*/)", r"\A(//[^\n\r]*)", r"\A(\s+)"],
+            &[r"(/\*(.|[\n\r])*?\*/)", r"(//[^\n\r]*)", r"(\s+)"],
         );
         if let Err(err) = lexicon {
             assert_eq!(err, LexanError::DuplicatePattern("if"));
@@ -200,15 +200,15 @@ mod tests {
         let lexicon = Lexicon::<Tag>::new(
             &[(If, "if"), (When, "when")],
             &[
-                (Ident, "\\A[a-zA-Z]+[\\w_]*"),
-                (Btextl, r"\A&\{(.|[\n\r])*&\}"),
-                (Pred, r"\A\?\{(.|[\n\r])*\?\}"),
+                (Ident, "[a-zA-Z]+[\\w_]*"),
+                (Btextl, r"&\{(.|[\n\r])*&\}"),
+                (Pred, r"\?\{(.|[\n\r])*\?\}"),
                 (Literal, "when"),
-                (Action, r"\A(!\{(.|[\n\r])*?!\})"),
-                (Predicate, r"\A(\?\((.|[\n\r])*?\?\))"),
-                (Code, r"\A(%\{(.|[\n\r])*?%\})"),
+                (Action, r"(!\{(.|[\n\r])*?!\})"),
+                (Predicate, r"(\?\((.|[\n\r])*?\?\))"),
+                (Code, r"(%\{(.|[\n\r])*?%\})"),
             ],
-            &[r"\A(/\*(.|[\n\r])*?\*/)", r"\A(//[^\n\r]*)", r"\A(\s+)"],
+            &[r"(/\*(.|[\n\r])*?\*/)", r"(//[^\n\r]*)", r"(\s+)"],
         );
         if let Err(err) = lexicon {
             assert_eq!(err, LexanError::DuplicatePattern("when"));
@@ -219,60 +219,41 @@ mod tests {
         let lexicon = Lexicon::<Tag>::new(
             &[(If, "if"), (When, "when")],
             &[
-                (Ident, "\\A(\"\\S+\")"),
-                (Btextl, r"\A&\{(.|[\n\r])*&\}"),
-                (Pred, r"\A\?\{(.|[\n\r])*\?\}"),
-                (Literal, "\\A(\"\\S+\")"),
-                (Action, r"\A(!\{(.|[\n\r])*?!\})"),
-                (Predicate, r"\A(\?\((.|[\n\r])*?\?\))"),
-                (Code, r"\A(%\{(.|[\n\r])*?%\})"),
-            ],
-            &[r"\A(/\*(.|[\n\r])*?\*/)", r"\A(//[^\n\r]*)", r"\A(\s+)"],
-        );
-        if let Err(err) = lexicon {
-            assert_eq!(err, LexanError::DuplicatePattern("\\A(\"\\S+\")"));
-        } else {
-            assert!(false)
-        }
-
-        let lexicon = Lexicon::<Tag>::new(
-            &[(If, "if"), (When, "when")],
-            &[
-                (Ident, "\\A[a-zA-Z]+[\\w_]*"),
-                (Btextl, r"\A&\{(.|[\n\r])*&\}"),
-                (Pred, r"\A\?\{(.|[\n\r])*\?\}"),
-                (Literal, "\\A(\"\\S+\")"),
-                (Action, r"\A(!\{(.|[\n\r])*?!\})"),
-                (Predicate, r"\A(\?\((.|[\n\r])*?\?\))"),
-                (Code, r"\A(%\{(.|[\n\r])*?%\})"),
-            ],
-            &[
-                r"\A(/\*(.|[\n\r])*?\*/)",
-                r"\A(//[^\n\r]*)",
-                "\\A(\"\\S+\")",
-            ],
-        );
-        if let Err(err) = lexicon {
-            assert_eq!(err, LexanError::DuplicatePattern("\\A(\"\\S+\")"));
-        } else {
-            assert!(false)
-        }
-
-        let lexicon = Lexicon::<Tag>::new(
-            &[(If, "if"), (When, "when")],
-            &[
-                (Ident, "\\A[a-zA-Z]+[\\w_]*"),
-                (Btextl, r"\A&\{(.|[\n\r])*&\}"),
-                (Pred, r"\A\?\{(.|[\n\r])*\?\}"),
-                (Literal, "\\A(\"\\S+\")"),
-                (Action, r"\A(!\{(.|[\n\r])*?!\})"),
+                (Ident, "(\"\\S+\")"),
+                (Btextl, r"&\{(.|[\n\r])*&\}"),
+                (Pred, r"\?\{(.|[\n\r])*\?\}"),
+                (Literal, "(\"\\S+\")"),
+                (Action, r"(!\{(.|[\n\r])*?!\})"),
                 (Predicate, r"(\?\((.|[\n\r])*?\?\))"),
-                (Code, r"\A(%\{(.|[\n\r])*?%\})"),
+                (Code, r"(%\{(.|[\n\r])*?%\})"),
             ],
-            &[r"\A(/\*(.|[\n\r])*?\*/)", r"\A(//[^\n\r]*)", r"\A(\s+)"],
+            &[r"(/\*(.|[\n\r])*?\*/)", r"(//[^\n\r]*)", r"(\s+)"],
         );
         if let Err(err) = lexicon {
-            assert_eq!(err, LexanError::UnanchoredRegex(r"(\?\((.|[\n\r])*?\?\))"));
+            assert_eq!(err, LexanError::DuplicatePattern("(\"\\S+\")"));
+        } else {
+            assert!(false)
+        }
+
+        let lexicon = Lexicon::<Tag>::new(
+            &[(If, "if"), (When, "when")],
+            &[
+                (Ident, "[a-zA-Z]+[\\w_]*"),
+                (Btextl, r"&\{(.|[\n\r])*&\}"),
+                (Pred, r"\?\{(.|[\n\r])*\?\}"),
+                (Literal, "(\"\\S+\")"),
+                (Action, r"(!\{(.|[\n\r])*?!\})"),
+                (Predicate, r"(\?\((.|[\n\r])*?\?\))"),
+                (Code, r"(%\{(.|[\n\r])*?%\})"),
+            ],
+            &[
+                r"(/\*(.|[\n\r])*?\*/)",
+                r"(//[^\n\r]*)",
+                "(\"\\S+\")",
+            ],
+        );
+        if let Err(err) = lexicon {
+            assert_eq!(err, LexanError::DuplicatePattern("(\"\\S+\")"));
         } else {
             assert!(false)
         }
