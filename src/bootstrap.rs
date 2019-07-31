@@ -5,18 +5,52 @@ use lexan;
 
 #[derive(Debug, Clone, Copy, PartialOrd, Ord, PartialEq, Eq)]
 pub enum AATerminal {
-    TAG,
     REGEX,
     LITERAL,
+    TOKEN,
+    FIELD,
+    LEFT,
+    RIGHT,
+    NONASSOC,
+    PRECEDENCE,
+    SKIP,
+    ERROR,
+    INJECT,
+    NEWSECTION,
+    COLON,
+    VBAR,
+    DOT,
+    IDENT,
+    FIELDNAME,
+    PREDICATE,
+    ACTION,
+    DCODE,
 }
 
 impl fmt::Display for AATerminal {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         use AATerminal::*;
         match self {
-            TAG => write!(f, "%tag"),
             REGEX => write!(f, "REGEX"),
             LITERAL => write!(f, "LITERAL"),
+            TOKEN => write!(f, "%token"),
+            FIELD => write!(f, "%field"),
+            LEFT => write!(f, "%left"),
+            RIGHT => write!(f, "%right"),
+            NONASSOC => write!(f, "%nonassoc"),
+            PRECEDENCE => write!(f, "%prec"),
+            SKIP => write!(f, "%skip"),
+            ERROR => write!(f, "%error"),
+            INJECT => write!(f, "%inject"),
+            NEWSECTION => write!(f, "%%"),
+            COLON => write!(f, ":"),
+            VBAR => write!(f, "|"),
+            DOT => write!(f, "."),
+            IDENT => write!(f, "IDENT"),
+            FIELDNAME => write!(f, "FIELDNAME"),
+            PREDICATE => write!(f, "PREDICATE"),
+            ACTION => write!(f, "ACTION"),
+            DCODE => write!(f, "DCODE"),
         }
     }
 }
@@ -25,12 +59,35 @@ lazy_static! {
     static ref AALEXAN: lexan::LexicalAnalyzer<AATerminal> = {
         use AATerminal::*;
         lexan::LexicalAnalyzer::new(
-            &[(TAG, "%tag")],
             &[
-                (REGEX, r###"\A(\\A\(.+\)(?=\s))"###),
-                (LITERAL, r###"\A("(\\"|[^"\t\r\n\v\f])*")"###),
+                (TOKEN, "%token"),
+                (FIELD, "%field"),
+                (LEFT, "%left"),
+                (RIGHT, "%right"),
+                (NONASSOC, "%nonassoc"),
+                (PRECEDENCE, "%prec"),
+                (SKIP, "%skip"),
+                (ERROR, "%error"),
+                (INJECT, "%inject"),
+                (NEWSECTION, "%%"),
+                (COLON, ":"),
+                (VBAR, "|"),
+                (DOT, "."),
             ],
-            &[],
+            &[
+                (REGEX, r###"\A(\(.+\)(?=\s))"###),
+                (LITERAL, r###"\A("(\\"|[^"\t\r\n\v\f])*")"###),
+                (IDENT, r###"\A([a-zA-Z]+[a-zA-Z0-9_]*)"###),
+                (FIELDNAME, r###"\A(<[a-zA-Z]+[a-zA-Z0-9_]*>)"###),
+                (PREDICATE, r###"\A(\?\((.|[\n\r])*?\?\))"###),
+                (ACTION, r###"\A(!\{(.|[\n\r])*?!\})"###),
+                (DCODE, r###"\A(%\{(.|[\n\r])*?%\})"###),
+            ],
+            &[
+                r###"\A(/\*(.|[\n\r])*?\*/)"###,
+                r###"\A(//[^\n\r]*)"###,
+                r###"\A(\s+)"###,
+            ],
         )
     };
 }
