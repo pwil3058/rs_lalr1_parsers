@@ -1,3 +1,5 @@
+#[macro_use]
+extern crate lazy_static;
 extern crate lexan;
 
 pub mod parser;
@@ -93,15 +95,14 @@ mod tests {
     const LEXICAL_ERROR: u32 = 1 << 3;
 
     struct Calc {
-        lexical_analyzer: lexan::LexicalAnalyzer<Terminal>,
         errors: u32,
         variables: HashMap<String, f64>,
     }
 
-    impl Calc {
-        pub fn new() -> Self {
+    lazy_static! {
+        static ref AALEXAN: lexan::LexicalAnalyzer<Terminal> = {
             use Terminal::*;
-            let lexical_analyzer = lexan::LexicalAnalyzer::new(
+            lexan::LexicalAnalyzer::new(
                 &[
                     (Plus, "+"),
                     (Minus, "-"),
@@ -117,9 +118,13 @@ mod tests {
                     (Id, r"\A([a-zA-Z]+)"),
                 ],
                 &[r"\A([\t\r ]+)"],
-            );
+            )
+        };
+    }
+
+    impl Calc {
+        pub fn new() -> Self {
             Self {
-                lexical_analyzer,
                 errors: 0,
                 variables: HashMap::new(),
             }
@@ -158,7 +163,7 @@ mod tests {
 
     impl parser::Parser<Terminal, NonTerminal, AttributeData> for Calc {
         fn lexical_analyzer(&self) -> &lexan::LexicalAnalyzer<Terminal> {
-            &self.lexical_analyzer
+            &AALEXAN
         }
 
         fn viable_error_recovery_states(tag: &Terminal) -> Vec<u32> {
