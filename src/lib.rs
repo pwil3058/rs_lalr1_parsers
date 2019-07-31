@@ -536,7 +536,7 @@ mod tests {
             &mut self,
             production_id: u32,
             rhs: Vec<AttributeData>,
-            token_stream: &mut lexan::InjectableTokenStream<Terminal>,
+            token_stream: &mut lexan::TokenStream<Terminal>,
         ) -> AttributeData {
             let mut lhs = AttributeData::default();
             token_stream.inject("", "");

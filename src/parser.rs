@@ -136,7 +136,7 @@ where
         &mut self,
         production_id: u32,
         attributes: Vec<A>,
-        token_stream: &mut lexan::InjectableTokenStream<T>,
+        token_stream: &mut lexan::TokenStream<T>,
     ) -> A;
 
     fn report_error(error: &Error<T>) {
@@ -159,7 +159,7 @@ where
     fn error_go_state(state: u32) -> u32;
 
     fn parse_text<'a>(&mut self, text: &'a str, label: &'a str) -> Result<(), Error<T>> {
-        let mut tokens = self.lexical_analyzer().injectable_token_stream(text, label);
+        let mut tokens = self.lexical_analyzer().token_stream(text, label);
         let mut parse_stack = ParseStack::<T, N, A>::new();
         let mut result: Result<(), Error<T>> = Ok(());
 
