@@ -116,7 +116,7 @@ impl<'a, T: Debug + Copy + Eq> Token<'a, T> {
     }
 }
 
-pub struct TokenStream<'a, T>
+struct BasicTokenStream<'a, T>
 where
     T: Debug + Copy + Eq,
 {
@@ -126,7 +126,7 @@ where
     location: Location<'a>,
 }
 
-impl<'a, T> TokenStream<'a, T>
+impl<'a, T> BasicTokenStream<'a, T>
 where
     T: Debug + Copy + Eq,
 {
@@ -162,7 +162,7 @@ where
     }
 }
 
-impl<'a, T> Iterator for TokenStream<'a, T>
+impl<'a, T> Iterator for BasicTokenStream<'a, T>
 where
     T: Debug + Copy + Eq + Ord,
 {
@@ -228,15 +228,15 @@ where
     }
 }
 
-pub struct InjectableTokenStream<'a, T>
+pub struct TokenStream<'a, T>
 where
     T: Debug + Copy + Eq,
 {
     lexicon: Rc<Lexicon<T>>,
-    token_stream_stack: Vec<TokenStream<'a, T>>,
+    token_stream_stack: Vec<BasicTokenStream<'a, T>>,
 }
 
-impl<'a, T> InjectableTokenStream<'a, T>
+impl<'a, T> TokenStream<'a, T>
 where
     T: Debug + Copy + Eq + Ord,
 {
@@ -250,12 +250,12 @@ where
     }
 
     pub fn inject(&mut self, text: &'a str, label: &'a str) {
-        let token_stream = TokenStream::new(&self.lexicon, text, label);
+        let token_stream = BasicTokenStream::new(&self.lexicon, text, label);
         self.token_stream_stack.push(token_stream);
     }
 }
 
-impl<'a, T> Iterator for InjectableTokenStream<'a, T>
+impl<'a, T> Iterator for TokenStream<'a, T>
 where
     T: Debug + Copy + Eq + Ord,
 {
@@ -300,7 +300,7 @@ mod tests {
     #[test]
     fn incr_index_and_location() {
         let lexicon = Rc::new(Lexicon::<u32>::new(&[], &[], &[]).unwrap());
-        let mut token_stream = TokenStream {
+        let mut token_stream = BasicTokenStream {
             lexicon: lexicon,
             text: &"String\nwith a new line in it".to_string(),
             location: Location::new("whatever"),
