@@ -939,8 +939,236 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AAAttributeData> for ParserSpe
         }
     }
 
-    fn goto_state(_lhs: &AANonTerminal, _current_state: u32) -> u32 {
-        0
+    fn goto_state(lhs: &AANonTerminal, current_state: u32) -> u32 {
+        use AANonTerminal::*;
+        match current_state {
+            0 => match lhs {
+                Specification => 1,
+                Preamble => 2,
+                OInjection => 6,
+                Injection => 3,
+                InjectionHead => 5,
+                _ => panic!("Malformed goto table: no entry for ({} , 0)", lhs),
+            },
+            2 => match lhs {
+                Definitions => 7,
+                FieldDefinitions => 8,
+                _ => panic!("Malformed goto table: no entry for ({} , 2)", lhs),
+            },
+            8 => match lhs {
+                OInjection => 14,
+                Injection => 3,
+                InjectionHead => 5,
+                TokenDefinitions => 13,
+                _ => panic!("Malformed goto table: no entry for ({} , 8)", lhs),
+            },
+            11 => match lhs {
+                OInjection => 15,
+                Injection => 3,
+                InjectionHead => 5,
+                _ => panic!("Malformed goto table: no entry for ({} , 11)", lhs),
+            },
+            12 => match lhs {
+                ProductionRules => 16,
+                OInjection => 17,
+                Injection => 3,
+                InjectionHead => 5,
+                _ => panic!("Malformed goto table: no entry for ({} , 12)", lhs),
+            },
+            13 => match lhs {
+                OInjection => 19,
+                Injection => 3,
+                InjectionHead => 5,
+                SkipDefinitions => 18,
+                _ => panic!("Malformed goto table: no entry for ({} , 13)", lhs),
+            },
+            14 => match lhs {
+                FieldDefinition => 20,
+                TokenDefinition => 22,
+                _ => panic!("Malformed goto table: no entry for ({} , 14)", lhs),
+            },
+            16 => match lhs {
+                Coda => 25,
+                OInjection => 26,
+                Injection => 3,
+                InjectionHead => 5,
+                ProductionGroup => 27,
+                ProductionGroupHead => 28,
+                _ => panic!("Malformed goto table: no entry for ({} , 16)", lhs),
+            },
+            17 => match lhs {
+                ProductionGroup => 30,
+                ProductionGroupHead => 28,
+                _ => panic!("Malformed goto table: no entry for ({} , 17)", lhs),
+            },
+            18 => match lhs {
+                OInjection => 32,
+                Injection => 3,
+                InjectionHead => 5,
+                PrecedenceDefinitions => 31,
+                _ => panic!("Malformed goto table: no entry for ({} , 18)", lhs),
+            },
+            19 => match lhs {
+                TokenDefinition => 33,
+                _ => panic!("Malformed goto table: no entry for ({} , 19)", lhs),
+            },
+            20 => match lhs {
+                OInjection => 34,
+                Injection => 3,
+                InjectionHead => 5,
+                _ => panic!("Malformed goto table: no entry for ({} , 20)", lhs),
+            },
+            21 => match lhs {
+                FieldType => 35,
+                _ => panic!("Malformed goto table: no entry for ({} , 21)", lhs),
+            },
+            23 => match lhs {
+                NewTokenName => 37,
+                _ => panic!("Malformed goto table: no entry for ({} , 23)", lhs),
+            },
+            24 => match lhs {
+                OInjection => 40,
+                Injection => 3,
+                InjectionHead => 5,
+                _ => panic!("Malformed goto table: no entry for ({} , 24)", lhs),
+            },
+            27 => match lhs {
+                OInjection => 42,
+                Injection => 3,
+                InjectionHead => 5,
+                _ => panic!("Malformed goto table: no entry for ({} , 27)", lhs),
+            },
+            28 => match lhs {
+                ProductionTailList => 43,
+                ProductionTail => 44,
+                Action => 45,
+                Predicate => 46,
+                SymbolList => 47,
+                Symbol => 50,
+                _ => panic!("Malformed goto table: no entry for ({} , 28)", lhs),
+            },
+            30 => match lhs {
+                OInjection => 55,
+                Injection => 3,
+                InjectionHead => 5,
+                _ => panic!("Malformed goto table: no entry for ({} , 30)", lhs),
+            },
+            31 => match lhs {
+                OInjection => 56,
+                Injection => 3,
+                InjectionHead => 5,
+                _ => panic!("Malformed goto table: no entry for ({} , 31)", lhs),
+            },
+            32 => match lhs {
+                SkipDefinition => 57,
+                _ => panic!("Malformed goto table: no entry for ({} , 32)", lhs),
+            },
+            33 => match lhs {
+                OInjection => 59,
+                Injection => 3,
+                InjectionHead => 5,
+                _ => panic!("Malformed goto table: no entry for ({} , 33)", lhs),
+            },
+            35 => match lhs {
+                FieldName => 60,
+                _ => panic!("Malformed goto table: no entry for ({} , 35)", lhs),
+            },
+            37 => match lhs {
+                Pattern => 62,
+                _ => panic!("Malformed goto table: no entry for ({} , 37)", lhs),
+            },
+            38 => match lhs {
+                NewTokenName => 65,
+                _ => panic!("Malformed goto table: no entry for ({} , 38)", lhs),
+            },
+            46 => match lhs {
+                Action => 68,
+                _ => panic!("Malformed goto table: no entry for ({} , 46)", lhs),
+            },
+            47 => match lhs {
+                Action => 71,
+                Predicate => 69,
+                TaggedPrecedence => 70,
+                Symbol => 73,
+                _ => panic!("Malformed goto table: no entry for ({} , 47)", lhs),
+            },
+            56 => match lhs {
+                PrecedenceDefinition => 74,
+                _ => panic!("Malformed goto table: no entry for ({} , 56)", lhs),
+            },
+            57 => match lhs {
+                OInjection => 78,
+                Injection => 3,
+                InjectionHead => 5,
+                _ => panic!("Malformed goto table: no entry for ({} , 57)", lhs),
+            },
+            60 => match lhs {
+                FieldConversionFunction => 80,
+                _ => panic!("Malformed goto table: no entry for ({} , 60)", lhs),
+            },
+            65 => match lhs {
+                Pattern => 82,
+                _ => panic!("Malformed goto table: no entry for ({} , 65)", lhs),
+            },
+            67 => match lhs {
+                ProductionTail => 83,
+                Action => 45,
+                Predicate => 46,
+                SymbolList => 47,
+                Symbol => 50,
+                _ => panic!("Malformed goto table: no entry for ({} , 67)", lhs),
+            },
+            69 => match lhs {
+                Action => 85,
+                TaggedPrecedence => 84,
+                _ => panic!("Malformed goto table: no entry for ({} , 69)", lhs),
+            },
+            70 => match lhs {
+                Action => 86,
+                _ => panic!("Malformed goto table: no entry for ({} , 70)", lhs),
+            },
+            74 => match lhs {
+                OInjection => 89,
+                Injection => 3,
+                InjectionHead => 5,
+                _ => panic!("Malformed goto table: no entry for ({} , 74)", lhs),
+            },
+            75 => match lhs {
+                TagList => 90,
+                Tag => 91,
+                _ => panic!("Malformed goto table: no entry for ({} , 75)", lhs),
+            },
+            76 => match lhs {
+                TagList => 94,
+                Tag => 91,
+                _ => panic!("Malformed goto table: no entry for ({} , 76)", lhs),
+            },
+            77 => match lhs {
+                TagList => 95,
+                Tag => 91,
+                _ => panic!("Malformed goto table: no entry for ({} , 77)", lhs),
+            },
+            84 => match lhs {
+                Action => 96,
+                _ => panic!("Malformed goto table: no entry for ({} , 84)", lhs),
+            },
+            90 => match lhs {
+                Tag => 97,
+                _ => panic!("Malformed goto table: no entry for ({} , 90)", lhs),
+            },
+            94 => match lhs {
+                Tag => 97,
+                _ => panic!("Malformed goto table: no entry for ({} , 94)", lhs),
+            },
+            95 => match lhs {
+                Tag => 97,
+                _ => panic!("Malformed goto table: no entry for ({} , 95)", lhs),
+            },
+            _ => panic!(
+                "Malformed goto table: no entry for ({}, {}).",
+                lhs, current_state
+            ),
+        }
     }
 
     fn do_semantic_action(
