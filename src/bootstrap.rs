@@ -263,7 +263,9 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AAAttributeData> for ParserSpe
             3 => match tag {
                 TOKEN | FIELD | LEFT | RIGHT | NONASSOC | SKIP | INJECT | NEWSECTION | IDENT
                 | DCODE => lalr1plus::Action::Reduce(3), // oinjection: injection
-                _ => aa_syntax_error!(token; TOKEN, FIELD, LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION, IDENT, DCODE)
+                _ => {
+                    aa_syntax_error!(token; TOKEN, FIELD, LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION, IDENT, DCODE)
+                }
             },
             4 => match tag {
                 LITERAL => lalr1plus::Action::Shift(9),
@@ -293,7 +295,9 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AAAttributeData> for ParserSpe
             10 => match tag {
                 TOKEN | FIELD | LEFT | RIGHT | NONASSOC | SKIP | INJECT | NEWSECTION | IDENT
                 | DCODE => lalr1plus::Action::Reduce(5), // injection: injection_head "."
-                _ => aa_syntax_error!(token; TOKEN, FIELD, LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION, IDENT, DCODE)
+                _ => {
+                    aa_syntax_error!(token; TOKEN, FIELD, LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION, IDENT, DCODE)
+                }
             },
             11 => match tag {
                 INJECT => lalr1plus::Action::Shift(4),
@@ -309,7 +313,9 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AAAttributeData> for ParserSpe
                 INJECT => lalr1plus::Action::Shift(4),
                 TOKEN => lalr1plus::Action::Reduce(2), // oinjection: <empty>
                 LEFT | RIGHT | NONASSOC | SKIP | NEWSECTION => lalr1plus::Action::Reduce(30), // skip_definitions: <empty>
-                _ => aa_syntax_error!(token; TOKEN, LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION)
+                _ => {
+                    aa_syntax_error!(token; TOKEN, LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION)
+                }
             },
             14 => match tag {
                 TOKEN => lalr1plus::Action::Shift(23),
@@ -351,10 +357,13 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AAAttributeData> for ParserSpe
                 _ => aa_syntax_error!(token; IDENT),
             },
             22 => match tag {
-                TOKEN | LEFT | RIGHT | NONASSOC | SKIP | INJECT | NEWSECTION =>
-                    lalr1plus::Action::Reduce(22),
+                TOKEN | LEFT | RIGHT | NONASSOC | SKIP | INJECT | NEWSECTION => {
+                    lalr1plus::Action::Reduce(22)
+                }
                 // token_definitions: oinjection token_definition
-                _ => aa_syntax_error!(token; TOKEN, LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION)
+                _ => {
+                    aa_syntax_error!(token; TOKEN, LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION)
+                }
             },
             23 => match tag {
                 IDENT => lalr1plus::Action::Shift(39),
@@ -407,7 +416,9 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AAAttributeData> for ParserSpe
             33 => match tag {
                 INJECT => lalr1plus::Action::Shift(4),
                 TOKEN | LEFT | RIGHT | NONASSOC | SKIP | NEWSECTION => lalr1plus::Action::Reduce(2), // oinjection: <empty>
-                _ => aa_syntax_error!(token; TOKEN, LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION)
+                _ => {
+                    aa_syntax_error!(token; TOKEN, LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION)
+                }
             },
             34 => match tag {
                 TOKEN | FIELD | INJECT => lalr1plus::Action::Reduce(13), // field_definitions: field_definitions oinjection field_definition oinjection
@@ -485,7 +496,9 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AAAttributeData> for ParserSpe
                 PREDICATE => lalr1plus::Action::Shift(49),
                 ACTION => lalr1plus::Action::Shift(48),
                 VBAR | DOT => lalr1plus::Action::Reduce(63), // production_tail: symbol_list
-                _ => aa_syntax_error!(token; LITERAL, PRECEDENCE, ERROR, VBAR, DOT, IDENT, PREDICATE, ACTION)
+                _ => {
+                    aa_syntax_error!(token; LITERAL, PRECEDENCE, ERROR, VBAR, DOT, IDENT, PREDICATE, ACTION)
+                }
             },
             48 => match tag {
                 VBAR | DOT => lalr1plus::Action::Reduce(64), // action: ACTION
@@ -499,25 +512,33 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AAAttributeData> for ParserSpe
                 LITERAL | PRECEDENCE | ERROR | VBAR | DOT | IDENT | PREDICATE | ACTION => {
                     lalr1plus::Action::Reduce(68)
                 } // symbol_list: symbol
-                _ => aa_syntax_error!(token; LITERAL, PRECEDENCE, ERROR, VBAR, DOT, IDENT, PREDICATE, ACTION)
+                _ => {
+                    aa_syntax_error!(token; LITERAL, PRECEDENCE, ERROR, VBAR, DOT, IDENT, PREDICATE, ACTION)
+                }
             },
             51 => match tag {
                 LITERAL | PRECEDENCE | ERROR | VBAR | DOT | IDENT | PREDICATE | ACTION => {
                     lalr1plus::Action::Reduce(70)
                 } // symbol: IDENT
-                _ => aa_syntax_error!(token; LITERAL, PRECEDENCE, ERROR, VBAR, DOT, IDENT, PREDICATE, ACTION)
+                _ => {
+                    aa_syntax_error!(token; LITERAL, PRECEDENCE, ERROR, VBAR, DOT, IDENT, PREDICATE, ACTION)
+                }
             },
             52 => match tag {
                 LITERAL | PRECEDENCE | ERROR | VBAR | DOT | IDENT | PREDICATE | ACTION => {
                     lalr1plus::Action::Reduce(71)
                 } // symbol: LITERAL
-                _ => aa_syntax_error!(token; LITERAL, PRECEDENCE, ERROR, VBAR, DOT, IDENT, PREDICATE, ACTION)
+                _ => {
+                    aa_syntax_error!(token; LITERAL, PRECEDENCE, ERROR, VBAR, DOT, IDENT, PREDICATE, ACTION)
+                }
             },
             53 => match tag {
                 LITERAL | PRECEDENCE | ERROR | VBAR | DOT | IDENT | PREDICATE | ACTION => {
                     lalr1plus::Action::Reduce(72)
                 } // symbol: "%error"
-                _ => aa_syntax_error!(token; LITERAL, PRECEDENCE, ERROR, VBAR, DOT, IDENT, PREDICATE, ACTION)
+                _ => {
+                    aa_syntax_error!(token; LITERAL, PRECEDENCE, ERROR, VBAR, DOT, IDENT, PREDICATE, ACTION)
+                }
             },
             54 => match tag {
                 LITERAL | ERROR | VBAR | DOT | IDENT | PREDICATE | ACTION => {
@@ -560,7 +581,9 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AAAttributeData> for ParserSpe
                 TOKEN | LEFT | RIGHT | NONASSOC | SKIP | INJECT | NEWSECTION => {
                     lalr1plus::Action::Reduce(23)
                 } // token_definitions: token_definitions oinjection token_definition oinjection
-                _ => aa_syntax_error!(token; TOKEN, LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION)
+                _ => {
+                    aa_syntax_error!(token; TOKEN, LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION)
+                }
             },
             60 => match tag {
                 IDENT => lalr1plus::Action::Shift(81),
@@ -583,13 +606,17 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AAAttributeData> for ParserSpe
                 TOKEN | LEFT | RIGHT | NONASSOC | SKIP | INJECT | NEWSECTION => {
                     lalr1plus::Action::Reduce(24)
                 } // token_definition: "%token" new_token_name pattern
-                _ => aa_syntax_error!(token; TOKEN, LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION)
+                _ => {
+                    aa_syntax_error!(token; TOKEN, LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION)
+                }
             },
             63 => match tag {
                 TOKEN | LEFT | RIGHT | NONASSOC | SKIP | INJECT | NEWSECTION => {
                     lalr1plus::Action::Reduce(28)
                 } // pattern: REGEX
-                _ => aa_syntax_error!(token; TOKEN, LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION)
+                _ => {
+                    aa_syntax_error!(token; TOKEN, LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION)
+                }
             },
             64 => match tag {
                 TOKEN | LEFT | RIGHT | NONASSOC | SKIP | INJECT | NEWSECTION => {
@@ -645,7 +672,9 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AAAttributeData> for ParserSpe
                 LITERAL | PRECEDENCE | ERROR | VBAR | DOT | IDENT | PREDICATE | ACTION => {
                     lalr1plus::Action::Reduce(69)
                 } // symbol_list: symbol_list symbol
-                _ => aa_syntax_error!(token; LITERAL, PRECEDENCE, ERROR, VBAR, DOT, IDENT, PREDICATE, ACTION)
+                _ => {
+                    aa_syntax_error!(token; LITERAL, PRECEDENCE, ERROR, VBAR, DOT, IDENT, PREDICATE, ACTION)
+                }
             },
             74 => match tag {
                 INJECT => lalr1plus::Action::Shift(4),
@@ -736,19 +765,25 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AAAttributeData> for ParserSpe
                 LITERAL => lalr1plus::Action::Shift(92),
                 IDENT => lalr1plus::Action::Shift(93),
                 LEFT | RIGHT | NONASSOC | INJECT | NEWSECTION => lalr1plus::Action::Reduce(35), // precedence_definition: "%left" tag_list
-                _ => aa_syntax_error!(token; LITERAL, LEFT, RIGHT, NONASSOC, INJECT, NEWSECTION, IDENT)
+                _ => {
+                    aa_syntax_error!(token; LITERAL, LEFT, RIGHT, NONASSOC, INJECT, NEWSECTION, IDENT)
+                }
             },
             91 => match tag {
                 LITERAL | LEFT | RIGHT | NONASSOC | INJECT | NEWSECTION | IDENT => {
                     lalr1plus::Action::Reduce(38)
                 } // tag_list: tag
-                _ => aa_syntax_error!(token; LITERAL, LEFT, RIGHT, NONASSOC, INJECT, NEWSECTION, IDENT)
+                _ => {
+                    aa_syntax_error!(token; LITERAL, LEFT, RIGHT, NONASSOC, INJECT, NEWSECTION, IDENT)
+                }
             },
             92 => match tag {
                 LITERAL | LEFT | RIGHT | NONASSOC | INJECT | NEWSECTION | IDENT => {
                     lalr1plus::Action::Reduce(40)
                 } // tag: LITERAL
-                _ => aa_syntax_error!(token; LITERAL, LEFT, RIGHT, NONASSOC, INJECT, NEWSECTION, IDENT)
+                _ => {
+                    aa_syntax_error!(token; LITERAL, LEFT, RIGHT, NONASSOC, INJECT, NEWSECTION, IDENT)
+                }
             },
             93 => match tag {
                 LITERAL | LEFT | RIGHT | NONASSOC | INJECT | NEWSECTION | IDENT => {
@@ -765,30 +800,41 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AAAttributeData> for ParserSpe
                         lalr1plus::Action::Reduce(43) // tag: IDENT
                     }
                 }
-                _ => aa_syntax_error!(token; LITERAL, LEFT, RIGHT, NONASSOC, INJECT, NEWSECTION, IDENT)
+                _ => {
+                    aa_syntax_error!(token; LITERAL, LEFT, RIGHT, NONASSOC, INJECT, NEWSECTION, IDENT)
+                }
             },
             94 => match tag {
                 LITERAL => lalr1plus::Action::Shift(92),
                 IDENT => lalr1plus::Action::Shift(93),
                 LEFT | RIGHT | NONASSOC | INJECT | NEWSECTION => lalr1plus::Action::Reduce(36), // precedence_definition: "%right" tag_list
-                _ => aa_syntax_error!(token; LITERAL, LEFT, RIGHT, NONASSOC, INJECT, NEWSECTION, IDENT)
+                _ => {
+                    aa_syntax_error!(token; LITERAL, LEFT, RIGHT, NONASSOC, INJECT, NEWSECTION, IDENT)
+                }
             },
             95 => match tag {
                 LITERAL => lalr1plus::Action::Shift(92),
                 IDENT => lalr1plus::Action::Shift(93),
                 LEFT | RIGHT | NONASSOC | INJECT | NEWSECTION =>
-                    // precedence_definition: "%nonassoc" tag_list
-                    lalr1plus::Action::Reduce(37),
-                _ => aa_syntax_error!(token; LITERAL, LEFT, RIGHT, NONASSOC, INJECT, NEWSECTION, IDENT)
+                // precedence_definition: "%nonassoc" tag_list
+                {
+                    lalr1plus::Action::Reduce(37)
+                }
+                _ => {
+                    aa_syntax_error!(token; LITERAL, LEFT, RIGHT, NONASSOC, INJECT, NEWSECTION, IDENT)
+                }
             },
             96 => match tag {
                 VBAR | DOT => lalr1plus::Action::Reduce(56), // production_tail: symbol_list predicate tagged_precedence action
                 _ => aa_syntax_error!(token; VBAR, DOT),
             },
             97 => match tag {
-                LITERAL | LEFT | RIGHT | NONASSOC | INJECT | NEWSECTION | IDENT =>
-                    lalr1plus::Action::Reduce(39), // tag_list: tag_list tag
-                _ => aa_syntax_error!(token; LITERAL, LEFT, RIGHT, NONASSOC, INJECT, NEWSECTION, IDENT)
+                LITERAL | LEFT | RIGHT | NONASSOC | INJECT | NEWSECTION | IDENT => {
+                    lalr1plus::Action::Reduce(39)
+                } // tag_list: tag_list tag
+                _ => {
+                    aa_syntax_error!(token; LITERAL, LEFT, RIGHT, NONASSOC, INJECT, NEWSECTION, IDENT)
+                }
             },
             _ => panic!("{}: invalid parser state.", state),
         }
