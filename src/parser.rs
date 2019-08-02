@@ -130,7 +130,7 @@ where
         o_token: &lexan::Token<'a, T>,
     ) -> Action<T>;
     fn next_coda<'a>(&self, state: u32, attributes: &ParseStack<T, N, A>) -> Coda;
-    fn production_data(&mut self, production_id: u32) -> (N, usize);
+    fn production_data(production_id: u32) -> (N, usize);
     fn goto_state(lhs: &N, current_state: u32) -> u32;
     fn do_semantic_action(
         &mut self,
@@ -187,7 +187,7 @@ where
                                 o_r_token = tokens.next();
                             }
                             Action::Reduce(production_id) => {
-                                let (lhs, rhs_len) = self.production_data(production_id);
+                                let (lhs, rhs_len) = Self::production_data(production_id);
                                 let rhs = parse_stack.pop_n(rhs_len);
                                 let next_state =
                                     Self::goto_state(&lhs, parse_stack.current_state());
@@ -237,7 +237,7 @@ where
                 match self.next_coda(parse_stack.current_state(), &parse_stack) {
                     Coda::Accept => return result,
                     Coda::Reduce(production_id) => {
-                        let (lhs, rhs_len) = self.production_data(production_id);
+                        let (lhs, rhs_len) = Self::production_data(production_id);
                         let rhs = parse_stack.pop_n(rhs_len);
                         let next_state = Self::goto_state(&lhs, parse_stack.current_state());
                         parse_stack.push_attribute(self.do_semantic_action(

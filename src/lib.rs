@@ -458,7 +458,7 @@ mod tests {
             };
         }
 
-        fn production_data(&mut self, production_id: u32) -> (NonTerminal, usize) {
+        fn production_data(production_id: u32) -> (NonTerminal, usize) {
             match production_id {
                 1 => (NonTerminal::Line, 2),
                 2 => (NonTerminal::Line, 2),
