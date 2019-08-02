@@ -66,14 +66,14 @@ impl<'a, T: Debug + Copy> Error<'a, T> {
     pub fn is_unexpected_text(&self) -> bool {
         match self {
             Error::UnexpectedText(_, _) => true,
-            Error::AmbiguousMatches(_, _, _) => false
+            Error::AmbiguousMatches(_, _, _) => false,
         }
     }
 
     pub fn is_ambiguous_match(&self) -> bool {
         match self {
             Error::UnexpectedText(_, _) => false,
-            Error::AmbiguousMatches(_, _, _) => true
+            Error::AmbiguousMatches(_, _, _) => true,
         }
     }
 }
@@ -118,7 +118,7 @@ impl<'a, T: Debug + Copy + Eq> Token<'a, T> {
 
 struct BasicTokenStream<'a, T>
 where
-    T: Debug + Copy + Eq,
+    T: Debug + Copy + Eq + Ord,
 {
     lexicon: Arc<Lexicon<T>>,
     text: &'a str,
@@ -128,7 +128,7 @@ where
 
 impl<'a, T> BasicTokenStream<'a, T>
 where
-    T: Debug + Copy + Eq,
+    T: Debug + Copy + Eq + Ord,
 {
     pub fn new(lexicon: &Arc<Lexicon<T>>, text: &'a str, label: &'a str) -> Self {
         let location = Location::new(label);
@@ -160,15 +160,8 @@ where
         }
         self.index = next_index;
     }
-}
 
-impl<'a, T> Iterator for BasicTokenStream<'a, T>
-where
-    T: Debug + Copy + Eq + Ord,
-{
-    type Item = Result<Token<'a, T>, Error<'a, T>>;
-
-    fn next(&mut self) -> Option<Self::Item> {
+    fn next(&mut self) -> Option<Result<Token<'a, T>, Error<'a, T>>> {
         let text = &self.text[self.index..];
         self.incr_index_and_location(self.lexicon.skippable_count(text));
         if self.index >= self.text.len() {
@@ -230,7 +223,7 @@ where
 
 pub struct TokenStream<'a, T>
 where
-    T: Debug + Copy + Eq,
+    T: Debug + Copy + Eq + Ord,
 {
     lexicon: Arc<Lexicon<T>>,
     token_stream_stack: Vec<BasicTokenStream<'a, T>>,
@@ -253,15 +246,8 @@ where
         let token_stream = BasicTokenStream::new(&self.lexicon, text, label);
         self.token_stream_stack.push(token_stream);
     }
-}
 
-impl<'a, T> Iterator for TokenStream<'a, T>
-where
-    T: Debug + Copy + Eq + Ord,
-{
-    type Item = Result<Token<'a, T>, Error<'a, T>>;
-
-    fn next(&mut self) -> Option<Self::Item> {
+    pub fn next(&mut self) -> Option<Result<Token<'a, T>, Error<'a, T>>> {
         loop {
             if let Some(token_stream) = self.token_stream_stack.last_mut() {
                 if let Some(token) = token_stream.next() {

@@ -23,10 +23,7 @@ impl<T: PartialEq + Debug + Copy> LiteralMatcherNode<T> {
             }
         } else {
             let key = string.as_bytes()[s_index];
-            t.insert(
-                key,
-                LiteralMatcherNode::<T>::new(tag, string, s_index + 1),
-            );
+            t.insert(key, LiteralMatcherNode::<T>::new(tag, string, s_index + 1));
             LiteralMatcherNode {
                 tag: None,
                 length: s_index,
@@ -57,10 +54,8 @@ impl<T: PartialEq + Debug + Copy> LiteralMatcherNode<T> {
                     .unwrap()
                     .add(tag, string, s_index + 1)?;
             } else {
-                self.tails.insert(
-                    key,
-                    LiteralMatcherNode::<T>::new(tag, string, s_index + 1),
-                );
+                self.tails
+                    .insert(key, LiteralMatcherNode::<T>::new(tag, string, s_index + 1));
             }
         }
         Ok(())
