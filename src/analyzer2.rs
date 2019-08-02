@@ -6,7 +6,7 @@ use std::{
 use crate::lexicon::Lexicon;
 
 /// Data for use in user friendly lexical analysis error messages
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Location {
     /// Human friendly line number of this location
     line_number: usize,
@@ -95,7 +95,7 @@ impl<T: Debug + Copy> fmt::Display for Error<T> {
 
 impl<T: Debug + Copy> std::error::Error for Error<T> {}
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Token<T: Debug + Copy + Eq> {
     tag: T,
     lexeme: String,
@@ -133,13 +133,15 @@ where
 {
     pub fn new(lexicon: &Arc<Lexicon<T>>, text: String, label: String) -> Self {
         let location = Location::new(label);
-        Self {
+        let mut bts = Self {
             lexicon: Arc::clone(lexicon),
             text,
             location,
             index: 0,
             front: None,
-        }
+        };
+        bts.advance();
+        bts
     }
 
     fn front(&self) -> &Option<Result<Token<T>, Error<T>>> {
@@ -176,14 +178,12 @@ where
     }
 
     fn next(&mut self) -> Option<Result<Token<T>, Error<T>>> {
-        //let text = &self.text[self.index..];
         self.incr_index_and_location(self.lexicon.skippable_count(&self.text[self.index..]));
         if self.index >= self.text.len() {
             return None;
         }
 
         let current_location = self.location.clone();
-        //let text = &self.text[self.index..];
         let start = self.index;
         let o_llm = self.lexicon.longest_literal_match(&self.text[self.index..]);
         let lrems = self.lexicon.longest_regex_matches(&self.text[self.index..]);
@@ -257,7 +257,7 @@ where
         stream
     }
 
-    pub fn empty(&self) -> bool {
+    pub fn is_empty(&self) -> bool {
         self.token_stream_stack.len() == 0
     }
 
@@ -271,7 +271,9 @@ where
 
     pub fn inject(&mut self, text: String, label: String) {
         let token_stream = BasicTokenStream::new(&self.lexicon, text, label);
-        self.token_stream_stack.push(token_stream);
+        if !token_stream.is_empty() {
+            self.token_stream_stack.push(token_stream);
+        }
     }
 
     pub fn advance(&mut self) {
@@ -322,5 +324,69 @@ mod tests {
         assert_eq!(token_stream.index, 11);
         assert_eq!(token_stream.location.line_number, 2);
         assert_eq!(token_stream.location.offset, 5);
+    }
+
+    #[test]
+    fn token_stream_basics() {
+        #[derive(PartialEq, Eq, Clone, Copy, Hash, Debug, PartialOrd, Ord)]
+        enum Handle {
+            If,
+            When,
+            Ident,
+        }
+        use Handle::*;
+        let lexicon = Lexicon::new(
+            &[(If, "if"), (When, "when")],
+            &[
+                (Ident, "[a-zA-Z]+[\\w_]*"),
+            ],
+            &[r"(/\*(.|[\n\r])*?\*/)", r"(//[^\n\r]*)", r"(\s+)"],
+        );
+        let lexicon = Arc::new(lexicon.unwrap());
+        let text = "      ".to_string();
+        let label = "label".to_string();
+        let mut token_stream = TokenStream::new(&lexicon, text, label);
+        assert!(token_stream.is_empty());
+        assert!(token_stream.front().is_none());
+        let text = " if nothing happens 9 ".to_string();
+        let label = "another".to_string();
+        token_stream.inject(text, label);
+        assert!(!token_stream.is_empty());
+        let token = Token {
+            tag: If,
+            lexeme: "if".to_string(),
+            location: Location { line_number: 1, offset: 2, label: "another".to_string() },
+        };
+        assert_eq!((token_stream.front().clone()).unwrap().unwrap(), token.clone());
+        assert_eq!((token_stream.front().clone()).unwrap().unwrap(), token.clone());
+        token_stream.advance();
+        let token = Token {
+            tag: Ident,
+            lexeme: "nothing".to_string(),
+            location: Location { line_number: 1, offset: 5, label: "another".to_string() },
+        };
+        assert_eq!((token_stream.front().clone()).unwrap().unwrap(), token.clone());
+        let text = "just".to_string();
+        let label = "more".to_string();
+        token_stream.inject(text, label);
+        let token = Token {
+            tag: Ident,
+            lexeme: "just".to_string(),
+            location: Location { line_number: 1, offset: 1, label: "more".to_string() },
+        };
+        assert_eq!((token_stream.front().clone()).unwrap().unwrap(), token.clone());
+        token_stream.advance();
+        let token = Token {
+            tag: Ident,
+            lexeme: "nothing".to_string(),
+            location: Location { line_number: 1, offset: 5, label: "another".to_string() },
+        };
+        assert_eq!((token_stream.front().clone()).unwrap().unwrap(), token.clone());
+        token_stream.advance();
+        assert!(token_stream.front().clone().unwrap().is_ok());
+        token_stream.advance();
+        assert!(token_stream.front().clone().unwrap().is_err());
+        token_stream.advance();
+        assert!(token_stream.front().is_none());
     }
 }
