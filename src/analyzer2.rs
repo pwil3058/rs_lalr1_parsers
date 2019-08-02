@@ -242,6 +242,7 @@ where
 {
     lexicon: Arc<Lexicon<T>>,
     token_stream_stack: Vec<BasicTokenStream<T>>,
+    front: Option<Result<Token<T>, Error<T>>>,
 }
 
 impl<'a, T> TokenStream<T>
@@ -252,6 +253,7 @@ where
         let mut stream = Self {
             lexicon: Arc::clone(lexicon),
             token_stream_stack: vec![],
+            front: None,
         };
         stream.inject(text, label);
         stream
@@ -262,10 +264,14 @@ where
     }
 
     pub fn front(&self) -> &Option<Result<Token<T>, Error<T>>> {
-        if let Some(basic_stream) = self.token_stream_stack.last() {
-            basic_stream.front()
+        &self.front
+    }
+
+    fn set_front(&mut self) {
+        self.front = if let Some(basic_stream) = self.token_stream_stack.last() {
+            basic_stream.front().clone()
         } else {
-            &None
+            None
         }
     }
 
@@ -273,6 +279,7 @@ where
         let token_stream = BasicTokenStream::new(&self.lexicon, text, label);
         if !token_stream.is_empty() {
             self.token_stream_stack.push(token_stream);
+            self.set_front();
         }
     }
 
@@ -285,6 +292,7 @@ where
                 i -= 1;
             }
         }
+        self.set_front();
     }
 }
 
