@@ -4,7 +4,7 @@ use std::fmt::Debug;
 use std::sync::Arc;
 
 mod analyzer;
-//mod analyzer2;
+pub mod analyzer2;
 mod error;
 mod lexicon;
 mod matcher;

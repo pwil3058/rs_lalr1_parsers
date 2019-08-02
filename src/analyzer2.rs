@@ -124,6 +124,7 @@ where
     text: String,
     index: usize,
     location: Location,
+    front: Option<Result<Token<T>, Error<T>>>,
 }
 
 impl<T> BasicTokenStream<T>
@@ -137,7 +138,20 @@ where
             text,
             location,
             index: 0,
+            front: None,
         }
+    }
+
+    fn front(&self) -> &Option<Result<Token<T>, Error<T>>> {
+        &self.front
+    }
+
+    fn is_empty(&self) -> bool {
+        self.front.is_none()
+    }
+
+    fn advance(&mut self) {
+        self.front = self.next();
     }
 
     fn incr_index_and_location(&mut self, length: usize) {
@@ -243,21 +257,30 @@ where
         stream
     }
 
+    pub fn empty(&self) -> bool {
+        self.token_stream_stack.len() == 0
+    }
+
+    pub fn front(&self) -> &Option<Result<Token<T>, Error<T>>> {
+        if let Some(basic_stream) = self.token_stream_stack.last() {
+            basic_stream.front()
+        } else {
+            &None
+        }
+    }
+
     pub fn inject(&mut self, text: String, label: String) {
         let token_stream = BasicTokenStream::new(&self.lexicon, text, label);
         self.token_stream_stack.push(token_stream);
     }
 
-    pub fn next(&mut self) -> Option<Result<Token<T>, Error<T>>> {
-        loop {
-            if let Some(token_stream) = self.token_stream_stack.last_mut() {
-                if let Some(token) = token_stream.next() {
-                    return Some(token);
-                } else {
-                    self.token_stream_stack.pop();
-                }
-            } else {
-                return None;
+    pub fn advance(&mut self) {
+        let mut i = self.token_stream_stack.len();
+        if i > 0 {
+            self.token_stream_stack[i-1].advance();
+            while i > 0 && self.token_stream_stack[i-1].is_empty() {
+                self.token_stream_stack.pop();
+                i -= 1;
             }
         }
     }
@@ -292,6 +315,7 @@ mod tests {
             text: "String\nwith a new line in it".to_string(),
             location: Location::new("whatever".to_string()),
             index: 0,
+            front: None,
         };
         token_stream.incr_index_and_location(11);
         println!("{:?}", token_stream.location);
