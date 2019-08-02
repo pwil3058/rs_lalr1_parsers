@@ -183,11 +183,11 @@ mod tests {
             }
         }
 
-        fn next_action<'a>(
+        fn next_action(
             &self,
             state: u32,
             attributes: &parser::ParseStack<Terminal, NonTerminal, AttributeData>,
-            token: &lexan::Token<'a, Terminal>,
+            token: &lexan::Token<Terminal>,
         ) -> parser::Action<Terminal> {
             use Terminal::*;
             let tag = *token.tag();
@@ -546,7 +546,9 @@ mod tests {
             token_stream: &mut lexan::TokenStream<Terminal>,
         ) -> AttributeData {
             let mut lhs = AttributeData::default();
-            token_stream.inject("", "");
+            let text = String::new();
+            let name = String::new();
+            token_stream.inject(text, name);
             match production_id {
                 1 | 4 => {
                     self.report_errors();
@@ -632,9 +634,9 @@ mod tests {
     fn calc_works() {
         use crate::parser::Parser;
         let mut calc = Calc::new();
-        assert!(calc.parse_text("a = (3 + 4)\n", "raw").is_ok());
+        assert!(calc.parse_text("a = (3 + 4)\n".to_string(), "raw".to_string()).is_ok());
         assert_eq!(calc.variables.get("a"), Some(&7.0));
-        assert!(calc.parse_text("b = a * 5\n", "raw").is_ok());
+        assert!(calc.parse_text("b = a * 5\n".to_string(), "raw".to_string()).is_ok());
         assert_eq!(calc.variables.get("b"), Some(&35.0));
     }
 }
