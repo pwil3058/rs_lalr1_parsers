@@ -254,7 +254,7 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AAAttributeData> for ParserSpe
         &self,
         state: u32,
         aa_attributes: &lalr1plus::ParseStack<AATerminal, AANonTerminal, AAAttributeData>,
-        token: &lexan::Token<'a, AATerminal>,
+        token: &lexan::Token<AATerminal>,
     ) -> lalr1plus::Action<AATerminal> {
         use AATerminal::*;
         let tag = *token.tag();
@@ -1199,7 +1199,7 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AAAttributeData> for ParserSpe
                         } else if text.len() == 0 {
                             self.error(aa_rhs[2-1].location(), &format!("Injected file \"{}\" is empty.", file_path));
                         } else {
-                            //aa_token_stream.inject(&text.as_str(), file_path);
+                            aa_token_stream.inject(text, file_path.to_string());
                         }
                     }
                     Err(err) => self.error(aa_rhs[2-1].location(), &format!("Injecting: {}.", err)),
