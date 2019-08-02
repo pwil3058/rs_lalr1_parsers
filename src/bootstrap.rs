@@ -1,4 +1,8 @@
-use std::fmt;
+use std::{
+    fmt,
+    fs::File,
+    io::Read,
+};
 
 use lalr1plus;
 use lexan;
@@ -175,6 +179,10 @@ impl AAAttributeData {
     fn matched_text<'a>(&'a self) -> &'a str {
         "what"
     }
+
+    fn location<'a>(&'a self) -> &'a str {
+        "what"
+    }
 }
 
 impl From<(AATerminal, String)> for AAAttributeData {
@@ -215,6 +223,8 @@ impl ParserSpecification {
     fn is_allowable_name(_name: &str) -> bool {
         false
     }
+
+    fn error(&self, location: &str, what: &str) {}
 }
 
 macro_rules! aa_syntax_error {
@@ -237,7 +247,7 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AAAttributeData> for ParserSpe
     }
 
     fn error_go_state(state: u32) -> u32 {
-        state
+        panic!("No error go to state for {}", state)
     }
 
     fn next_action<'a>(
@@ -861,7 +871,7 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AAAttributeData> for ParserSpe
         }
     }
 
-    fn production_data(&mut self, production_id: u32) -> (AANonTerminal, usize) {
+    fn production_data(production_id: u32) -> (AANonTerminal, usize) {
         match production_id {
             1 => (AANonTerminal::Specification, 5),
             2 => (AANonTerminal::OInjection, 0),
@@ -1173,10 +1183,30 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AAAttributeData> for ParserSpe
 
     fn do_semantic_action(
         &mut self,
-        _production_id: u32,
-        _rhs: Vec<AAAttributeData>,
-        _token_stream: &mut lexan::TokenStream<AATerminal>,
+        aa_production_id: u32,
+        aa_rhs: Vec<AAAttributeData>,
+        aa_token_stream: &mut lexan::TokenStream<AATerminal>,
     ) -> AAAttributeData {
-        AAAttributeData::default()
+        let mut aa_lhs = AAAttributeData::default();
+        match aa_production_id {
+            4 => { // injection_head: "%inject" LITERAL
+                let file_path = aa_rhs[2 - 1].matched_text().trim_matches('"');
+                match File::open(&file_path) {
+                    Ok(mut file) => {
+                        let mut text = String::new();
+                        if let Err(err) = file.read_to_string(&mut text) {
+                            self.error(aa_rhs[2-1].location(), &format!("Injecting: {}", err));
+                        } else if text.len() == 0 {
+                            self.error(aa_rhs[2-1].location(), &format!("Injected file \"{}\" is empty.", file_path));
+                        } else {
+                            //aa_token_stream.inject(&text.as_str(), file_path);
+                        }
+                    }
+                    Err(err) => self.error(aa_rhs[2-1].location(), &format!("Injecting: {}.", err)),
+                };
+            },
+            _ => (),
+        }
+        aa_lhs
     }
 }
