@@ -4,7 +4,6 @@ use std::fmt::Debug;
 use std::sync::Arc;
 
 mod analyzer;
-pub mod analyzer2;
 mod error;
 mod lexicon;
 mod matcher;
@@ -80,7 +79,7 @@ mod tests {
             "raw text".to_string(),
         );
 
-        match token_stream.next().unwrap() {
+        match token_stream.front_advance().unwrap() {
             Ok(token) => {
                 assert_eq!(*token.tag(), If);
                 assert_eq!(token.lexeme(), "if");
@@ -88,7 +87,7 @@ mod tests {
             }
             _ => assert!(false),
         };
-        match token_stream.next().unwrap() {
+        match token_stream.front_advance().unwrap() {
             Ok(token) => {
                 assert_eq!(*token.tag(), Ident);
                 assert_eq!(token.lexeme(), "iffy");
@@ -96,7 +95,7 @@ mod tests {
             }
             _ => assert!(false),
         };
-        match token_stream.next().unwrap() {
+        match token_stream.front_advance().unwrap() {
             Ok(token) => {
                 assert_eq!(*token.tag(), Literal);
                 assert_eq!(token.lexeme(), "\"quoted\"");
@@ -104,7 +103,7 @@ mod tests {
             }
             _ => assert!(false),
         };
-        match token_stream.next().unwrap() {
+        match token_stream.front_advance().unwrap() {
             Ok(token) => {
                 assert_eq!(*token.tag(), Literal);
                 assert_eq!(token.lexeme(), "\"if\"");
@@ -112,7 +111,7 @@ mod tests {
             }
             _ => assert!(false),
         };
-        match token_stream.next().unwrap() {
+        match token_stream.front_advance().unwrap() {
             Err(err) => match err {
                 Error::UnexpectedText(text, location) => {
                     assert_eq!(text, "9");
@@ -122,7 +121,7 @@ mod tests {
             },
             _ => assert!(false),
         };
-        match token_stream.next().unwrap() {
+        match token_stream.front_advance().unwrap() {
             Err(err) => match err {
                 Error::UnexpectedText(text, location) => {
                     assert_eq!(text, "$");
@@ -132,7 +131,7 @@ mod tests {
             },
             _ => assert!(false),
         };
-        match token_stream.next().unwrap() {
+        match token_stream.front_advance().unwrap() {
             Ok(token) => {
                 assert_eq!(*token.tag(), Ident);
                 assert_eq!(token.lexeme(), "name");
@@ -140,7 +139,7 @@ mod tests {
             }
             _ => assert!(false),
         };
-        match token_stream.next().unwrap() {
+        match token_stream.front_advance().unwrap() {
             Ok(token) => {
                 assert_eq!(*token.tag(), Btextl);
                 assert_eq!(token.lexeme(), "&{ one \n two &}");
@@ -148,7 +147,7 @@ mod tests {
             }
             _ => assert!(false),
         };
-        match token_stream.next().unwrap() {
+        match token_stream.front_advance().unwrap() {
             Ok(token) => {
                 assert_eq!(*token.tag(), Ident);
                 assert_eq!(token.lexeme(), "and");
@@ -156,7 +155,7 @@ mod tests {
             }
             _ => assert!(false),
         };
-        match token_stream.next().unwrap() {
+        match token_stream.front_advance().unwrap() {
             Ok(token) => {
                 assert_eq!(*token.tag(), Ident);
                 assert_eq!(token.lexeme(), "so");
@@ -170,7 +169,7 @@ mod tests {
             "raw text".to_string(),
         );
 
-        match second_token_stream.next().unwrap() {
+        match second_token_stream.front_advance().unwrap() {
             Ok(token) => {
                 assert_eq!(*token.tag(), If);
                 assert_eq!(token.lexeme(), "if");
@@ -178,7 +177,7 @@ mod tests {
             }
             _ => assert!(false),
         };
-        match second_token_stream.next().unwrap() {
+        match second_token_stream.front_advance().unwrap() {
             Ok(token) => {
                 assert_eq!(*token.tag(), Ident);
                 assert_eq!(token.lexeme(), "iffy");
@@ -187,7 +186,7 @@ mod tests {
             _ => assert!(false),
         };
 
-        match token_stream.next().unwrap() {
+        match token_stream.front_advance().unwrap() {
             Ok(token) => {
                 assert_eq!(*token.tag(), Pred);
                 assert_eq!(token.lexeme(), "?{on?}");
@@ -195,9 +194,9 @@ mod tests {
             }
             _ => assert!(false),
         };
-        assert!(token_stream.next().is_none());
+        assert!(token_stream.front_advance().is_none());
 
-        match second_token_stream.next().unwrap() {
+        match second_token_stream.front_advance().unwrap() {
             Ok(token) => {
                 assert_eq!(*token.tag(), Literal);
                 assert_eq!(token.lexeme(), "\"quoted\"");
@@ -205,7 +204,7 @@ mod tests {
             }
             _ => assert!(false),
         };
-        match second_token_stream.next().unwrap() {
+        match second_token_stream.front_advance().unwrap() {
             Ok(token) => {
                 assert_eq!(*token.tag(), Literal);
                 assert_eq!(token.lexeme(), "\"if\"");
@@ -214,7 +213,7 @@ mod tests {
             _ => assert!(false),
         };
         second_token_stream.inject("if one \"name\"".to_string(), "\"injected text\"".to_string());
-        match second_token_stream.next().unwrap() {
+        match second_token_stream.front_advance().unwrap() {
             Ok(token) => {
                 assert_eq!(*token.tag(), If);
                 assert_eq!(token.lexeme(), "if");
@@ -222,7 +221,7 @@ mod tests {
             }
             _ => assert!(false),
         };
-        match second_token_stream.next().unwrap() {
+        match second_token_stream.front_advance().unwrap() {
             Ok(token) => {
                 assert_eq!(*token.tag(), Ident);
                 assert_eq!(token.lexeme(), "one");
@@ -231,7 +230,7 @@ mod tests {
             _ => assert!(false),
         };
         second_token_stream.inject("  two".to_string(), "another text".to_string());
-        match second_token_stream.next().unwrap() {
+        match second_token_stream.front_advance().unwrap() {
             Ok(token) => {
                 assert_eq!(*token.tag(), Ident);
                 assert_eq!(token.lexeme(), "two");
@@ -239,7 +238,7 @@ mod tests {
             }
             _ => assert!(false),
         };
-        match second_token_stream.next().unwrap() {
+        match second_token_stream.front_advance().unwrap() {
             Ok(token) => {
                 assert_eq!(*token.tag(), Literal);
                 assert_eq!(token.lexeme(), "\"name\"");
@@ -248,7 +247,7 @@ mod tests {
             _ => assert!(false),
         };
         second_token_stream.inject("   three".to_string(), "yet another text".to_string());
-        match second_token_stream.next().unwrap() {
+        match second_token_stream.front_advance().unwrap() {
             Ok(token) => {
                 assert_eq!(*token.tag(), Ident);
                 assert_eq!(token.lexeme(), "three");
@@ -256,7 +255,7 @@ mod tests {
             }
             _ => assert!(false),
         };
-        match second_token_stream.next().unwrap() {
+        match second_token_stream.front_advance().unwrap() {
             Err(err) => match err {
                 Error::UnexpectedText(text, location) => {
                     assert_eq!(text, "9");
@@ -266,7 +265,7 @@ mod tests {
             },
             _ => assert!(false),
         };
-        match second_token_stream.next().unwrap() {
+        match second_token_stream.front_advance().unwrap() {
             Err(err) => match err {
                 Error::UnexpectedText(text, location) => {
                     assert_eq!(text, "$");
@@ -276,7 +275,7 @@ mod tests {
             },
             _ => assert!(false),
         };
-        match second_token_stream.next().unwrap() {
+        match second_token_stream.front_advance().unwrap() {
             Ok(token) => {
                 assert_eq!(*token.tag(), Ident);
                 assert_eq!(token.lexeme(), "name");
@@ -284,7 +283,7 @@ mod tests {
             }
             _ => assert!(false),
         };
-        match second_token_stream.next().unwrap() {
+        match second_token_stream.front_advance().unwrap() {
             Ok(token) => {
                 assert_eq!(*token.tag(), Btextl);
                 assert_eq!(token.lexeme(), "&{ one \n two &}");
@@ -292,7 +291,7 @@ mod tests {
             }
             _ => assert!(false),
         };
-        match second_token_stream.next().unwrap() {
+        match second_token_stream.front_advance().unwrap() {
             Ok(token) => {
                 assert_eq!(*token.tag(), Ident);
                 assert_eq!(token.lexeme(), "and");
@@ -300,7 +299,7 @@ mod tests {
             }
             _ => assert!(false),
         };
-        match second_token_stream.next().unwrap() {
+        match second_token_stream.front_advance().unwrap() {
             Ok(token) => {
                 assert_eq!(*token.tag(), Ident);
                 assert_eq!(token.lexeme(), "so");
@@ -308,7 +307,7 @@ mod tests {
             }
             _ => assert!(false),
         };
-        match second_token_stream.next().unwrap() {
+        match second_token_stream.front_advance().unwrap() {
             Ok(token) => {
                 assert_eq!(*token.tag(), Pred);
                 assert_eq!(token.lexeme(), "?{on?}");
@@ -316,6 +315,6 @@ mod tests {
             }
             _ => assert!(false),
         };
-        assert!(second_token_stream.next().is_none());
+        assert!(second_token_stream.front_advance().is_none());
     }
 }
