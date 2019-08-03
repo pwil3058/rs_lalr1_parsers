@@ -9,6 +9,7 @@ use lexan;
 
 #[derive(Debug, Clone, Copy, PartialOrd, Ord, PartialEq, Eq)]
 pub enum AATerminal {
+    AAEND,
     REGEX,
     LITERAL,
     TOKEN,
@@ -35,6 +36,7 @@ impl fmt::Display for AATerminal {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         use AATerminal::*;
         match self {
+            AAEND => write!(f, "AAEND"),
             REGEX => write!(f, "REGEX"),
             LITERAL => write!(f, "LITERAL"),
             TOKEN => write!(f, "%token"),
@@ -92,6 +94,7 @@ lazy_static! {
                 r###"(//[^\n\r]*)"###,
                 r###"(\s+)"###,
             ],
+            AAEND,
         )
     };
 }
@@ -217,14 +220,24 @@ impl SymbolTable {
 #[derive(Debug, Default, Clone)]
 pub struct ParserSpecification {
     symbol_table: SymbolTable,
+    header: String,
+    preamble: String,
 }
 
 impl ParserSpecification {
-    fn is_allowable_name(_name: &str) -> bool {
-        false
+    fn is_allowable_name(name: &str) -> bool {
+        !(name.starts_with("aa") || name.starts_with("AA"))
     }
 
-    fn error(&self, location: &str, what: &str) {}
+    fn error(&self, _location: &str, _what: &str) {}
+
+    fn set_preamble(&mut self, preamble: &str) {
+        self.preamble = preamble.to_string();
+    }
+
+    fn set_header(&mut self, header: &str) {
+        self.header = header.to_string();
+    }
 }
 
 macro_rules! aa_syntax_error {
@@ -265,16 +278,19 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AAAttributeData> for ParserSpe
                 DCODE => lalr1plus::Action::Reduce(2),         // oinjection: <empty>
                 _ => aa_syntax_error!(token; TOKEN, FIELD, INJECT, DCODE),
             },
-            1 => aa_syntax_error!(token; ),
+            1 => match tag {
+                AAEND => lalr1plus::Action::Accept,
+                _ => aa_syntax_error!(token; AAEND),
+            },
             2 => match tag {
                 TOKEN | FIELD | INJECT => lalr1plus::Action::Reduce(12), // field_definitions: <empty>
                 _ => aa_syntax_error!(token; TOKEN, FIELD, INJECT),
             },
             3 => match tag {
-                TOKEN | FIELD | LEFT | RIGHT | NONASSOC | SKIP | INJECT | NEWSECTION | IDENT
+                AAEND | TOKEN | FIELD | LEFT | RIGHT | NONASSOC | SKIP | INJECT | NEWSECTION | IDENT
                 | DCODE => lalr1plus::Action::Reduce(3), // oinjection: injection
                 _ => {
-                    aa_syntax_error!(token; TOKEN, FIELD, LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION, IDENT, DCODE)
+                    aa_syntax_error!(token; AAEND, TOKEN, FIELD, LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION, IDENT, DCODE)
                 }
             },
             4 => match tag {
@@ -303,10 +319,10 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AAAttributeData> for ParserSpe
                 _ => aa_syntax_error!(token; DOT),
             },
             10 => match tag {
-                TOKEN | FIELD | LEFT | RIGHT | NONASSOC | SKIP | INJECT | NEWSECTION | IDENT
+                AAEND | TOKEN | FIELD | LEFT | RIGHT | NONASSOC | SKIP | INJECT | NEWSECTION | IDENT
                 | DCODE => lalr1plus::Action::Reduce(5), // injection: injection_head "."
                 _ => {
-                    aa_syntax_error!(token; TOKEN, FIELD, LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION, IDENT, DCODE)
+                    aa_syntax_error!(token; AAEND, TOKEN, FIELD, LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION, IDENT, DCODE)
                 }
             },
             11 => match tag {
@@ -341,7 +357,8 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AAAttributeData> for ParserSpe
                 INJECT => lalr1plus::Action::Shift(4),
                 IDENT => lalr1plus::Action::Shift(29),
                 DCODE => lalr1plus::Action::Reduce(2), // oinjection: <empty>
-                _ => aa_syntax_error!(token; INJECT, IDENT, DCODE),
+                AAEND => lalr1plus::Action::Reduce(9), // coda: <empty>
+                _ => aa_syntax_error!(token; AAEND, INJECT, IDENT, DCODE),
             },
             17 => match tag {
                 IDENT => lalr1plus::Action::Shift(29),
@@ -385,15 +402,18 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AAAttributeData> for ParserSpe
                 TOKEN | FIELD => lalr1plus::Action::Reduce(2), // oinjection: <empty>
                 _ => aa_syntax_error!(token; TOKEN, FIELD, INJECT),
             },
-            25 => aa_syntax_error!(token; ),
+            25 => match tag {
+                AAEND => lalr1plus::Action::Reduce(1), // specification: preamble definitions "%%" production_rules coda
+                _ => aa_syntax_error!(token; AAEND)
+            },
             26 => match tag {
                 DCODE => lalr1plus::Action::Shift(41),
                 _ => aa_syntax_error!(token; DCODE),
             },
             27 => match tag {
                 INJECT => lalr1plus::Action::Shift(4),
-                IDENT | DCODE => lalr1plus::Action::Reduce(2), // oinjection: <empty>
-                _ => aa_syntax_error!(token; INJECT, IDENT, DCODE),
+                AAEND | IDENT | DCODE => lalr1plus::Action::Reduce(2), // oinjection: <empty>
+                _ => aa_syntax_error!(token; AAEND, INJECT, IDENT, DCODE),
             },
             28 => match tag {
                 LITERAL => lalr1plus::Action::Shift(52),
@@ -410,8 +430,8 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AAAttributeData> for ParserSpe
             },
             30 => match tag {
                 INJECT => lalr1plus::Action::Shift(4),
-                IDENT | DCODE => lalr1plus::Action::Reduce(2), // oinjection: <empty>
-                _ => aa_syntax_error!(token; INJECT, IDENT, DCODE),
+                AAEND | IDENT | DCODE => lalr1plus::Action::Reduce(2), // oinjection: <empty>
+                _ => aa_syntax_error!(token; AAEND, INJECT, IDENT, DCODE),
             },
             31 => match tag {
                 INJECT => lalr1plus::Action::Shift(4),
@@ -475,10 +495,13 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AAAttributeData> for ParserSpe
                 TOKEN | FIELD | INJECT => lalr1plus::Action::Reduce(8), // preamble: oinjection DCODE oinjection DCODE oinjection
                 _ => aa_syntax_error!(token; TOKEN, FIELD, INJECT),
             },
-            41 => aa_syntax_error!(token; ),
+            41 => match tag {
+                AAEND => lalr1plus::Action::Reduce(10), // coda: oinjection DCODE
+                _ => aa_syntax_error!(token; AAEND),
+            },
             42 => match tag {
-                INJECT | IDENT | DCODE => lalr1plus::Action::Reduce(45), // production_rules: production_rules production_group oinjection
-                _ => aa_syntax_error!(token; INJECT, IDENT, DCODE),
+                AAEND | INJECT | IDENT | DCODE => lalr1plus::Action::Reduce(45), // production_rules: production_rules production_group oinjection
+                _ => aa_syntax_error!(token; AAEND, INJECT, IDENT, DCODE),
             },
             43 => match tag {
                 VBAR => lalr1plus::Action::Shift(67),
@@ -569,8 +592,8 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AAAttributeData> for ParserSpe
                 _ => aa_syntax_error!(token; LITERAL, ERROR, VBAR, DOT, IDENT, PREDICATE, ACTION),
             },
             55 => match tag {
-                INJECT | IDENT | DCODE => lalr1plus::Action::Reduce(44), // production_rules: oinjection production_group oinjection
-                _ => aa_syntax_error!(token; INJECT, IDENT, DCODE),
+                AAEND | INJECT | IDENT | DCODE => lalr1plus::Action::Reduce(44), // production_rules: oinjection production_group oinjection
+                _ => aa_syntax_error!(token; AAEND, INJECT, IDENT, DCODE),
             },
             56 => match tag {
                 LEFT => lalr1plus::Action::Shift(75),
@@ -642,8 +665,8 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AAAttributeData> for ParserSpe
                 _ => aa_syntax_error!(token; REGEX, LITERAL),
             },
             66 => match tag {
-                INJECT | IDENT | DCODE => lalr1plus::Action::Reduce(46), // production_group: production_group_head production_tail_list "."
-                _ => aa_syntax_error!(token; INJECT, IDENT, DCODE),
+                AAEND | INJECT | IDENT | DCODE => lalr1plus::Action::Reduce(46), // production_group: production_group_head production_tail_list "."
+                _ => aa_syntax_error!(token; AAEND, INJECT, IDENT, DCODE),
             },
             67 => match tag {
                 LITERAL => lalr1plus::Action::Shift(52),
@@ -847,27 +870,6 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AAAttributeData> for ParserSpe
                 }
             },
             _ => panic!("{}: invalid parser state.", state),
-        }
-    }
-
-    fn next_coda(
-        &self,
-        state: u32,
-        _attributes: &lalr1plus::ParseStack<AATerminal, AANonTerminal, AAAttributeData>,
-    ) -> lalr1plus::Coda {
-        match state {
-            1 => lalr1plus::Coda::Accept,
-            3 => lalr1plus::Coda::Reduce(3), // oinjection: injection
-            10 => lalr1plus::Coda::Reduce(5), // injection: injection_head "."
-            16 => lalr1plus::Coda::Reduce(9), // coda: <empty>
-            25 => lalr1plus::Coda::Reduce(1), // specification: preamble definitions "%%" production_rules coda
-            27 => lalr1plus::Coda::Reduce(2), // oinjection: <empty>
-            30 => lalr1plus::Coda::Reduce(2), // oinjection: <empty>
-            41 => lalr1plus::Coda::Reduce(10), // coda: oinjection DCODE
-            42 => lalr1plus::Coda::Reduce(45), // production_rules: production_rules production_group oinjection
-            55 => lalr1plus::Coda::Reduce(44), // production_rules: oinjection production_group oinjection
-            66 => lalr1plus::Coda::Reduce(46), // production_group: production_group_head production_tail_list "."
-            _ => lalr1plus::Coda::UnexpectedEndOfInput,
         }
     }
 
@@ -1205,7 +1207,21 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AAAttributeData> for ParserSpe
                     Err(err) => self.error(aa_rhs[2-1].location(), &format!("Injecting: {}.", err)),
                 };
             },
-            _ => (),
+            7 => { // preamble: oinjection DCODE oinjection
+                let text = aa_rhs[2 - 1].matched_text();
+                self.set_preamble(&text[2..text.len() -2]);
+            }
+            8 => { // preamble: oinjection DCODE oinjection DCODE oinjection
+                let text = aa_rhs[2 - 1].matched_text();
+                self.set_header(&text[2..text.len() -2]);
+                let text = aa_rhs[4 - 1].matched_text();
+                self.set_preamble(&text[2..text.len() -2]);
+            }
+            10 => { // coda: oinjection DCODE
+                let text = aa_rhs[2 - 1].matched_text();
+                self.set_coda(&text[2..text.len() -2]);
+            }
+           _ => (),
         }
         aa_lhs
     }
