@@ -161,7 +161,7 @@ mod tests {
             parser::Action::SyntaxError(
                 *$token.tag(),
                 vec![ $( $tag),* ],
-                $token.location().to_string(),
+                $token.location().clone(),
             )
         };
     }

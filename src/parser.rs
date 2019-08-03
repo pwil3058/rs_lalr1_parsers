@@ -8,8 +8,8 @@ use lexan;
 
 #[derive(Debug, Clone)]
 pub enum Error<T: Copy + Debug> {
-    LexicalError(String),
-    SyntaxError(T, Vec<T>, String),
+    LexicalError(lexan::Error<T>),
+    SyntaxError(T, Vec<T>, lexan::Location),
     UnexpectedEndOfInput,
 }
 
@@ -107,7 +107,7 @@ pub enum Action<T: Copy + Debug> {
     Shift(u32),
     Reduce(u32),
     Accept,
-    SyntaxError(T, Vec<T>, String),
+    SyntaxError(T, Vec<T>, lexan::Location),
 }
 
 pub trait Parser<T: Ord + Copy + Debug, N, A>
@@ -162,7 +162,7 @@ where
                     if err.is_ambiguous_match() {
                         panic!("Fatal Error: {}", err);
                     }
-                    let err = Error::LexicalError(err.to_string());
+                    let err = Error::LexicalError(err);
                     Self::report_error(&err);
                     result = Err(err);
                     if Self::short_circuit() {
