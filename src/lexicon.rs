@@ -11,6 +11,7 @@ where
     literal_matcher: LiteralMatcher<T>,
     regex_matcher: RegexMatcher<T>,
     skip_matcher: SkipMatcher,
+    end_marker: T,
 }
 
 impl<T> Lexicon<T>
@@ -21,8 +22,9 @@ where
         literal_lexemes: &[(T, &'a str)],
         regex_lexemes: &[(T, &'a str)],
         skip_regex_strs: &[&'a str],
+        end_marker: T,
     ) -> Result<Self, LexanError<'a, T>> {
-        let mut tags = vec![];
+        let mut tags = vec![end_marker];
         let mut patterns = vec![];
         for (tag, pattern) in literal_lexemes.iter().chain(regex_lexemes.iter()) {
             match tags.binary_search(tag) {
@@ -47,7 +49,13 @@ where
             literal_matcher,
             regex_matcher,
             skip_matcher,
+            end_marker,
         })
+    }
+
+    /// Returns the end marker for this Lexicon
+    pub fn end_marker(&self) -> T {
+        self.end_marker
     }
 
     /// Returns number of skippable bytes at start of `text`.
@@ -97,6 +105,7 @@ mod tests {
         Action,
         Predicate,
         Code,
+        End,
     }
 
     #[test]
@@ -114,6 +123,7 @@ mod tests {
                 (Code, r"(%\{(.|[\n\r])*?%\})"),
             ],
             &[r"(/\*(.|[\n\r])*?\*/)", r"(//[^\n\r]*)", r"(\s+)"],
+            End,
         );
         assert!(lexicon.is_ok());
     }
@@ -133,6 +143,7 @@ mod tests {
                 (Code, r"(%\{(.|[\n\r])*?%\})"),
             ],
             &[r"(/\*(.|[\n\r])*?\*/)", r"(//[^\n\r]*)", r"(\s+)"],
+            End,
         );
         if let Err(err) = lexicon {
             assert_eq!(err, LexanError::DuplicateHandle(If));
@@ -152,6 +163,7 @@ mod tests {
                 (Code, r"(%\{(.|[\n\r])*?%\})"),
             ],
             &[r"(/\*(.|[\n\r])*?\*/)", r"(//[^\n\r]*)", r"(\s+)"],
+            End,
         );
         if let Err(err) = lexicon {
             assert_eq!(err, LexanError::DuplicateHandle(Action));
@@ -171,9 +183,30 @@ mod tests {
                 (Code, r"(%\{(.|[\n\r])*?%\})"),
             ],
             &[r"(/\*(.|[\n\r])*?\*/)", r"(//[^\n\r]*)", r"(\s+)"],
+            End,
         );
         if let Err(err) = lexicon {
             assert_eq!(err, LexanError::DuplicateHandle(When));
+        } else {
+            assert!(false)
+        }
+
+        let lexicon = Lexicon::<Tag>::new(
+            &[(If, "if"), (When, "when")],
+            &[
+                (Ident, "[a-zA-Z]+[\\w_]*"),
+                (Btextl, r"&\{(.|[\n\r])*&\}"),
+                (Pred, r"\?\{(.|[\n\r])*\?\}"),
+                (Literal, "(\"\\S+\")"),
+                (Action, r"(!\{(.|[\n\r])*?!\})"),
+                (Predicate, r"(\?\((.|[\n\r])*?\?\))"),
+                (Code, r"(%\{(.|[\n\r])*?%\})"),
+            ],
+            &[r"(/\*(.|[\n\r])*?\*/)", r"(//[^\n\r]*)", r"(\s+)"],
+            Action,
+        );
+        if let Err(err) = lexicon {
+            assert_eq!(err, LexanError::DuplicateHandle(Action));
         } else {
             assert!(false)
         }
@@ -190,6 +223,7 @@ mod tests {
                 (Code, r"(%\{(.|[\n\r])*?%\})"),
             ],
             &[r"(/\*(.|[\n\r])*?\*/)", r"(//[^\n\r]*)", r"(\s+)"],
+            End,
         );
         if let Err(err) = lexicon {
             assert_eq!(err, LexanError::DuplicatePattern("if"));
@@ -209,6 +243,7 @@ mod tests {
                 (Code, r"(%\{(.|[\n\r])*?%\})"),
             ],
             &[r"(/\*(.|[\n\r])*?\*/)", r"(//[^\n\r]*)", r"(\s+)"],
+            End,
         );
         if let Err(err) = lexicon {
             assert_eq!(err, LexanError::DuplicatePattern("when"));
@@ -228,6 +263,7 @@ mod tests {
                 (Code, r"(%\{(.|[\n\r])*?%\})"),
             ],
             &[r"(/\*(.|[\n\r])*?\*/)", r"(//[^\n\r]*)", r"(\s+)"],
+            End,
         );
         if let Err(err) = lexicon {
             assert_eq!(err, LexanError::DuplicatePattern("(\"\\S+\")"));
@@ -247,6 +283,7 @@ mod tests {
                 (Code, r"(%\{(.|[\n\r])*?%\})"),
             ],
             &[r"(/\*(.|[\n\r])*?\*/)", r"(//[^\n\r]*)", "(\"\\S+\")"],
+            End,
         );
         if let Err(err) = lexicon {
             assert_eq!(err, LexanError::DuplicatePattern("(\"\\S+\")"));
