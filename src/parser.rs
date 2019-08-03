@@ -106,14 +106,8 @@ where
 pub enum Action<T: Copy + Debug> {
     Shift(u32),
     Reduce(u32),
-    SyntaxError(T, Vec<T>, String),
-}
-
-#[derive(Debug, Clone)]
-pub enum Coda {
-    Reduce(u32),
     Accept,
-    UnexpectedEndOfInput,
+    SyntaxError(T, Vec<T>, String),
 }
 
 pub trait Parser<T: Ord + Copy + Debug, N, A>
@@ -129,7 +123,6 @@ where
         attributes: &ParseStack<T, N, A>,
         o_token: &lexan::Token<T>,
     ) -> Action<T>;
-    fn next_coda(&self, state: u32, attributes: &ParseStack<T, N, A>) -> Coda;
     fn production_data(production_id: u32) -> (N, usize);
     fn goto_state(lhs: &N, current_state: u32) -> u32;
     fn do_semantic_action(
@@ -163,97 +156,68 @@ where
         let mut parse_stack = ParseStack::<T, N, A>::new();
         let mut result: Result<(), Error<T>> = Ok(());
 
-        let mut o_r_token = tokens.next();
         loop {
-            if let Some(ref r_token) = o_r_token {
-                match r_token {
-                    Err(err) => {
-                        if err.is_ambiguous_match() {
-                            panic!("Fatal Error: {}", err);
-                        }
-                        let err = Error::LexicalError(err.to_string());
-                        Self::report_error(&err);
-                        result = Err(err);
-                        if Self::short_circuit() {
-                            return result;
-                        }
-                        // TODO: think about some error recovery stuff here
-                        o_r_token = tokens.next();
+            match tokens.front() {
+                Err(err) => {
+                    if err.is_ambiguous_match() {
+                        panic!("Fatal Error: {}", err);
                     }
-                    Ok(token) => {
-                        match self.next_action(parse_stack.current_state(), &parse_stack, &token) {
-                            Action::Shift(next_state) => {
-                                parse_stack.push_terminal(*token.tag(), token.lexeme(), next_state);
-                                o_r_token = tokens.next();
+                    let err = Error::LexicalError(err.to_string());
+                    Self::report_error(&err);
+                    result = Err(err);
+                    if Self::short_circuit() {
+                        return result;
+                    }
+                    // TODO: think about some error recovery stuff here
+                    tokens.advance();
+                }
+                Ok(token) => {
+                    match self.next_action(parse_stack.current_state(), &parse_stack, &token) {
+                        Action::Accept => return result,
+                        Action::Shift(next_state) => {
+                            parse_stack.push_terminal(*token.tag(), token.lexeme(), next_state);
+                            tokens.advance();
+                        }
+                        Action::Reduce(production_id) => {
+                            let (lhs, rhs_len) = Self::production_data(production_id);
+                            let rhs = parse_stack.pop_n(rhs_len);
+                            let next_state =
+                                Self::goto_state(&lhs, parse_stack.current_state());
+                            parse_stack.push_attribute(self.do_semantic_action(
+                                production_id,
+                                rhs,
+                                &mut tokens,
+                            ));
+                            parse_stack.push_non_terminal(lhs, next_state);
+                        }
+                        Action::SyntaxError(found, expected, location) => {
+                            let error = Error::SyntaxError(found, expected, location);
+                            Self::report_error(&error);
+                            result = Err(error.clone());
+                            if Self::short_circuit() {
+                                return result;
                             }
-                            Action::Reduce(production_id) => {
-                                let (lhs, rhs_len) = Self::production_data(production_id);
-                                let rhs = parse_stack.pop_n(rhs_len);
+                            let viable_states = Self::viable_error_recovery_states(token.tag());
+                            let mut distance =
+                                parse_stack.distance_to_viable_state(&viable_states);
+                            while distance.is_none() && !tokens.is_empty() {
+                                if let Ok(token) = tokens.advance_front() {
+                                    let viable_states = Self::viable_error_recovery_states(token.tag());
+                                    distance = parse_stack.distance_to_viable_state(&viable_states);
+                                }
+                            }
+                            if let Some(distance) = distance {
+                                parse_stack.pop_n(distance);
                                 let next_state =
-                                    Self::goto_state(&lhs, parse_stack.current_state());
-                                parse_stack.push_attribute(self.do_semantic_action(
-                                    production_id,
-                                    rhs,
-                                    &mut tokens,
-                                ));
-                                parse_stack.push_non_terminal(lhs, next_state);
-                            }
-                            Action::SyntaxError(found, expected, location) => {
-                                let error = Error::SyntaxError(found, expected, location);
-                                Self::report_error(&error);
-                                result = Err(error.clone());
-                                if Self::short_circuit() {
-                                    return result;
-                                }
-                                let viable_states = Self::viable_error_recovery_states(token.tag());
-                                let mut distance =
-                                    parse_stack.distance_to_viable_state(&viable_states);
-                                while distance.is_none() {
-                                    o_r_token = tokens.next();
-                                    if let Some(token) = o_r_token.clone() {
-                                        if let Ok(token) = token {
-                                            let viable_states =
-                                                Self::viable_error_recovery_states(token.tag());
-                                            distance = parse_stack
-                                                .distance_to_viable_state(&viable_states);
-                                        }
-                                    } else {
-                                        break;
-                                    }
-                                }
-                                if let Some(distance) = distance {
-                                    parse_stack.pop_n(distance);
-                                    let next_state =
-                                        Self::error_go_state(parse_stack.current_state());
-                                    parse_stack.push_error(next_state, error);
-                                } else {
-                                    return result;
-                                }
+                                    Self::error_go_state(parse_stack.current_state());
+                                parse_stack.push_error(next_state, error);
+                            } else {
+                                return result;
                             }
                         }
-                    }
-                };
-            } else {
-                match self.next_coda(parse_stack.current_state(), &parse_stack) {
-                    Coda::Accept => return result,
-                    Coda::Reduce(production_id) => {
-                        let (lhs, rhs_len) = Self::production_data(production_id);
-                        let rhs = parse_stack.pop_n(rhs_len);
-                        let next_state = Self::goto_state(&lhs, parse_stack.current_state());
-                        parse_stack.push_attribute(self.do_semantic_action(
-                            production_id,
-                            rhs,
-                            &mut tokens,
-                        ));
-                        parse_stack.push_non_terminal(lhs, next_state);
-                    }
-                    Coda::UnexpectedEndOfInput => {
-                        let err = Error::UnexpectedEndOfInput;
-                        Self::report_error(&err);
-                        return Err(err);
                     }
                 }
-            }
+            };
         }
     }
 }

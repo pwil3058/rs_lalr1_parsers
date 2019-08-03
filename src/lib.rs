@@ -27,6 +27,7 @@ mod tests {
         EOL,
         Number,
         Id,
+        EndMarker
     }
 
     impl fmt::Display for Terminal {
@@ -42,6 +43,7 @@ mod tests {
                 Terminal::EOL => write!(f, "EOL"),
                 Terminal::Number => write!(f, "Number"),
                 Terminal::Id => write!(f, "Id"),
+                Terminal::EndMarker => write!(f, "EndMarker"),
             }
         }
     }
@@ -120,6 +122,7 @@ mod tests {
                     (Id, r"([a-zA-Z]+)"),
                 ],
                 &[r"([\t\r ]+)"],
+                EndMarker,
             )
         };
     }
@@ -197,8 +200,9 @@ mod tests {
                     _ => syntax_error!(token; Minus, LPR, Number, Id),
                 },
                 1 => match tag {
+                    EndMarker => parser::Action::Accept,
                     EOL => parser::Action::Shift(4),
-                    _ => syntax_error!(token; EOL),
+                    _ => syntax_error!(token; EndMarker, EOL),
                 },
                 2 => match tag {
                     Minus => parser::Action::Shift(8),
@@ -208,31 +212,31 @@ mod tests {
                     _ => syntax_error!(token; Minus, LPR, Number, Id),
                 },
                 3 => match tag {
-                    EOL => parser::Action::Reduce(7),
-                    _ => syntax_error!(token; EOL),
+                    EndMarker | EOL => parser::Action::Reduce(7),
+                    _ => syntax_error!(token; EndMarker, EOL),
                 },
                 4 => match tag {
-                    EOL => parser::Action::Reduce(6),
+                    EndMarker | EOL => parser::Action::Reduce(6),
                     Minus | Number | Id | LPR => parser::Action::Reduce(8),
-                    _ => syntax_error!(token; EOL, Minus, Number, Id, LPR),
+                    _ => syntax_error!(token; EndMarker, EOL, Minus, Number, Id, LPR),
                 },
                 5 => match tag {
                     Plus => parser::Action::Shift(11),
                     Minus => parser::Action::Shift(12),
                     Times => parser::Action::Shift(13),
                     Divide => parser::Action::Shift(14),
-                    EOL => {
+                    EndMarker | EOL => {
                         if self.errors > 0 {
                             parser::Action::Reduce(1)
                         } else {
                             parser::Action::Reduce(2)
                         }
                     }
-                    _ => syntax_error!(token; EOL, Plus, Minus, Times, Divide),
+                    _ => syntax_error!(token; EndMarker, EOL, Plus, Minus, Times, Divide),
                 },
                 6 => match tag {
                     Assign => parser::Action::Shift(15),
-                    EOL | Plus | Minus | Times | Divide => {
+                    EndMarker| EOL | Plus | Minus | Times | Divide => {
                         if self
                             .variables
                             .contains_key(&attributes.attribute_n_from_end(2 - 1).id)
@@ -242,7 +246,7 @@ mod tests {
                             parser::Action::Reduce(27)
                         }
                     }
-                    _ => syntax_error!(token; EOL, Plus, Minus, Times, Divide, Assign),
+                    _ => syntax_error!(token; EndMarker, EOL, Plus, Minus, Times, Divide, Assign),
                 },
                 7 | 8 => match tag {
                     Minus => parser::Action::Shift(8),
@@ -252,12 +256,12 @@ mod tests {
                     _ => syntax_error!(token; Minus, Number, Id, LPR),
                 },
                 9 => match tag {
-                    EOL | Plus | Minus | Times | Divide | RPR => parser::Action::Reduce(25),
-                    _ => syntax_error!(token; EOL, Plus, Minus, Times, Divide, RPR),
+                    EndMarker | EOL | Plus | Minus | Times | Divide | RPR => parser::Action::Reduce(25),
+                    _ => syntax_error!(token; EndMarker, EOL, Plus, Minus, Times, Divide, RPR),
                 },
                 10 => match tag {
-                    EOL => parser::Action::Reduce(5),
-                    _ => syntax_error!(token; EOL),
+                    EndMarker | EOL => parser::Action::Reduce(5),
+                    _ => syntax_error!(token; EndMarker, EOL),
                 },
                 11 | 12 | 13 | 14 | 15 => match tag {
                     Minus => parser::Action::Shift(8),
@@ -275,7 +279,7 @@ mod tests {
                     _ => syntax_error!(token; Plus, Minus, Times, Divide, RPR),
                 },
                 17 => match tag {
-                    EOL | Plus | Minus | Times | Divide | RPR => {
+                    EndMarker | EOL | Plus | Minus | Times | Divide | RPR => {
                         if self
                             .variables
                             .contains_key(&attributes.attribute_n_from_end(2 - 1).id)
@@ -285,16 +289,16 @@ mod tests {
                             parser::Action::Reduce(27)
                         }
                     }
-                    _ => syntax_error!(token; EOL, Plus, Minus, Times, Divide, RPR),
+                    _ => syntax_error!(token; EndMarker, EOL, Plus, Minus, Times, Divide, RPR),
                 },
                 18 => match tag {
-                    EOL | Plus | Minus | Times | Divide | RPR => parser::Action::Reduce(24),
-                    _ => syntax_error!(token; EOL, Plus, Minus, Times, Divide, RPR),
+                    EndMarker | EOL | Plus | Minus | Times | Divide | RPR => parser::Action::Reduce(24),
+                    _ => syntax_error!(token; EndMarker, EOL, Plus, Minus, Times, Divide, RPR),
                 },
                 19 => match tag {
                     Times => parser::Action::Shift(13),
                     Divide => parser::Action::Shift(14),
-                    EOL | Plus | Minus | RPR => {
+                    EndMarker | EOL | Plus | Minus | RPR => {
                         if attributes.attribute_n_from_end(4 - 1).value == 0.0 {
                             parser::Action::Reduce(9)
                         } else if attributes.attribute_n_from_end(4 - 3).value == 0.0 {
@@ -303,12 +307,12 @@ mod tests {
                             parser::Action::Reduce(11)
                         }
                     }
-                    _ => syntax_error!(token; EOL, Plus, Minus, Times, Divide, RPR),
+                    _ => syntax_error!(token; EndMarker, EOL, Plus, Minus, Times, Divide, RPR),
                 },
                 20 => match tag {
                     Times => parser::Action::Shift(13),
                     Divide => parser::Action::Shift(14),
-                    EOL | Plus | Minus | RPR => {
+                    EndMarker | EOL | Plus | Minus | RPR => {
                         if attributes.attribute_n_from_end(4 - 1).value == 0.0 {
                             parser::Action::Reduce(12)
                         } else if attributes.attribute_n_from_end(4 - 3).value == 0.0 {
@@ -317,10 +321,10 @@ mod tests {
                             parser::Action::Reduce(14)
                         }
                     }
-                    _ => syntax_error!(token; EOL, Plus, Minus, Times, Divide, RPR),
+                    _ => syntax_error!(token; EndMarker, EOL, Plus, Minus, Times, Divide, RPR),
                 },
                 21 => match tag {
-                    EOL | Plus | Minus | Times | Divide | RPR => {
+                    EndMarker | EOL | Plus | Minus | Times | Divide | RPR => {
                         if attributes.attribute_n_from_end(4 - 1).value == 0.0
                             || attributes.attribute_n_from_end(4 - 3).value == 0.0
                         {
@@ -333,10 +337,10 @@ mod tests {
                             parser::Action::Reduce(18)
                         }
                     }
-                    _ => syntax_error!(token; EOL, Plus, Minus, Times, Divide, RPR),
+                    _ => syntax_error!(token; EndMarker, EOL, Plus, Minus, Times, Divide, RPR),
                 },
                 22 => match tag {
-                    EOL | Plus | Minus | Times | Divide | RPR => {
+                    EndMarker | EOL | Plus | Minus | Times | Divide | RPR => {
                         if attributes.attribute_n_from_end(4 - 1).value == 0.0
                             || attributes.attribute_n_from_end(4 - 3).value == 0.0
                         {
@@ -349,112 +353,27 @@ mod tests {
                             parser::Action::Reduce(22)
                         }
                     }
-                    _ => syntax_error!(token; EOL, Plus, Minus, Times, Divide, RPR),
+                    _ => syntax_error!(token; EndMarker, EOL, Plus, Minus, Times, Divide, RPR),
                 },
                 23 => match tag {
                     Plus => parser::Action::Shift(11),
                     Minus => parser::Action::Shift(12),
                     Times => parser::Action::Shift(13),
                     Divide => parser::Action::Shift(14),
-                    EOL => {
+                    EndMarker | EOL => {
                         if self.errors == 0 {
                             parser::Action::Reduce(3)
                         } else {
                             parser::Action::Reduce(4)
                         }
                     }
-                    _ => syntax_error!(token; EOL, Plus, Minus, Times, Divide, RPR),
+                    _ => syntax_error!(token; EndMarker, EOL, Plus, Minus, Times, Divide, RPR),
                 },
                 24 => match tag {
-                    EOL | Plus | Minus | Times | Divide | RPR => parser::Action::Reduce(23),
-                    _ => syntax_error!(token; EOL, Plus, Minus, Times, Divide, RPR),
+                    EndMarker | EOL | Plus | Minus | Times | Divide | RPR => parser::Action::Reduce(23),
+                    _ => syntax_error!(token; EndMarker, EOL, Plus, Minus, Times, Divide, RPR),
                 },
                 _ => panic!("illegal state: {}", state),
-            };
-        }
-
-        fn next_coda(
-            &self,
-            state: u32,
-            attributes: &parser::ParseStack<Terminal, NonTerminal, AttributeData>,
-        ) -> parser::Coda {
-            return match state {
-                1 => parser::Coda::Accept,
-                3 => parser::Coda::Reduce(7),
-                4 => parser::Coda::Reduce(6),
-                5 => {
-                    if self.errors > 0 {
-                        parser::Coda::Reduce(1)
-                    } else {
-                        parser::Coda::Reduce(2)
-                    }
-                }
-                6 | 17 => {
-                    if self
-                        .variables
-                        .contains_key(&attributes.attribute_n_from_end(2 - 1).id)
-                    {
-                        parser::Coda::Reduce(26)
-                    } else {
-                        parser::Coda::Reduce(27)
-                    }
-                }
-                9 => parser::Coda::Reduce(25),
-                10 => parser::Coda::Reduce(5),
-                18 => parser::Coda::Reduce(24),
-                19 => {
-                    if attributes.attribute_n_from_end(4 - 1).value == 0.0 {
-                        parser::Coda::Reduce(9)
-                    } else if attributes.attribute_n_from_end(4 - 3).value == 0.0 {
-                        parser::Coda::Reduce(10)
-                    } else {
-                        parser::Coda::Reduce(11)
-                    }
-                }
-                20 => {
-                    if attributes.attribute_n_from_end(4 - 1).value == 0.0 {
-                        parser::Coda::Reduce(12)
-                    } else if attributes.attribute_n_from_end(4 - 3).value == 0.0 {
-                        parser::Coda::Reduce(13)
-                    } else {
-                        parser::Coda::Reduce(14)
-                    }
-                }
-                21 => {
-                    if attributes.attribute_n_from_end(4 - 1).value == 0.0
-                        || attributes.attribute_n_from_end(4 - 3).value == 0.0
-                    {
-                        parser::Coda::Reduce(15)
-                    } else if attributes.attribute_n_from_end(4 - 1).value == 1.0 {
-                        parser::Coda::Reduce(16)
-                    } else if attributes.attribute_n_from_end(4 - 3).value == 1.0 {
-                        parser::Coda::Reduce(17)
-                    } else {
-                        parser::Coda::Reduce(18)
-                    }
-                }
-                22 => {
-                    if attributes.attribute_n_from_end(4 - 1).value == 0.0
-                        || attributes.attribute_n_from_end(4 - 3).value == 0.0
-                    {
-                        parser::Coda::Reduce(19)
-                    } else if attributes.attribute_n_from_end(4 - 1).value == 1.0 {
-                        parser::Coda::Reduce(20)
-                    } else if attributes.attribute_n_from_end(4 - 3).value == 1.0 {
-                        parser::Coda::Reduce(21)
-                    } else {
-                        parser::Coda::Reduce(22)
-                    }
-                }
-                23 => {
-                    if self.errors == 0 {
-                        parser::Coda::Reduce(3)
-                    } else {
-                        parser::Coda::Reduce(4)
-                    }
-                }
-                24 => parser::Coda::Reduce(23),
-                _ => parser::Coda::UnexpectedEndOfInput,
             };
         }
 
