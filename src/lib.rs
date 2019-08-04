@@ -157,16 +157,6 @@ mod tests {
         }
     }
 
-    macro_rules! syntax_error {
-        ( $token:expr; $( $tag:expr),* ) => {
-            parser::Action::SyntaxError(
-                *$token.tag(),
-                vec![ $( $tag),* ],
-                $token.location().clone(),
-            )
-        };
-    }
-
     impl parser::Parser<Terminal, NonTerminal, AttributeData> for Calc {
         fn lexical_analyzer(&self) -> &lexan::LexicalAnalyzer<Terminal> {
             &AALEXAN
@@ -193,93 +183,94 @@ mod tests {
             attributes: &parser::ParseStack<Terminal, NonTerminal, AttributeData>,
             token: &lexan::Token<Terminal>,
         ) -> parser::Action<Terminal> {
+            use parser::Action;
             use Terminal::*;
             let tag = *token.tag();
             return match state {
                 0 => match tag {
-                    Minus | LPR | Number | Id => parser::Action::Reduce(8),
-                    _ => syntax_error!(token; Minus, LPR, Number, Id),
+                    Minus | LPR | Number | Id => Action::Reduce(8),
+                    _ => Action::SyntaxError(vec![Minus, LPR, Number, Id]),
                 },
                 1 => match tag {
-                    EndMarker => parser::Action::Accept,
-                    EOL => parser::Action::Shift(4),
-                    _ => syntax_error!(token; EndMarker, EOL),
+                    EndMarker => Action::Accept,
+                    EOL => Action::Shift(4),
+                    _ => Action::SyntaxError(vec![EndMarker, EOL]),
                 },
                 2 => match tag {
-                    Minus => parser::Action::Shift(8),
-                    LPR => parser::Action::Shift(7),
-                    Number => parser::Action::Shift(9),
-                    Id => parser::Action::Shift(6),
-                    _ => syntax_error!(token; Minus, LPR, Number, Id),
+                    Minus => Action::Shift(8),
+                    LPR => Action::Shift(7),
+                    Number => Action::Shift(9),
+                    Id => Action::Shift(6),
+                    _ => Action::SyntaxError(vec![Minus, LPR, Number, Id]),
                 },
                 3 => match tag {
-                    EndMarker | EOL => parser::Action::Reduce(7),
-                    _ => syntax_error!(token; EndMarker, EOL),
+                    EndMarker | EOL => Action::Reduce(7),
+                    _ => Action::SyntaxError(vec![EndMarker, EOL]),
                 },
                 4 => match tag {
-                    EndMarker | EOL => parser::Action::Reduce(6),
-                    Minus | Number | Id | LPR => parser::Action::Reduce(8),
-                    _ => syntax_error!(token; EndMarker, EOL, Minus, Number, Id, LPR),
+                    EndMarker | EOL => Action::Reduce(6),
+                    Minus | Number | Id | LPR => Action::Reduce(8),
+                    _ => Action::SyntaxError(vec![EndMarker, EOL, Minus, Number, Id, LPR]),
                 },
                 5 => match tag {
-                    Plus => parser::Action::Shift(11),
-                    Minus => parser::Action::Shift(12),
-                    Times => parser::Action::Shift(13),
-                    Divide => parser::Action::Shift(14),
+                    Plus => Action::Shift(11),
+                    Minus => Action::Shift(12),
+                    Times => Action::Shift(13),
+                    Divide => Action::Shift(14),
                     EndMarker | EOL => {
                         if self.errors > 0 {
-                            parser::Action::Reduce(1)
+                            Action::Reduce(1)
                         } else {
-                            parser::Action::Reduce(2)
+                            Action::Reduce(2)
                         }
                     }
-                    _ => syntax_error!(token; EndMarker, EOL, Plus, Minus, Times, Divide),
+                    _ => Action::SyntaxError(vec![EndMarker, EOL, Plus, Minus, Times, Divide]),
                 },
                 6 => match tag {
-                    Assign => parser::Action::Shift(15),
+                    Assign => Action::Shift(15),
                     EndMarker | EOL | Plus | Minus | Times | Divide => {
                         if self
                             .variables
                             .contains_key(&attributes.attribute_n_from_end(2 - 1).id)
                         {
-                            parser::Action::Reduce(26)
+                            Action::Reduce(26)
                         } else {
-                            parser::Action::Reduce(27)
+                            Action::Reduce(27)
                         }
                     }
-                    _ => syntax_error!(token; EndMarker, EOL, Plus, Minus, Times, Divide, Assign),
+                    _ => Action::SyntaxError(vec![
+                        EndMarker, EOL, Plus, Minus, Times, Divide, Assign,
+                    ]),
                 },
                 7 | 8 => match tag {
-                    Minus => parser::Action::Shift(8),
-                    LPR => parser::Action::Shift(7),
-                    Number => parser::Action::Shift(9),
-                    Id => parser::Action::Shift(17),
-                    _ => syntax_error!(token; Minus, Number, Id, LPR),
+                    Minus => Action::Shift(8),
+                    LPR => Action::Shift(7),
+                    Number => Action::Shift(9),
+                    Id => Action::Shift(17),
+                    _ => Action::SyntaxError(vec![Minus, Number, Id, LPR]),
                 },
                 9 => match tag {
-                    EndMarker | EOL | Plus | Minus | Times | Divide | RPR => {
-                        parser::Action::Reduce(25)
-                    }
-                    _ => syntax_error!(token; EndMarker, EOL, Plus, Minus, Times, Divide, RPR),
+                    EndMarker | EOL | Plus | Minus | Times | Divide | RPR => Action::Reduce(25),
+                    _ => Action::SyntaxError(vec![EndMarker, EOL, Plus, Minus, Times, Divide, RPR]),
                 },
                 10 => match tag {
-                    EndMarker | EOL => parser::Action::Reduce(5),
-                    _ => syntax_error!(token; EndMarker, EOL),
+                    EndMarker | EOL => Action::Reduce(5),
+                    _ => Action::SyntaxError(vec![EndMarker, EOL]),
                 },
                 11 | 12 | 13 | 14 | 15 => match tag {
-                    Minus => parser::Action::Shift(8),
-                    LPR => parser::Action::Shift(7),
-                    Number => parser::Action::Shift(9),
-                    Id => parser::Action::Shift(17),
-                    _ => syntax_error!(token; Minus, Number, Id, LPR),
+                    Minus => Action::Shift(8),
+                    LPR => Action::Shift(7),
+                    Number => Action::Shift(9),
+                    Id => Action::Shift(17),
+                    _ => Action::SyntaxError(vec![Minus, Number, Id, LPR]),
                 },
                 16 => match tag {
-                    Plus => parser::Action::Shift(11),
-                    Minus => parser::Action::Shift(12),
-                    Times => parser::Action::Shift(13),
-                    Divide => parser::Action::Shift(14),
-                    RPR => parser::Action::Shift(24),
-                    _ => syntax_error!(token; Plus, Minus, Times, Divide, RPR),
+                    Plus => Action::Shift(11),
+                    Minus => Action::Shift(12),
+                    Times => Action::Shift(13),
+                    Divide => Action::Shift(14),
+                    RPR => Action::Shift(24),
+                    _ => Action::SyntaxError(vec![Plus, Minus, Times, Divide, RPR]),
                 },
                 17 => match tag {
                     EndMarker | EOL | Plus | Minus | Times | Divide | RPR => {
@@ -287,98 +278,94 @@ mod tests {
                             .variables
                             .contains_key(&attributes.attribute_n_from_end(2 - 1).id)
                         {
-                            parser::Action::Reduce(26)
+                            Action::Reduce(26)
                         } else {
-                            parser::Action::Reduce(27)
+                            Action::Reduce(27)
                         }
                     }
-                    _ => syntax_error!(token; EndMarker, EOL, Plus, Minus, Times, Divide, RPR),
+                    _ => Action::SyntaxError(vec![EndMarker, EOL, Plus, Minus, Times, Divide, RPR]),
                 },
                 18 => match tag {
-                    EndMarker | EOL | Plus | Minus | Times | Divide | RPR => {
-                        parser::Action::Reduce(24)
-                    }
-                    _ => syntax_error!(token; EndMarker, EOL, Plus, Minus, Times, Divide, RPR),
+                    EndMarker | EOL | Plus | Minus | Times | Divide | RPR => Action::Reduce(24),
+                    _ => Action::SyntaxError(vec![EndMarker, EOL, Plus, Minus, Times, Divide, RPR]),
                 },
                 19 => match tag {
-                    Times => parser::Action::Shift(13),
-                    Divide => parser::Action::Shift(14),
+                    Times => Action::Shift(13),
+                    Divide => Action::Shift(14),
                     EndMarker | EOL | Plus | Minus | RPR => {
                         if attributes.attribute_n_from_end(4 - 1).value == 0.0 {
-                            parser::Action::Reduce(9)
+                            Action::Reduce(9)
                         } else if attributes.attribute_n_from_end(4 - 3).value == 0.0 {
-                            parser::Action::Reduce(10)
+                            Action::Reduce(10)
                         } else {
-                            parser::Action::Reduce(11)
+                            Action::Reduce(11)
                         }
                     }
-                    _ => syntax_error!(token; EndMarker, EOL, Plus, Minus, Times, Divide, RPR),
+                    _ => Action::SyntaxError(vec![EndMarker, EOL, Plus, Minus, Times, Divide, RPR]),
                 },
                 20 => match tag {
-                    Times => parser::Action::Shift(13),
-                    Divide => parser::Action::Shift(14),
+                    Times => Action::Shift(13),
+                    Divide => Action::Shift(14),
                     EndMarker | EOL | Plus | Minus | RPR => {
                         if attributes.attribute_n_from_end(4 - 1).value == 0.0 {
-                            parser::Action::Reduce(12)
+                            Action::Reduce(12)
                         } else if attributes.attribute_n_from_end(4 - 3).value == 0.0 {
-                            parser::Action::Reduce(13)
+                            Action::Reduce(13)
                         } else {
-                            parser::Action::Reduce(14)
+                            Action::Reduce(14)
                         }
                     }
-                    _ => syntax_error!(token; EndMarker, EOL, Plus, Minus, Times, Divide, RPR),
+                    _ => Action::SyntaxError(vec![EndMarker, EOL, Plus, Minus, Times, Divide, RPR]),
                 },
                 21 => match tag {
                     EndMarker | EOL | Plus | Minus | Times | Divide | RPR => {
                         if attributes.attribute_n_from_end(4 - 1).value == 0.0
                             || attributes.attribute_n_from_end(4 - 3).value == 0.0
                         {
-                            parser::Action::Reduce(15)
+                            Action::Reduce(15)
                         } else if attributes.attribute_n_from_end(4 - 1).value == 1.0 {
-                            parser::Action::Reduce(16)
+                            Action::Reduce(16)
                         } else if attributes.attribute_n_from_end(4 - 3).value == 1.0 {
-                            parser::Action::Reduce(17)
+                            Action::Reduce(17)
                         } else {
-                            parser::Action::Reduce(18)
+                            Action::Reduce(18)
                         }
                     }
-                    _ => syntax_error!(token; EndMarker, EOL, Plus, Minus, Times, Divide, RPR),
+                    _ => Action::SyntaxError(vec![EndMarker, EOL, Plus, Minus, Times, Divide, RPR]),
                 },
                 22 => match tag {
                     EndMarker | EOL | Plus | Minus | Times | Divide | RPR => {
                         if attributes.attribute_n_from_end(4 - 1).value == 0.0
                             || attributes.attribute_n_from_end(4 - 3).value == 0.0
                         {
-                            parser::Action::Reduce(19)
+                            Action::Reduce(19)
                         } else if attributes.attribute_n_from_end(4 - 1).value == 1.0 {
-                            parser::Action::Reduce(20)
+                            Action::Reduce(20)
                         } else if attributes.attribute_n_from_end(4 - 3).value == 1.0 {
-                            parser::Action::Reduce(21)
+                            Action::Reduce(21)
                         } else {
-                            parser::Action::Reduce(22)
+                            Action::Reduce(22)
                         }
                     }
-                    _ => syntax_error!(token; EndMarker, EOL, Plus, Minus, Times, Divide, RPR),
+                    _ => Action::SyntaxError(vec![EndMarker, EOL, Plus, Minus, Times, Divide, RPR]),
                 },
                 23 => match tag {
-                    Plus => parser::Action::Shift(11),
-                    Minus => parser::Action::Shift(12),
-                    Times => parser::Action::Shift(13),
-                    Divide => parser::Action::Shift(14),
+                    Plus => Action::Shift(11),
+                    Minus => Action::Shift(12),
+                    Times => Action::Shift(13),
+                    Divide => Action::Shift(14),
                     EndMarker | EOL => {
                         if self.errors == 0 {
-                            parser::Action::Reduce(3)
+                            Action::Reduce(3)
                         } else {
-                            parser::Action::Reduce(4)
+                            Action::Reduce(4)
                         }
                     }
-                    _ => syntax_error!(token; EndMarker, EOL, Plus, Minus, Times, Divide, RPR),
+                    _ => Action::SyntaxError(vec![EndMarker, EOL, Plus, Minus, Times, Divide, RPR]),
                 },
                 24 => match tag {
-                    EndMarker | EOL | Plus | Minus | Times | Divide | RPR => {
-                        parser::Action::Reduce(23)
-                    }
-                    _ => syntax_error!(token; EndMarker, EOL, Plus, Minus, Times, Divide, RPR),
+                    EndMarker | EOL | Plus | Minus | Times | Divide | RPR => Action::Reduce(23),
+                    _ => Action::SyntaxError(vec![EndMarker, EOL, Plus, Minus, Times, Divide, RPR]),
                 },
                 _ => panic!("illegal state: {}", state),
             };

@@ -7,10 +7,9 @@ use std::{
 use lexan;
 
 #[derive(Debug, Clone)]
-pub enum Error<T: Copy + Debug> {
+pub enum Error<T: Copy + Debug + Eq> {
     LexicalError(lexan::Error<T>),
-    SyntaxError(T, Vec<T>, lexan::Location),
-    UnexpectedEndOfInput,
+    SyntaxError(lexan::Token<T>, Vec<T>),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -107,7 +106,7 @@ pub enum Action<T: Copy + Debug> {
     Shift(u32),
     Reduce(u32),
     Accept,
-    SyntaxError(T, Vec<T>, lexan::Location),
+    SyntaxError(Vec<T>),
 }
 
 pub trait Parser<T: Ord + Copy + Debug, N, A>
@@ -135,11 +134,12 @@ where
     fn report_error(error: &Error<T>) {
         match error {
             Error::LexicalError(lex_err) => println!("Lexical Error: {}.", lex_err),
-            Error::SyntaxError(found, expected, location) => println!(
+            Error::SyntaxError(found, expected) => println!(
                 "Syntax Error: expected: {:?} found: {:?} at: {}.",
-                expected, found, location
+                expected,
+                found.tag(),
+                found.location()
             ),
-            Error::UnexpectedEndOfInput => println!("unexpected end of input."),
         }
     }
 
@@ -189,8 +189,8 @@ where
                             ));
                             parse_stack.push_non_terminal(lhs, next_state);
                         }
-                        Action::SyntaxError(found, expected, location) => {
-                            let error = Error::SyntaxError(found, expected, location);
+                        Action::SyntaxError(expected) => {
+                            let error = Error::SyntaxError(token.clone(), expected);
                             Self::report_error(&error);
                             result = Err(error.clone());
                             if Self::short_circuit() {
