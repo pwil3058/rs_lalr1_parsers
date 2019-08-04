@@ -27,7 +27,7 @@ pub enum Symbol<T, N> {
 pub struct ParseStack<T, N, A>
 where
     T: Copy + Ord + Debug,
-    A: From<(T, String)> + From<Error<T>>,
+    A: From<lexan::Token<T>> + From<Error<T>>,
 {
     states: Vec<(Symbol<T, N>, u32)>,
     attributes: Vec<A>,
@@ -37,7 +37,7 @@ where
 impl<T, N, A> ParseStack<T, N, A>
 where
     T: Copy + Ord + Debug,
-    A: From<(T, String)> + From<Error<T>>,
+    A: From<lexan::Token<T>> + From<Error<T>>,
 {
     fn new() -> Self {
         Self {
@@ -72,10 +72,10 @@ where
         self.attributes.push(A::from(error))
     }
 
-    fn push_terminal(&mut self, terminal: T, string: &str, new_state: u32) {
-        let attribute = A::from((terminal, string.into()));
-        self.attributes.push(attribute);
-        self.states.push((Symbol::Terminal(terminal), new_state));
+    fn push_terminal(&mut self, token: lexan::Token<T>, new_state: u32) {
+        self.states
+            .push((Symbol::Terminal(*token.tag()), new_state));
+        self.attributes.push(A::from(token));
     }
 
     fn push_non_terminal(&mut self, non_terminal: N, new_state: u32) {
@@ -114,7 +114,7 @@ pub trait Parser<T: Ord + Copy + Debug, N, A>
 where
     T: Ord + Copy + Debug,
     N: Ord + Display + Debug,
-    A: Default + From<(T, String)> + From<Error<T>>,
+    A: Default + From<lexan::Token<T>> + From<Error<T>>,
 {
     fn lexical_analyzer(&self) -> &lexan::LexicalAnalyzer<T>;
     fn next_action(
@@ -175,14 +175,13 @@ where
                     match self.next_action(parse_stack.current_state(), &parse_stack, &token) {
                         Action::Accept => return result,
                         Action::Shift(next_state) => {
-                            parse_stack.push_terminal(*token.tag(), token.lexeme(), next_state);
+                            parse_stack.push_terminal(token, next_state);
                             tokens.advance();
                         }
                         Action::Reduce(production_id) => {
                             let (lhs, rhs_len) = Self::production_data(production_id);
                             let rhs = parse_stack.pop_n(rhs_len);
-                            let next_state =
-                                Self::goto_state(&lhs, parse_stack.current_state());
+                            let next_state = Self::goto_state(&lhs, parse_stack.current_state());
                             parse_stack.push_attribute(self.do_semantic_action(
                                 production_id,
                                 rhs,
@@ -198,18 +197,17 @@ where
                                 return result;
                             }
                             let viable_states = Self::viable_error_recovery_states(token.tag());
-                            let mut distance =
-                                parse_stack.distance_to_viable_state(&viable_states);
+                            let mut distance = parse_stack.distance_to_viable_state(&viable_states);
                             while distance.is_none() && !tokens.is_empty() {
                                 if let Ok(token) = tokens.advance_front() {
-                                    let viable_states = Self::viable_error_recovery_states(token.tag());
+                                    let viable_states =
+                                        Self::viable_error_recovery_states(token.tag());
                                     distance = parse_stack.distance_to_viable_state(&viable_states);
                                 }
                             }
                             if let Some(distance) = distance {
                                 parse_stack.pop_n(distance);
-                                let next_state =
-                                    Self::error_go_state(parse_stack.current_state());
+                                let next_state = Self::error_go_state(parse_stack.current_state());
                                 parse_stack.push_error(next_state, error);
                             } else {
                                 return result;

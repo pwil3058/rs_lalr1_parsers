@@ -1,3 +1,4 @@
+#[cfg(test)]
 #[macro_use]
 extern crate lazy_static;
 extern crate lexan;
@@ -27,7 +28,7 @@ mod tests {
         EOL,
         Number,
         Id,
-        EndMarker
+        EndMarker,
     }
 
     impl fmt::Display for Terminal {
@@ -71,15 +72,15 @@ mod tests {
         value: f64,
     }
 
-    impl From<(Terminal, String)> for AttributeData {
-        fn from(input: (Terminal, String)) -> Self {
+    impl From<lexan::Token<Terminal>> for AttributeData {
+        fn from(input: lexan::Token<Terminal>) -> Self {
             let mut attr = AttributeData::default();
-            match input.0 {
+            match input.tag() {
                 Terminal::Number => {
-                    attr.value = f64::from_str(&input.1).unwrap();
+                    attr.value = f64::from_str(input.lexeme()).unwrap();
                 }
                 Terminal::Id => {
-                    attr.id = input.1;
+                    attr.id = input.lexeme().to_string();
                 }
                 _ => (),
             };
@@ -236,7 +237,7 @@ mod tests {
                 },
                 6 => match tag {
                     Assign => parser::Action::Shift(15),
-                    EndMarker| EOL | Plus | Minus | Times | Divide => {
+                    EndMarker | EOL | Plus | Minus | Times | Divide => {
                         if self
                             .variables
                             .contains_key(&attributes.attribute_n_from_end(2 - 1).id)
@@ -256,7 +257,9 @@ mod tests {
                     _ => syntax_error!(token; Minus, Number, Id, LPR),
                 },
                 9 => match tag {
-                    EndMarker | EOL | Plus | Minus | Times | Divide | RPR => parser::Action::Reduce(25),
+                    EndMarker | EOL | Plus | Minus | Times | Divide | RPR => {
+                        parser::Action::Reduce(25)
+                    }
                     _ => syntax_error!(token; EndMarker, EOL, Plus, Minus, Times, Divide, RPR),
                 },
                 10 => match tag {
@@ -292,7 +295,9 @@ mod tests {
                     _ => syntax_error!(token; EndMarker, EOL, Plus, Minus, Times, Divide, RPR),
                 },
                 18 => match tag {
-                    EndMarker | EOL | Plus | Minus | Times | Divide | RPR => parser::Action::Reduce(24),
+                    EndMarker | EOL | Plus | Minus | Times | Divide | RPR => {
+                        parser::Action::Reduce(24)
+                    }
                     _ => syntax_error!(token; EndMarker, EOL, Plus, Minus, Times, Divide, RPR),
                 },
                 19 => match tag {
@@ -370,7 +375,9 @@ mod tests {
                     _ => syntax_error!(token; EndMarker, EOL, Plus, Minus, Times, Divide, RPR),
                 },
                 24 => match tag {
-                    EndMarker | EOL | Plus | Minus | Times | Divide | RPR => parser::Action::Reduce(23),
+                    EndMarker | EOL | Plus | Minus | Times | Divide | RPR => {
+                        parser::Action::Reduce(23)
+                    }
                     _ => syntax_error!(token; EndMarker, EOL, Plus, Minus, Times, Divide, RPR),
                 },
                 _ => panic!("illegal state: {}", state),
@@ -553,9 +560,13 @@ mod tests {
     fn calc_works() {
         use crate::parser::Parser;
         let mut calc = Calc::new();
-        assert!(calc.parse_text("a = (3 + 4)\n".to_string(), "raw".to_string()).is_ok());
+        assert!(calc
+            .parse_text("a = (3 + 4)\n".to_string(), "raw".to_string())
+            .is_ok());
         assert_eq!(calc.variables.get("a"), Some(&7.0));
-        assert!(calc.parse_text("b = a * 5\n".to_string(), "raw".to_string()).is_ok());
+        assert!(calc
+            .parse_text("b = a * 5\n".to_string(), "raw".to_string())
+            .is_ok());
         assert_eq!(calc.variables.get("b"), Some(&35.0));
     }
 }
