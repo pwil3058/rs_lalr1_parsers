@@ -2,7 +2,7 @@ use std::io::{stderr, Write};
 
 use lexan;
 
-use crate::symbols::{self, SymbolTable};
+use crate::symbols::{self, Associativity, SymbolTable};
 
 #[derive(Debug, Default, Clone)]
 pub struct ParserSpecification {
@@ -45,20 +45,20 @@ impl ParserSpecification {
         self.preamble = preamble.to_string();
     }
 
-    pub fn set_header(&mut self, header: &str) {
-        self.header = header.to_string();
-    }
-
-    pub fn set_coda(&mut self, coda: &str) {
-        self.coda = coda.to_string();
-    }
-
-    pub fn add_field(
+    pub fn add_token(
         &mut self,
         name: &str,
-        field_type: &str,
+        pattern: &str,
         location: &lexan::Location,
     ) -> Result<(), symbols::Error> {
-        self.symbol_table.add_field(name, field_type, location)
+        self.symbol_table.add_token(name, pattern, location)
+    }
+
+    pub fn add_skip_rule(&mut self, rule: & str) {
+        self.symbol_table.add_skip_rule(rule);
+    }
+
+    pub fn set_precedence(&mut self, associativity: Associativity, tags: &Vec<String>) {
+        self.symbol_table.set_precedence(associativity, tags);
     }
 }
