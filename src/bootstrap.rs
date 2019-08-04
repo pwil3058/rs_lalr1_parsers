@@ -1,11 +1,9 @@
-use std::{
-    fmt,
-    fs::File,
-    io::Read,
-};
+use std::{fmt, fs::File, io::Read};
 
 use lalr1plus;
 use lexan;
+
+use crate::grammar::ParserSpecification;
 
 #[derive(Debug, Clone, Copy, PartialOrd, Ord, PartialEq, Eq)]
 pub enum AATerminal {
@@ -13,7 +11,6 @@ pub enum AATerminal {
     REGEX,
     LITERAL,
     TOKEN,
-    FIELD,
     LEFT,
     RIGHT,
     NONASSOC,
@@ -26,10 +23,9 @@ pub enum AATerminal {
     VBAR,
     DOT,
     IDENT,
-    FIELDNAME,
     PREDICATE,
     ACTION,
-    DCODE,
+    RUSTCODE,
 }
 
 impl fmt::Display for AATerminal {
@@ -40,7 +36,6 @@ impl fmt::Display for AATerminal {
             REGEX => write!(f, "REGEX"),
             LITERAL => write!(f, "LITERAL"),
             TOKEN => write!(f, "%token"),
-            FIELD => write!(f, "%field"),
             LEFT => write!(f, "%left"),
             RIGHT => write!(f, "%right"),
             NONASSOC => write!(f, "%nonassoc"),
@@ -53,10 +48,9 @@ impl fmt::Display for AATerminal {
             VBAR => write!(f, "|"),
             DOT => write!(f, "."),
             IDENT => write!(f, "IDENT"),
-            FIELDNAME => write!(f, "FIELDNAME"),
             PREDICATE => write!(f, "PREDICATE"),
             ACTION => write!(f, "ACTION"),
-            DCODE => write!(f, "DCODE"),
+            RUSTCODE => write!(f, "RUSTCODE"),
         }
     }
 }
@@ -67,7 +61,6 @@ lazy_static! {
         lexan::LexicalAnalyzer::new(
             &[
                 (TOKEN, "%token"),
-                (FIELD, "%field"),
                 (LEFT, "%left"),
                 (RIGHT, "%right"),
                 (NONASSOC, "%nonassoc"),
@@ -84,10 +77,9 @@ lazy_static! {
                 (REGEX, r###"(\(.+\)(?=\s))"###),
                 (LITERAL, r###"("(\\"|[^"\t\r\n\v\f])*")"###),
                 (IDENT, r###"([a-zA-Z]+[a-zA-Z0-9_]*)"###),
-                (FIELDNAME, r###"(<[a-zA-Z]+[a-zA-Z0-9_]*>)"###),
                 (PREDICATE, r###"(\?\((.|[\n\r])*?\?\))"###),
                 (ACTION, r###"(!\{(.|[\n\r])*?!\})"###),
-                (DCODE, r###"(%\{(.|[\n\r])*?%\})"###),
+                (RUSTCODE, r###"(%\{(.|[\n\r])*?%\})"###),
             ],
             &[
                 r###"(/\*(.|[\n\r])*?\*/)"###,
@@ -105,18 +97,12 @@ pub enum AANonTerminal {
     Preamble,
     Definitions,
     ProductionRules,
-    Coda,
     OInjection,
     Injection,
     InjectionHead,
-    FieldDefinitions,
     TokenDefinitions,
     SkipDefinitions,
     PrecedenceDefinitions,
-    FieldDefinition,
-    FieldType,
-    FieldName,
-    FieldConversionFunction,
     TokenDefinition,
     NewTokenName,
     Pattern,
@@ -143,18 +129,12 @@ impl fmt::Display for AANonTerminal {
             Preamble => write!(f, "Preamble"),
             Definitions => write!(f, "Definitions"),
             ProductionRules => write!(f, "ProductionRules"),
-            Coda => write!(f, "Coda"),
             OInjection => write!(f, "OInjection"),
             Injection => write!(f, "Injection"),
             InjectionHead => write!(f, "InjectionHead"),
-            FieldDefinitions => write!(f, "FieldDefinitions"),
             TokenDefinitions => write!(f, "TokenDefinitions"),
             SkipDefinitions => write!(f, "SkipDefinitions"),
             PrecedenceDefinitions => write!(f, "PrecedenceDefinitions"),
-            FieldDefinition => write!(f, "FieldDefinition"),
-            FieldType => write!(f, "FieldType"),
-            FieldName => write!(f, "FieldName"),
-            FieldConversionFunction => write!(f, "FieldConversionFunction"),
             TokenDefinition => write!(f, "TokenDefinition"),
             NewTokenName => write!(f, "NewTokenName"),
             Pattern => write!(f, "Pattern"),
@@ -175,77 +155,54 @@ impl fmt::Display for AANonTerminal {
     }
 }
 
-#[derive(Debug, Default, Clone)]
-pub struct AAAttributeData {}
+#[derive(Debug, Clone)]
+pub enum AttributeData {
+    Token(String, lexan::Location),
+    Default,
+}
 
-impl AAAttributeData {
+impl Default for AttributeData {
+    fn default() -> Self {
+        AttributeData::Default
+    }
+}
+
+impl AttributeData {
     fn matched_text<'a>(&'a self) -> &'a str {
-        "what"
+        match self {
+            AttributeData::Token(string, _) => string,
+            _ => panic!("Wrong attribute variant."),
+        }
     }
 
-    fn location<'a>(&'a self) -> &'a str {
-        "what"
+    fn location<'a>(&'a self) -> &'a lexan::Location {
+        match self {
+            AttributeData::Token(_, location) => location,
+            _ => panic!("Wrong attribute variant."),
+        }
     }
 }
 
-impl From<(AATerminal, String)> for AAAttributeData {
-    fn from(_input: (AATerminal, String)) -> Self {
-        AAAttributeData::default()
+impl From<lexan::Token<AATerminal>> for AttributeData {
+    fn from(token: lexan::Token<AATerminal>) -> Self {
+        AttributeData::Token(token.lexeme().to_string(), token.location().clone())
     }
 }
 
-impl From<lalr1plus::Error<AATerminal>> for AAAttributeData {
+impl From<lalr1plus::Error<AATerminal>> for AttributeData {
     fn from(_error: lalr1plus::Error<AATerminal>) -> Self {
-        AAAttributeData::default()
+        AttributeData::Default
     }
 }
 
-#[derive(Debug, Default, Clone)]
-pub struct SymbolTable {}
-
-impl SymbolTable {
-    fn is_known_non_terminal(&self, _name: &str) -> bool {
-        false
-    }
-
-    fn is_known_tag(&self, _name: &str) -> bool {
-        false
-    }
-
-    fn is_known_token(&self, _name: &str) -> bool {
-        false
-    }
-}
-
-#[derive(Debug, Default, Clone)]
-pub struct ParserSpecification {
-    symbol_table: SymbolTable,
-    header: String,
-    preamble: String,
-}
-
-impl ParserSpecification {
-    fn is_allowable_name(name: &str) -> bool {
-        !(name.starts_with("aa") || name.starts_with("AA"))
-    }
-
-    fn error(&self, _location: &str, _what: &str) {}
-
-    fn set_preamble(&mut self, preamble: &str) {
-        self.preamble = preamble.to_string();
-    }
-
-    fn set_header(&mut self, header: &str) {
-        self.header = header.to_string();
-    }
-}
+type AAAttributeData = AttributeData;
 
 macro_rules! aa_syntax_error {
     ( $token:expr; $( $tag:expr),* ) => ({
         lalr1plus::Action::SyntaxError(
             *$token.tag(),
             vec![ $( $tag),* ],
-            $token.location().to_string(),
+            $token.location().clone(),
         )
     });
 }
@@ -274,601 +231,483 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AAAttributeData> for ParserSpe
         match state {
             0 => match tag {
                 INJECT => lalr1plus::Action::Shift(4),
-                TOKEN | FIELD => lalr1plus::Action::Reduce(6), // preamble: <empty>
-                DCODE => lalr1plus::Action::Reduce(2),         // oinjection: <empty>
-                _ => aa_syntax_error!(token; TOKEN, FIELD, INJECT, DCODE),
+                TOKEN => lalr1plus::Action::Reduce(6), // preamble: <empty>
+                RUSTCODE => lalr1plus::Action::Reduce(2), // oinjection: <empty>
+                _ => aa_syntax_error!(token; TOKEN, INJECT, RUSTCODE),
             },
             1 => match tag {
                 AAEND => lalr1plus::Action::Accept,
                 _ => aa_syntax_error!(token; AAEND),
             },
             2 => match tag {
-                TOKEN | FIELD | INJECT => lalr1plus::Action::Reduce(12), // field_definitions: <empty>
-                _ => aa_syntax_error!(token; TOKEN, FIELD, INJECT),
+                INJECT => lalr1plus::Action::Shift(4),
+                TOKEN => lalr1plus::Action::Reduce(2), // oinjection: <empty>
+                _ => aa_syntax_error!(token; TOKEN, INJECT),
             },
             3 => match tag {
-                AAEND | TOKEN | FIELD | LEFT | RIGHT | NONASSOC | SKIP | INJECT | NEWSECTION | IDENT
-                | DCODE => lalr1plus::Action::Reduce(3), // oinjection: injection
+                AAEND | TOKEN | LEFT | RIGHT | NONASSOC | SKIP | INJECT | NEWSECTION | IDENT
+                | RUSTCODE => lalr1plus::Action::Reduce(3), // oinjection: injection
                 _ => {
-                    aa_syntax_error!(token; AAEND, TOKEN, FIELD, LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION, IDENT, DCODE)
+                    aa_syntax_error!(token; AAEND, TOKEN, LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION, IDENT, RUSTCODE)
                 }
             },
             4 => match tag {
-                LITERAL => lalr1plus::Action::Shift(9),
+                LITERAL => lalr1plus::Action::Shift(10),
                 _ => aa_syntax_error!(token; LITERAL),
             },
             5 => match tag {
-                DOT => lalr1plus::Action::Shift(10),
+                DOT => lalr1plus::Action::Shift(11),
                 _ => aa_syntax_error!(token; DOT),
             },
             6 => match tag {
-                DCODE => lalr1plus::Action::Shift(11),
-                _ => aa_syntax_error!(token; DCODE),
+                RUSTCODE => lalr1plus::Action::Shift(12),
+                _ => aa_syntax_error!(token; RUSTCODE),
             },
             7 => match tag {
-                NEWSECTION => lalr1plus::Action::Shift(12),
+                NEWSECTION => lalr1plus::Action::Shift(13),
                 _ => aa_syntax_error!(token; NEWSECTION),
             },
             8 => match tag {
                 INJECT => lalr1plus::Action::Shift(4),
-                TOKEN | FIELD => lalr1plus::Action::Reduce(2), // oinjection: <empty>
-                _ => aa_syntax_error!(token; TOKEN, FIELD, INJECT),
+                TOKEN => lalr1plus::Action::Reduce(2), // oinjection: <empty>
+                LEFT | RIGHT | NONASSOC | SKIP | NEWSECTION => lalr1plus::Action::Reduce(16), // skip_definitions: <empty>
+                _ => {
+                    aa_syntax_error!(token; TOKEN, LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION)
+                }
             },
             9 => match tag {
+                TOKEN => lalr1plus::Action::Shift(17),
+                _ => aa_syntax_error!(token; TOKEN),
+            },
+            10 => match tag {
                 DOT => lalr1plus::Action::Reduce(4), // injection_head: "%inject" LITERAL
                 _ => aa_syntax_error!(token; DOT),
             },
-            10 => match tag {
-                AAEND | TOKEN | FIELD | LEFT | RIGHT | NONASSOC | SKIP | INJECT | NEWSECTION | IDENT
-                | DCODE => lalr1plus::Action::Reduce(5), // injection: injection_head "."
+            11 => match tag {
+                AAEND | TOKEN | LEFT | RIGHT | NONASSOC | SKIP | INJECT | NEWSECTION | IDENT
+                | RUSTCODE => lalr1plus::Action::Reduce(5), // injection: injection_head "."
                 _ => {
-                    aa_syntax_error!(token; AAEND, TOKEN, FIELD, LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION, IDENT, DCODE)
+                    aa_syntax_error!(token; AAEND, TOKEN, LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION, IDENT, RUSTCODE)
                 }
             },
-            11 => match tag {
-                INJECT => lalr1plus::Action::Shift(4),
-                TOKEN | FIELD | DCODE => lalr1plus::Action::Reduce(2), // oinjection: <empty>
-                _ => aa_syntax_error!(token; TOKEN, FIELD, INJECT, DCODE),
-            },
             12 => match tag {
+                INJECT => lalr1plus::Action::Shift(4),
+                TOKEN => lalr1plus::Action::Reduce(2), // oinjection: <empty>
+                _ => aa_syntax_error!(token; TOKEN, INJECT),
+            },
+            13 => match tag {
                 INJECT => lalr1plus::Action::Shift(4),
                 IDENT => lalr1plus::Action::Reduce(2), // oinjection: <empty>
                 _ => aa_syntax_error!(token; INJECT, IDENT),
             },
-            13 => match tag {
-                INJECT => lalr1plus::Action::Shift(4),
-                TOKEN => lalr1plus::Action::Reduce(2), // oinjection: <empty>
-                LEFT | RIGHT | NONASSOC | SKIP | NEWSECTION => lalr1plus::Action::Reduce(30), // skip_definitions: <empty>
-                _ => {
-                    aa_syntax_error!(token; TOKEN, LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION)
-                }
-            },
             14 => match tag {
-                TOKEN => lalr1plus::Action::Shift(23),
-                FIELD => lalr1plus::Action::Shift(21),
-                _ => aa_syntax_error!(token; TOKEN, FIELD),
-            },
-            15 => match tag {
-                DCODE => lalr1plus::Action::Shift(24),
-                TOKEN | FIELD | INJECT => lalr1plus::Action::Reduce(7), // preamble: oinjection DCODE oinjection
-                _ => aa_syntax_error!(token; TOKEN, FIELD, INJECT, DCODE),
-            },
-            16 => match tag {
                 INJECT => lalr1plus::Action::Shift(4),
-                IDENT => lalr1plus::Action::Shift(29),
-                DCODE => lalr1plus::Action::Reduce(2), // oinjection: <empty>
-                AAEND => lalr1plus::Action::Reduce(9), // coda: <empty>
-                _ => aa_syntax_error!(token; AAEND, INJECT, IDENT, DCODE),
-            },
-            17 => match tag {
-                IDENT => lalr1plus::Action::Shift(29),
-                _ => aa_syntax_error!(token; IDENT),
-            },
-            18 => match tag {
-                INJECT => lalr1plus::Action::Shift(4),
-                LEFT | RIGHT | NONASSOC | NEWSECTION => lalr1plus::Action::Reduce(33), // precedence_definitions: <empty>
+                LEFT | RIGHT | NONASSOC | NEWSECTION => lalr1plus::Action::Reduce(19), // precedence_definitions: <empty>
                 SKIP => lalr1plus::Action::Reduce(2), // oinjection: <empty>
                 _ => aa_syntax_error!(token; LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION),
             },
-            19 => match tag {
-                TOKEN => lalr1plus::Action::Shift(23),
+            15 => match tag {
+                TOKEN => lalr1plus::Action::Shift(17),
                 _ => aa_syntax_error!(token; TOKEN),
             },
-            20 => match tag {
-                INJECT => lalr1plus::Action::Shift(4),
-                TOKEN | FIELD => lalr1plus::Action::Reduce(2), // oinjection: <empty>
-                _ => aa_syntax_error!(token; TOKEN, FIELD, INJECT),
-            },
-            21 => match tag {
-                IDENT => lalr1plus::Action::Shift(36),
-                _ => aa_syntax_error!(token; IDENT),
-            },
-            22 => match tag {
+            16 => match tag {
                 TOKEN | LEFT | RIGHT | NONASSOC | SKIP | INJECT | NEWSECTION => {
-                    lalr1plus::Action::Reduce(22)
-                }
-                // token_definitions: oinjection token_definition
+                    lalr1plus::Action::Reduce(9)
+                } // token_definitions: oinjection token_definition
                 _ => {
                     aa_syntax_error!(token; TOKEN, LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION)
                 }
             },
-            23 => match tag {
-                IDENT => lalr1plus::Action::Shift(39),
-                FIELDNAME => lalr1plus::Action::Shift(38),
-                _ => aa_syntax_error!(token; IDENT, FIELDNAME),
+            17 => match tag {
+                IDENT => lalr1plus::Action::Shift(25),
+                _ => aa_syntax_error!(token; IDENT),
             },
-            24 => match tag {
-                INJECT => lalr1plus::Action::Shift(4),
-                TOKEN | FIELD => lalr1plus::Action::Reduce(2), // oinjection: <empty>
-                _ => aa_syntax_error!(token; TOKEN, FIELD, INJECT),
+            18 => match tag {
+                TOKEN | INJECT => lalr1plus::Action::Reduce(7), // preamble: oinjection RUSTCODE oinjection
+                _ => aa_syntax_error!(token; TOKEN, INJECT),
             },
-            25 => match tag {
-                AAEND => lalr1plus::Action::Reduce(1), // specification: preamble definitions "%%" production_rules coda
-                _ => aa_syntax_error!(token; AAEND)
+            19 => match tag {
+                IDENT => lalr1plus::Action::Shift(28),
+                AAEND => lalr1plus::Action::Reduce(1), // specification: preamble definitions "%%" production_rules
+                _ => aa_syntax_error!(token; AAEND, IDENT),
             },
-            26 => match tag {
-                DCODE => lalr1plus::Action::Shift(41),
-                _ => aa_syntax_error!(token; DCODE),
+            20 => match tag {
+                IDENT => lalr1plus::Action::Shift(28),
+                _ => aa_syntax_error!(token; IDENT),
             },
-            27 => match tag {
-                INJECT => lalr1plus::Action::Shift(4),
-                AAEND | IDENT | DCODE => lalr1plus::Action::Reduce(2), // oinjection: <empty>
-                _ => aa_syntax_error!(token; AAEND, INJECT, IDENT, DCODE),
-            },
-            28 => match tag {
-                LITERAL => lalr1plus::Action::Shift(52),
-                ERROR => lalr1plus::Action::Shift(53),
-                IDENT => lalr1plus::Action::Shift(51),
-                PREDICATE => lalr1plus::Action::Shift(49),
-                ACTION => lalr1plus::Action::Shift(48),
-                VBAR | DOT => lalr1plus::Action::Reduce(52), // production_tail: <empty>
-                _ => aa_syntax_error!(token; LITERAL, ERROR, VBAR, DOT, IDENT, PREDICATE, ACTION),
-            },
-            29 => match tag {
-                COLON => lalr1plus::Action::Shift(54),
-                _ => aa_syntax_error!(token; COLON),
-            },
-            30 => match tag {
-                INJECT => lalr1plus::Action::Shift(4),
-                AAEND | IDENT | DCODE => lalr1plus::Action::Reduce(2), // oinjection: <empty>
-                _ => aa_syntax_error!(token; AAEND, INJECT, IDENT, DCODE),
-            },
-            31 => match tag {
+            21 => match tag {
                 INJECT => lalr1plus::Action::Shift(4),
                 LEFT | RIGHT | NONASSOC => lalr1plus::Action::Reduce(2), // oinjection: <empty>
-                NEWSECTION => lalr1plus::Action::Reduce(11), // definitions: field_definitions token_definitions skip_definitions precedence_definitions
+                NEWSECTION => lalr1plus::Action::Reduce(8), // definitions: token_definitions skip_definitions precedence_definitions
                 _ => aa_syntax_error!(token; LEFT, RIGHT, NONASSOC, INJECT, NEWSECTION),
             },
-            32 => match tag {
-                SKIP => lalr1plus::Action::Shift(58),
+            22 => match tag {
+                SKIP => lalr1plus::Action::Shift(32),
                 _ => aa_syntax_error!(token; SKIP),
             },
-            33 => match tag {
+            23 => match tag {
                 INJECT => lalr1plus::Action::Shift(4),
                 TOKEN | LEFT | RIGHT | NONASSOC | SKIP | NEWSECTION => lalr1plus::Action::Reduce(2), // oinjection: <empty>
                 _ => {
                     aa_syntax_error!(token; TOKEN, LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION)
                 }
             },
-            34 => match tag {
-                TOKEN | FIELD | INJECT => lalr1plus::Action::Reduce(13), // field_definitions: field_definitions oinjection field_definition oinjection
-                _ => aa_syntax_error!(token; TOKEN, FIELD, INJECT),
-            },
-            35 => match tag {
-                IDENT => lalr1plus::Action::Shift(61),
-                _ => aa_syntax_error!(token; IDENT),
-            },
-            36 => match tag {
-                IDENT => {
-                    if !Self::is_allowable_name(
-                        aa_attributes.attribute_n_from_end(2 - 1).matched_text(),
-                    ) {
-                        lalr1plus::Action::Reduce(16) // field_type: IDENT ?(  !is_allowable_name($1.matched_text())  ?)
-                    } else {
-                        lalr1plus::Action::Reduce(17) // field_type: IDENT
-                    }
-                }
-                _ => aa_syntax_error!(token; IDENT),
-            },
-            37 => match tag {
-                REGEX => lalr1plus::Action::Shift(63),
-                LITERAL => lalr1plus::Action::Shift(64),
+            24 => match tag {
+                REGEX => lalr1plus::Action::Shift(35),
+                LITERAL => lalr1plus::Action::Shift(36),
                 _ => aa_syntax_error!(token; REGEX, LITERAL),
             },
-            38 => match tag {
-                IDENT => lalr1plus::Action::Shift(39),
-                _ => aa_syntax_error!(token; IDENT),
-            },
-            39 => match tag {
+            25 => match tag {
                 REGEX | LITERAL => {
                     if !Self::is_allowable_name(
                         aa_attributes.attribute_n_from_end(2 - 1).matched_text(),
                     ) {
-                        lalr1plus::Action::Reduce(26) // new_token_name: IDENT ?(  !is_allowable_name($1.matched_text())  ?)
+                        lalr1plus::Action::Reduce(12) // new_token_name: IDENT ?(  !is_allowable_name($1.matched_text())  ?)
                     } else {
-                        lalr1plus::Action::Reduce(27) // new_token_name: IDENT
+                        lalr1plus::Action::Reduce(13) // new_token_name: IDENT
                     }
                 }
                 _ => aa_syntax_error!(token; REGEX, LITERAL),
             },
-            40 => match tag {
-                TOKEN | FIELD | INJECT => lalr1plus::Action::Reduce(8), // preamble: oinjection DCODE oinjection DCODE oinjection
-                _ => aa_syntax_error!(token; TOKEN, FIELD, INJECT),
+            26 => match tag {
+                INJECT => lalr1plus::Action::Shift(4),
+                AAEND | IDENT => lalr1plus::Action::Reduce(2), // oinjection: <empty>
+                _ => aa_syntax_error!(token; AAEND, INJECT, IDENT),
             },
-            41 => match tag {
-                AAEND => lalr1plus::Action::Reduce(10), // coda: oinjection DCODE
-                _ => aa_syntax_error!(token; AAEND),
-            },
-            42 => match tag {
-                AAEND | INJECT | IDENT | DCODE => lalr1plus::Action::Reduce(45), // production_rules: production_rules production_group oinjection
-                _ => aa_syntax_error!(token; AAEND, INJECT, IDENT, DCODE),
-            },
-            43 => match tag {
-                VBAR => lalr1plus::Action::Shift(67),
-                DOT => lalr1plus::Action::Shift(66),
-                _ => aa_syntax_error!(token; VBAR, DOT),
-            },
-            44 => match tag {
-                VBAR | DOT => lalr1plus::Action::Reduce(50), // production_tail_list: production_tail
-                _ => aa_syntax_error!(token; VBAR, DOT),
-            },
-            45 => match tag {
-                VBAR | DOT => lalr1plus::Action::Reduce(53), // production_tail: action
-                _ => aa_syntax_error!(token; VBAR, DOT),
-            },
-            46 => match tag {
-                ACTION => lalr1plus::Action::Shift(48),
-                VBAR | DOT => lalr1plus::Action::Reduce(55), // production_tail: predicate
-                _ => aa_syntax_error!(token; VBAR, DOT, ACTION),
-            },
-            47 => match tag {
-                LITERAL => lalr1plus::Action::Shift(52),
-                PRECEDENCE => lalr1plus::Action::Shift(72),
-                ERROR => lalr1plus::Action::Shift(53),
-                IDENT => lalr1plus::Action::Shift(51),
-                PREDICATE => lalr1plus::Action::Shift(49),
-                ACTION => lalr1plus::Action::Shift(48),
-                VBAR | DOT => lalr1plus::Action::Reduce(63), // production_tail: symbol_list
-                _ => {
-                    aa_syntax_error!(token; LITERAL, PRECEDENCE, ERROR, VBAR, DOT, IDENT, PREDICATE, ACTION)
-                }
-            },
-            48 => match tag {
-                VBAR | DOT => lalr1plus::Action::Reduce(64), // action: ACTION
-                _ => aa_syntax_error!(token; VBAR, DOT),
-            },
-            49 => match tag {
-                PRECEDENCE | VBAR | DOT | ACTION => lalr1plus::Action::Reduce(65), // predicate: PREDICATE
-                _ => aa_syntax_error!(token; PRECEDENCE, VBAR, DOT, ACTION),
-            },
-            50 => match tag {
-                LITERAL | PRECEDENCE | ERROR | VBAR | DOT | IDENT | PREDICATE | ACTION => {
-                    lalr1plus::Action::Reduce(68)
-                } // symbol_list: symbol
-                _ => {
-                    aa_syntax_error!(token; LITERAL, PRECEDENCE, ERROR, VBAR, DOT, IDENT, PREDICATE, ACTION)
-                }
-            },
-            51 => match tag {
-                LITERAL | PRECEDENCE | ERROR | VBAR | DOT | IDENT | PREDICATE | ACTION => {
-                    lalr1plus::Action::Reduce(70)
-                } // symbol: IDENT
-                _ => {
-                    aa_syntax_error!(token; LITERAL, PRECEDENCE, ERROR, VBAR, DOT, IDENT, PREDICATE, ACTION)
-                }
-            },
-            52 => match tag {
-                LITERAL | PRECEDENCE | ERROR | VBAR | DOT | IDENT | PREDICATE | ACTION => {
-                    lalr1plus::Action::Reduce(71)
-                } // symbol: LITERAL
-                _ => {
-                    aa_syntax_error!(token; LITERAL, PRECEDENCE, ERROR, VBAR, DOT, IDENT, PREDICATE, ACTION)
-                }
-            },
-            53 => match tag {
-                LITERAL | PRECEDENCE | ERROR | VBAR | DOT | IDENT | PREDICATE | ACTION => {
-                    lalr1plus::Action::Reduce(72)
-                } // symbol: "%error"
-                _ => {
-                    aa_syntax_error!(token; LITERAL, PRECEDENCE, ERROR, VBAR, DOT, IDENT, PREDICATE, ACTION)
-                }
-            },
-            54 => match tag {
-                LITERAL | ERROR | VBAR | DOT | IDENT | PREDICATE | ACTION => {
-                    if self
-                        .symbol_table
-                        .is_known_token(aa_attributes.attribute_n_from_end(3 - 1).matched_text())
-                    {
-                        lalr1plus::Action::Reduce(47) // production_group_head: IDENT ":" ?(  self.symbol_table.is_known_token($1.matched_text())  ?)
-                    } else if self
-                        .symbol_table
-                        .is_known_tag(aa_attributes.attribute_n_from_end(3 - 1).matched_text())
-                    {
-                        lalr1plus::Action::Reduce(48) // production_group_head: IDENT ":" ?(  self.symbol_table.is_known_tag($1.matched_text())  ?)
-                    } else {
-                        lalr1plus::Action::Reduce(49) // production_group_head: IDENT ":"
-                    }
-                }
+            27 => match tag {
+                LITERAL => lalr1plus::Action::Shift(47),
+                ERROR => lalr1plus::Action::Shift(48),
+                IDENT => lalr1plus::Action::Shift(46),
+                PREDICATE => lalr1plus::Action::Shift(44),
+                ACTION => lalr1plus::Action::Shift(43),
+                VBAR | DOT => lalr1plus::Action::Reduce(38), // production_tail: <empty>
                 _ => aa_syntax_error!(token; LITERAL, ERROR, VBAR, DOT, IDENT, PREDICATE, ACTION),
             },
-            55 => match tag {
-                AAEND | INJECT | IDENT | DCODE => lalr1plus::Action::Reduce(44), // production_rules: oinjection production_group oinjection
-                _ => aa_syntax_error!(token; AAEND, INJECT, IDENT, DCODE),
+            28 => match tag {
+                COLON => lalr1plus::Action::Shift(49),
+                _ => aa_syntax_error!(token; COLON),
             },
-            56 => match tag {
-                LEFT => lalr1plus::Action::Shift(75),
-                RIGHT => lalr1plus::Action::Shift(76),
-                NONASSOC => lalr1plus::Action::Shift(77),
+            29 => match tag {
+                INJECT => lalr1plus::Action::Shift(4),
+                AAEND | IDENT => lalr1plus::Action::Reduce(2), // oinjection: <empty>
+                _ => aa_syntax_error!(token; AAEND, INJECT, IDENT),
+            },
+            30 => match tag {
+                LEFT => lalr1plus::Action::Shift(52),
+                RIGHT => lalr1plus::Action::Shift(53),
+                NONASSOC => lalr1plus::Action::Shift(54),
                 _ => aa_syntax_error!(token; LEFT, RIGHT, NONASSOC),
             },
-            57 => match tag {
+            31 => match tag {
                 INJECT => lalr1plus::Action::Shift(4),
                 LEFT | RIGHT | NONASSOC | SKIP | NEWSECTION => lalr1plus::Action::Reduce(2), // oinjection: <empty>
                 _ => aa_syntax_error!(token; LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION),
             },
-            58 => match tag {
-                REGEX => lalr1plus::Action::Shift(79),
+            32 => match tag {
+                REGEX => lalr1plus::Action::Shift(56),
                 _ => aa_syntax_error!(token; REGEX),
             },
-            59 => match tag {
+            33 => match tag {
                 TOKEN | LEFT | RIGHT | NONASSOC | SKIP | INJECT | NEWSECTION => {
-                    lalr1plus::Action::Reduce(23)
+                    lalr1plus::Action::Reduce(10)
                 } // token_definitions: token_definitions oinjection token_definition oinjection
                 _ => {
                     aa_syntax_error!(token; TOKEN, LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION)
                 }
             },
-            60 => match tag {
-                IDENT => lalr1plus::Action::Shift(81),
-                TOKEN | FIELD | INJECT => lalr1plus::Action::Reduce(14), // field_definition: "%field" field_type field_name
-                _ => aa_syntax_error!(token; TOKEN, FIELD, INJECT, IDENT),
-            },
-            61 => match tag {
-                TOKEN | FIELD | INJECT | IDENT => {
-                    if !Self::is_allowable_name(
-                        aa_attributes.attribute_n_from_end(2 - 1).matched_text(),
-                    ) {
-                        lalr1plus::Action::Reduce(18) // field_name: IDENT ?(  !is_allowable_name($1.matched_text())  ?)
-                    } else {
-                        lalr1plus::Action::Reduce(19) // field_name: IDENT
-                    }
-                }
-                _ => aa_syntax_error!(token; TOKEN, FIELD, INJECT, IDENT),
-            },
-            62 => match tag {
+            34 => match tag {
                 TOKEN | LEFT | RIGHT | NONASSOC | SKIP | INJECT | NEWSECTION => {
-                    lalr1plus::Action::Reduce(24)
+                    lalr1plus::Action::Reduce(11)
                 } // token_definition: "%token" new_token_name pattern
                 _ => {
                     aa_syntax_error!(token; TOKEN, LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION)
                 }
             },
-            63 => match tag {
+            35 => match tag {
                 TOKEN | LEFT | RIGHT | NONASSOC | SKIP | INJECT | NEWSECTION => {
-                    lalr1plus::Action::Reduce(28)
+                    lalr1plus::Action::Reduce(14)
                 } // pattern: REGEX
                 _ => {
                     aa_syntax_error!(token; TOKEN, LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION)
                 }
             },
-            64 => match tag {
+            36 => match tag {
                 TOKEN | LEFT | RIGHT | NONASSOC | SKIP | INJECT | NEWSECTION => {
-                    lalr1plus::Action::Reduce(29)
+                    lalr1plus::Action::Reduce(15)
                 } // pattern: LITERAL
                 _ => {
                     aa_syntax_error!(token; TOKEN, LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION)
                 }
             },
-            65 => match tag {
-                REGEX => lalr1plus::Action::Shift(63),
-                LITERAL => lalr1plus::Action::Shift(64),
-                _ => aa_syntax_error!(token; REGEX, LITERAL),
+            37 => match tag {
+                AAEND | IDENT => lalr1plus::Action::Reduce(31), // production_rules: production_rules production_group oinjection
+                _ => aa_syntax_error!(token; AAEND, IDENT),
             },
-            66 => match tag {
-                AAEND | INJECT | IDENT | DCODE => lalr1plus::Action::Reduce(46), // production_group: production_group_head production_tail_list "."
-                _ => aa_syntax_error!(token; AAEND, INJECT, IDENT, DCODE),
-            },
-            67 => match tag {
-                LITERAL => lalr1plus::Action::Shift(52),
-                ERROR => lalr1plus::Action::Shift(53),
-                IDENT => lalr1plus::Action::Shift(51),
-                PREDICATE => lalr1plus::Action::Shift(49),
-                ACTION => lalr1plus::Action::Shift(48),
-                VBAR | DOT => lalr1plus::Action::Reduce(52), // production_tail: <empty>
-                _ => aa_syntax_error!(token; LITERAL, ERROR, VBAR, DOT, IDENT, PREDICATE, ACTION),
-            },
-            68 => match tag {
-                VBAR | DOT => lalr1plus::Action::Reduce(54), // production_tail: predicate action
+            38 => match tag {
+                VBAR => lalr1plus::Action::Shift(58),
+                DOT => lalr1plus::Action::Shift(57),
                 _ => aa_syntax_error!(token; VBAR, DOT),
             },
-            69 => match tag {
-                PRECEDENCE => lalr1plus::Action::Shift(72),
-                ACTION => lalr1plus::Action::Shift(48),
-                VBAR | DOT => lalr1plus::Action::Reduce(59), // production_tail: symbol_list predicate
-                _ => aa_syntax_error!(token; PRECEDENCE, VBAR, DOT, ACTION),
+            39 => match tag {
+                VBAR | DOT => lalr1plus::Action::Reduce(36), // production_tail_list: production_tail
+                _ => aa_syntax_error!(token; VBAR, DOT),
             },
-            70 => match tag {
-                ACTION => lalr1plus::Action::Shift(48),
-                VBAR | DOT => lalr1plus::Action::Reduce(61), // production_tail: symbol_list tagged_precedence
+            40 => match tag {
+                VBAR | DOT => lalr1plus::Action::Reduce(39), // production_tail: action
+                _ => aa_syntax_error!(token; VBAR, DOT),
+            },
+            41 => match tag {
+                ACTION => lalr1plus::Action::Shift(43),
+                VBAR | DOT => lalr1plus::Action::Reduce(41), // production_tail: predicate
                 _ => aa_syntax_error!(token; VBAR, DOT, ACTION),
             },
-            71 => match tag {
-                VBAR | DOT => lalr1plus::Action::Reduce(62), // production_tail: symbol_list action
+            42 => match tag {
+                LITERAL => lalr1plus::Action::Shift(47),
+                PRECEDENCE => lalr1plus::Action::Shift(63),
+                ERROR => lalr1plus::Action::Shift(48),
+                IDENT => lalr1plus::Action::Shift(46),
+                PREDICATE => lalr1plus::Action::Shift(44),
+                ACTION => lalr1plus::Action::Shift(43),
+                VBAR | DOT => lalr1plus::Action::Reduce(49), // production_tail: symbol_list
+                _ => {
+                    aa_syntax_error!(token; LITERAL, PRECEDENCE, ERROR, VBAR, DOT, IDENT, PREDICATE, ACTION)
+                }
+            },
+            43 => match tag {
+                VBAR | DOT => lalr1plus::Action::Reduce(50), // action: ACTION
                 _ => aa_syntax_error!(token; VBAR, DOT),
             },
-            72 => match tag {
-                LITERAL => lalr1plus::Action::Shift(88),
-                IDENT => lalr1plus::Action::Shift(87),
+            44 => match tag {
+                PRECEDENCE | VBAR | DOT | ACTION => lalr1plus::Action::Reduce(51), // predicate: PREDICATE
+                _ => aa_syntax_error!(token; PRECEDENCE, VBAR, DOT, ACTION),
+            },
+            45 => match tag {
+                LITERAL | PRECEDENCE | ERROR | VBAR | DOT | IDENT | PREDICATE | ACTION => {
+                    lalr1plus::Action::Reduce(54)
+                } // symbol_list: symbol
+                _ => {
+                    aa_syntax_error!(token; LITERAL, PRECEDENCE, ERROR, VBAR, DOT, IDENT, PREDICATE, ACTION)
+                }
+            },
+            46 => match tag {
+                LITERAL | PRECEDENCE | ERROR | VBAR | DOT | IDENT | PREDICATE | ACTION => {
+                    lalr1plus::Action::Reduce(56)
+                } // symbol: IDENT
+                _ => {
+                    aa_syntax_error!(token; LITERAL, PRECEDENCE, ERROR, VBAR, DOT, IDENT, PREDICATE, ACTION)
+                }
+            },
+            47 => match tag {
+                LITERAL | PRECEDENCE | ERROR | VBAR | DOT | IDENT | PREDICATE | ACTION => {
+                    lalr1plus::Action::Reduce(57)
+                } // symbol: LITERAL
+                _ => {
+                    aa_syntax_error!(token; LITERAL, PRECEDENCE, ERROR, VBAR, DOT, IDENT, PREDICATE, ACTION)
+                }
+            },
+            48 => match tag {
+                LITERAL | PRECEDENCE | ERROR | VBAR | DOT | IDENT | PREDICATE | ACTION => {
+                    lalr1plus::Action::Reduce(58)
+                } // symbol: "%error"
+                _ => {
+                    aa_syntax_error!(token; LITERAL, PRECEDENCE, ERROR, VBAR, DOT, IDENT, PREDICATE, ACTION)
+                }
+            },
+            49 => match tag {
+                LITERAL | ERROR | VBAR | DOT | IDENT | PREDICATE | ACTION => {
+                    if self.is_known_token(aa_attributes.attribute_n_from_end(3 - 1).matched_text())
+                    {
+                        lalr1plus::Action::Reduce(33) // production_group_head: IDENT ":" ?(  self.is_known_token($1.matched_text())  ?)
+                    } else if self
+                        .is_known_tag(aa_attributes.attribute_n_from_end(3 - 1).matched_text())
+                    {
+                        lalr1plus::Action::Reduce(34) // production_group_head: IDENT ":" ?(  self.is_known_tag($1.matched_text())  ?)
+                    } else {
+                        lalr1plus::Action::Reduce(35) // production_group_head: IDENT ":"
+                    }
+                }
+                _ => aa_syntax_error!(token; LITERAL, ERROR, VBAR, DOT, IDENT, PREDICATE, ACTION),
+            },
+            50 => match tag {
+                AAEND | IDENT => lalr1plus::Action::Reduce(30), // production_rules: oinjection production_group oinjection
+                _ => aa_syntax_error!(token; AAEND, IDENT),
+            },
+            51 => match tag {
+                INJECT => lalr1plus::Action::Shift(4),
+                LEFT | RIGHT | NONASSOC | NEWSECTION => lalr1plus::Action::Reduce(2), // oinjection: <empty>
+                _ => aa_syntax_error!(token; LEFT, RIGHT, NONASSOC, INJECT, NEWSECTION),
+            },
+            52 => match tag {
+                LITERAL => lalr1plus::Action::Shift(68),
+                IDENT => lalr1plus::Action::Shift(69),
                 _ => aa_syntax_error!(token; LITERAL, IDENT),
             },
-            73 => match tag {
+            53 => match tag {
+                LITERAL => lalr1plus::Action::Shift(68),
+                IDENT => lalr1plus::Action::Shift(69),
+                _ => aa_syntax_error!(token; LITERAL, IDENT),
+            },
+            54 => match tag {
+                LITERAL => lalr1plus::Action::Shift(68),
+                IDENT => lalr1plus::Action::Shift(69),
+                _ => aa_syntax_error!(token; LITERAL, IDENT),
+            },
+            55 => match tag {
+                LEFT | RIGHT | NONASSOC | SKIP | INJECT | NEWSECTION => {
+                    lalr1plus::Action::Reduce(17)
+                } // skip_definitions: skip_definitions oinjection skip_definition oinjection
+                _ => aa_syntax_error!(token; LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION),
+            },
+            56 => match tag {
+                LEFT | RIGHT | NONASSOC | SKIP | INJECT | NEWSECTION => {
+                    lalr1plus::Action::Reduce(18)
+                } // skip_definition: "%skip" REGEX
+                _ => aa_syntax_error!(token; LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION),
+            },
+            57 => match tag {
+                AAEND | INJECT | IDENT => lalr1plus::Action::Reduce(32), // production_group: production_group_head production_tail_list "."
+                _ => aa_syntax_error!(token; AAEND, INJECT, IDENT),
+            },
+            58 => match tag {
+                LITERAL => lalr1plus::Action::Shift(47),
+                ERROR => lalr1plus::Action::Shift(48),
+                IDENT => lalr1plus::Action::Shift(46),
+                PREDICATE => lalr1plus::Action::Shift(44),
+                ACTION => lalr1plus::Action::Shift(43),
+                VBAR | DOT => lalr1plus::Action::Reduce(38), // production_tail: <empty>
+                _ => aa_syntax_error!(token; LITERAL, ERROR, VBAR, DOT, IDENT, PREDICATE, ACTION),
+            },
+            59 => match tag {
+                VBAR | DOT => lalr1plus::Action::Reduce(40), // production_tail: predicate action
+                _ => aa_syntax_error!(token; VBAR, DOT),
+            },
+            60 => match tag {
+                PRECEDENCE => lalr1plus::Action::Shift(63),
+                ACTION => lalr1plus::Action::Shift(43),
+                VBAR | DOT => lalr1plus::Action::Reduce(45), // production_tail: symbol_list predicate
+                _ => aa_syntax_error!(token; PRECEDENCE, VBAR, DOT, ACTION),
+            },
+            61 => match tag {
+                ACTION => lalr1plus::Action::Shift(43),
+                VBAR | DOT => lalr1plus::Action::Reduce(47), // production_tail: symbol_list tagged_precedence
+                _ => aa_syntax_error!(token; VBAR, DOT, ACTION),
+            },
+            62 => match tag {
+                VBAR | DOT => lalr1plus::Action::Reduce(48), // production_tail: symbol_list action
+                _ => aa_syntax_error!(token; VBAR, DOT),
+            },
+            63 => match tag {
+                LITERAL => lalr1plus::Action::Shift(77),
+                IDENT => lalr1plus::Action::Shift(76),
+                _ => aa_syntax_error!(token; LITERAL, IDENT),
+            },
+            64 => match tag {
                 LITERAL | PRECEDENCE | ERROR | VBAR | DOT | IDENT | PREDICATE | ACTION => {
-                    lalr1plus::Action::Reduce(69)
+                    lalr1plus::Action::Reduce(55)
                 } // symbol_list: symbol_list symbol
                 _ => {
                     aa_syntax_error!(token; LITERAL, PRECEDENCE, ERROR, VBAR, DOT, IDENT, PREDICATE, ACTION)
                 }
             },
-            74 => match tag {
-                INJECT => lalr1plus::Action::Shift(4),
-                LEFT | RIGHT | NONASSOC | NEWSECTION => lalr1plus::Action::Reduce(2), // oinjection: <empty>
+            65 => match tag {
+                LEFT | RIGHT | NONASSOC | INJECT | NEWSECTION => lalr1plus::Action::Reduce(20), // precedence_definitions: precedence_definitions oinjection precedence_definition oinjection
                 _ => aa_syntax_error!(token; LEFT, RIGHT, NONASSOC, INJECT, NEWSECTION),
             },
-            75 => match tag {
-                LITERAL => lalr1plus::Action::Shift(92),
-                IDENT => lalr1plus::Action::Shift(93),
-                _ => aa_syntax_error!(token; LITERAL, IDENT),
-            },
-            76 => match tag {
-                LITERAL => lalr1plus::Action::Shift(92),
-                IDENT => lalr1plus::Action::Shift(93),
-                _ => aa_syntax_error!(token; LITERAL, IDENT),
-            },
-            77 => match tag {
-                LITERAL => lalr1plus::Action::Shift(92),
-                IDENT => lalr1plus::Action::Shift(93),
-                _ => aa_syntax_error!(token; LITERAL, IDENT),
-            },
-            78 => match tag {
-                LEFT | RIGHT | NONASSOC | SKIP | INJECT | NEWSECTION => {
-                    lalr1plus::Action::Reduce(31)
-                } // skip_definitions: skip_definitions oinjection skip_definition oinjection
-                _ => aa_syntax_error!(token; LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION),
-            },
-            79 => match tag {
-                LEFT | RIGHT | NONASSOC | SKIP | INJECT | NEWSECTION => {
-                    lalr1plus::Action::Reduce(32)
-                } // skip_definition: "%skip" REGEX
-                _ => aa_syntax_error!(token; LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION),
-            },
-            80 => match tag {
-                TOKEN | FIELD | INJECT => lalr1plus::Action::Reduce(15), // field_definition: "%field" field_type field_name field_conversion_function
-                _ => aa_syntax_error!(token; TOKEN, FIELD, INJECT),
-            },
-            81 => match tag {
-                TOKEN | FIELD | INJECT => {
-                    if !Self::is_allowable_name(
-                        aa_attributes.attribute_n_from_end(2 - 1).matched_text(),
-                    ) {
-                        lalr1plus::Action::Reduce(20) // field_conversion_function: IDENT ?(  !is_allowable_name($1.matched_text())  ?)
-                    } else {
-                        lalr1plus::Action::Reduce(21) // field_conversion_function: IDENT
-                    }
-                }
-                _ => aa_syntax_error!(token; TOKEN, FIELD, INJECT),
-            },
-            82 => match tag {
-                TOKEN | LEFT | RIGHT | NONASSOC | SKIP | INJECT | NEWSECTION => {
-                    lalr1plus::Action::Reduce(25)
-                } // token_definition: "%token" FIELDNAME new_token_name pattern
-                _ => {
-                    aa_syntax_error!(token; TOKEN, LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION)
-                }
-            },
-            83 => match tag {
-                VBAR | DOT => lalr1plus::Action::Reduce(51), // production_tail_list: production_tail_list "|" production_tail
-                _ => aa_syntax_error!(token; VBAR, DOT),
-            },
-            84 => match tag {
-                ACTION => lalr1plus::Action::Shift(48),
-                VBAR | DOT => lalr1plus::Action::Reduce(57), // production_tail: symbol_list predicate tagged_precedence
-                _ => aa_syntax_error!(token; VBAR, DOT, ACTION),
-            },
-            85 => match tag {
-                VBAR | DOT => lalr1plus::Action::Reduce(58), // production_tail: symbol_list predicate action
-                _ => aa_syntax_error!(token; VBAR, DOT),
-            },
-            86 => match tag {
-                VBAR | DOT => lalr1plus::Action::Reduce(60), // production_tail: symbol_list tagged_precedence action
-                _ => aa_syntax_error!(token; VBAR, DOT),
-            },
-            87 => match tag {
-                VBAR | DOT | ACTION => lalr1plus::Action::Reduce(66), // tagged_precedence: "%prec" IDENT
-                _ => aa_syntax_error!(token; VBAR, DOT, ACTION),
-            },
-            88 => match tag {
-                VBAR | DOT | ACTION => lalr1plus::Action::Reduce(67), // tagged_precedence: "%prec" LITERAL
-                _ => aa_syntax_error!(token; VBAR, DOT, ACTION),
-            },
-            89 => match tag {
-                LEFT | RIGHT | NONASSOC | INJECT | NEWSECTION => lalr1plus::Action::Reduce(34), // precedence_definitions: precedence_definitions oinjection precedence_definition oinjection
-                _ => aa_syntax_error!(token; LEFT, RIGHT, NONASSOC, INJECT, NEWSECTION),
-            },
-            90 => match tag {
-                LITERAL => lalr1plus::Action::Shift(92),
-                IDENT => lalr1plus::Action::Shift(93),
-                LEFT | RIGHT | NONASSOC | INJECT | NEWSECTION => lalr1plus::Action::Reduce(35), // precedence_definition: "%left" tag_list
+            66 => match tag {
+                LITERAL => lalr1plus::Action::Shift(68),
+                IDENT => lalr1plus::Action::Shift(69),
+                LEFT | RIGHT | NONASSOC | INJECT | NEWSECTION => lalr1plus::Action::Reduce(21), // precedence_definition: "%left" tag_list
                 _ => {
                     aa_syntax_error!(token; LITERAL, LEFT, RIGHT, NONASSOC, INJECT, NEWSECTION, IDENT)
                 }
             },
-            91 => match tag {
+            67 => match tag {
                 LITERAL | LEFT | RIGHT | NONASSOC | INJECT | NEWSECTION | IDENT => {
-                    lalr1plus::Action::Reduce(38)
+                    lalr1plus::Action::Reduce(24)
                 } // tag_list: tag
                 _ => {
                     aa_syntax_error!(token; LITERAL, LEFT, RIGHT, NONASSOC, INJECT, NEWSECTION, IDENT)
                 }
             },
-            92 => match tag {
+            68 => match tag {
                 LITERAL | LEFT | RIGHT | NONASSOC | INJECT | NEWSECTION | IDENT => {
-                    lalr1plus::Action::Reduce(40)
+                    lalr1plus::Action::Reduce(26)
                 } // tag: LITERAL
                 _ => {
                     aa_syntax_error!(token; LITERAL, LEFT, RIGHT, NONASSOC, INJECT, NEWSECTION, IDENT)
                 }
             },
-            93 => match tag {
+            69 => match tag {
                 LITERAL | LEFT | RIGHT | NONASSOC | INJECT | NEWSECTION | IDENT => {
-                    if self
-                        .symbol_table
-                        .is_known_token(aa_attributes.attribute_n_from_end(2 - 1).matched_text())
+                    if self.is_known_token(aa_attributes.attribute_n_from_end(2 - 1).matched_text())
                     {
-                        lalr1plus::Action::Reduce(41) // tag: IDENT ?(  self.symbol_table.is_known_token($1.matched_text())  ?)
-                    } else if self.symbol_table.is_known_non_terminal(
+                        lalr1plus::Action::Reduce(27) // tag: IDENT ?(  self.is_known_token($1.matched_text())  ?)
+                    } else if self.is_known_non_terminal(
                         aa_attributes.attribute_n_from_end(2 - 1).matched_text(),
                     ) {
-                        lalr1plus::Action::Reduce(42) // tag: IDENT ?(  self.symbol_table.is_known_non_terminal($1.matched_text())  ?)
+                        lalr1plus::Action::Reduce(28) // tag: IDENT ?(  self.is_known_non_terminal($1.matched_text())  ?)
                     } else {
-                        lalr1plus::Action::Reduce(43) // tag: IDENT
+                        lalr1plus::Action::Reduce(29) // tag: IDENT
                     }
                 }
                 _ => {
                     aa_syntax_error!(token; LITERAL, LEFT, RIGHT, NONASSOC, INJECT, NEWSECTION, IDENT)
                 }
             },
-            94 => match tag {
-                LITERAL => lalr1plus::Action::Shift(92),
-                IDENT => lalr1plus::Action::Shift(93),
-                LEFT | RIGHT | NONASSOC | INJECT | NEWSECTION => lalr1plus::Action::Reduce(36), // precedence_definition: "%right" tag_list
+            70 => match tag {
+                LITERAL => lalr1plus::Action::Shift(68),
+                IDENT => lalr1plus::Action::Shift(69),
+                LEFT | RIGHT | NONASSOC | INJECT | NEWSECTION => lalr1plus::Action::Reduce(22), // precedence_definition: "%right" tag_list
                 _ => {
                     aa_syntax_error!(token; LITERAL, LEFT, RIGHT, NONASSOC, INJECT, NEWSECTION, IDENT)
                 }
             },
-            95 => match tag {
-                LITERAL => lalr1plus::Action::Shift(92),
-                IDENT => lalr1plus::Action::Shift(93),
-                LEFT | RIGHT | NONASSOC | INJECT | NEWSECTION =>
-                // precedence_definition: "%nonassoc" tag_list
-                {
-                    lalr1plus::Action::Reduce(37)
-                }
+            71 => match tag {
+                LITERAL => lalr1plus::Action::Shift(68),
+                IDENT => lalr1plus::Action::Shift(69),
+                LEFT | RIGHT | NONASSOC | INJECT | NEWSECTION => lalr1plus::Action::Reduce(23), // precedence_definition: "%nonassoc" tag_list
                 _ => {
                     aa_syntax_error!(token; LITERAL, LEFT, RIGHT, NONASSOC, INJECT, NEWSECTION, IDENT)
                 }
             },
-            96 => match tag {
-                VBAR | DOT => lalr1plus::Action::Reduce(56), // production_tail: symbol_list predicate tagged_precedence action
+            72 => match tag {
+                VBAR | DOT => lalr1plus::Action::Reduce(37), // production_tail_list: production_tail_list "|" production_tail
                 _ => aa_syntax_error!(token; VBAR, DOT),
             },
-            97 => match tag {
+            73 => match tag {
+                ACTION => lalr1plus::Action::Shift(43),
+                VBAR | DOT => lalr1plus::Action::Reduce(43), // production_tail: symbol_list predicate tagged_precedence
+                _ => aa_syntax_error!(token; VBAR, DOT, ACTION),
+            },
+            74 => match tag {
+                VBAR | DOT => lalr1plus::Action::Reduce(44), // production_tail: symbol_list predicate action
+                _ => aa_syntax_error!(token; VBAR, DOT),
+            },
+            75 => match tag {
+                VBAR | DOT => lalr1plus::Action::Reduce(46), // production_tail: symbol_list tagged_precedence action
+                _ => aa_syntax_error!(token; VBAR, DOT),
+            },
+            76 => match tag {
+                VBAR | DOT | ACTION => lalr1plus::Action::Reduce(52), // tagged_precedence: "%prec" IDENT
+                _ => aa_syntax_error!(token; VBAR, DOT, ACTION),
+            },
+            77 => match tag {
+                VBAR | DOT | ACTION => lalr1plus::Action::Reduce(53), // tagged_precedence: "%prec" LITERAL
+                _ => aa_syntax_error!(token; VBAR, DOT, ACTION),
+            },
+            78 => match tag {
                 LITERAL | LEFT | RIGHT | NONASSOC | INJECT | NEWSECTION | IDENT => {
-                    lalr1plus::Action::Reduce(39)
+                    lalr1plus::Action::Reduce(25)
                 } // tag_list: tag_list tag
                 _ => {
                     aa_syntax_error!(token; LITERAL, LEFT, RIGHT, NONASSOC, INJECT, NEWSECTION, IDENT)
                 }
             },
+            79 => match tag {
+                VBAR | DOT => lalr1plus::Action::Reduce(42), // production_tail: symbol_list predicate tagged_precedence action
+                _ => aa_syntax_error!(token; VBAR, DOT),
+            },
+
             _ => panic!("{}: invalid parser state.", state),
         }
     }
@@ -882,71 +721,57 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AAAttributeData> for ParserSpe
             5 => (AANonTerminal::Injection, 2),
             6 => (AANonTerminal::Preamble, 0),
             7 => (AANonTerminal::Preamble, 3),
-            8 => (AANonTerminal::Preamble, 5),
-            9 => (AANonTerminal::Coda, 0),
-            10 => (AANonTerminal::Coda, 2),
-            11 => (AANonTerminal::Definitions, 4),
-            12 => (AANonTerminal::FieldDefinitions, 0),
-            13 => (AANonTerminal::FieldDefinitions, 4),
-            14 => (AANonTerminal::FieldDefinition, 3),
-            15 => (AANonTerminal::FieldDefinition, 4),
-            16 => (AANonTerminal::FieldType, 1),
-            17 => (AANonTerminal::FieldType, 1),
-            18 => (AANonTerminal::FieldName, 1),
-            19 => (AANonTerminal::FieldName, 1),
-            20 => (AANonTerminal::FieldConversionFunction, 1),
-            21 => (AANonTerminal::FieldConversionFunction, 1),
-            22 => (AANonTerminal::TokenDefinitions, 2),
-            23 => (AANonTerminal::TokenDefinitions, 4),
-            24 => (AANonTerminal::TokenDefinition, 3),
-            25 => (AANonTerminal::TokenDefinition, 4),
-            26 => (AANonTerminal::NewTokenName, 1),
-            27 => (AANonTerminal::NewTokenName, 1),
-            28 => (AANonTerminal::Pattern, 1),
-            29 => (AANonTerminal::Pattern, 1),
-            30 => (AANonTerminal::SkipDefinitions, 0),
-            31 => (AANonTerminal::SkipDefinitions, 4),
-            32 => (AANonTerminal::SkipDefinition, 2),
-            33 => (AANonTerminal::PrecedenceDefinitions, 0),
-            34 => (AANonTerminal::PrecedenceDefinitions, 4),
-            35 => (AANonTerminal::PrecedenceDefinition, 2),
-            36 => (AANonTerminal::PrecedenceDefinition, 2),
-            37 => (AANonTerminal::PrecedenceDefinition, 2),
-            38 => (AANonTerminal::TagList, 1),
-            39 => (AANonTerminal::TagList, 2),
-            40 => (AANonTerminal::Tag, 1),
-            41 => (AANonTerminal::Tag, 1),
-            42 => (AANonTerminal::Tag, 1),
-            43 => (AANonTerminal::Tag, 1),
-            44 => (AANonTerminal::ProductionRules, 3),
-            45 => (AANonTerminal::ProductionRules, 3),
-            46 => (AANonTerminal::ProductionGroup, 3),
-            47 => (AANonTerminal::ProductionGroupHead, 2),
-            48 => (AANonTerminal::ProductionGroupHead, 2),
-            49 => (AANonTerminal::ProductionGroupHead, 2),
-            50 => (AANonTerminal::ProductionTailList, 1),
-            51 => (AANonTerminal::ProductionTailList, 3),
-            52 => (AANonTerminal::ProductionTail, 0),
-            53 => (AANonTerminal::ProductionTail, 1),
-            54 => (AANonTerminal::ProductionTail, 2),
-            55 => (AANonTerminal::ProductionTail, 1),
-            56 => (AANonTerminal::ProductionTail, 4),
-            57 => (AANonTerminal::ProductionTail, 3),
-            58 => (AANonTerminal::ProductionTail, 3),
-            59 => (AANonTerminal::ProductionTail, 2),
-            60 => (AANonTerminal::ProductionTail, 3),
-            61 => (AANonTerminal::ProductionTail, 2),
-            62 => (AANonTerminal::ProductionTail, 2),
-            63 => (AANonTerminal::ProductionTail, 1),
-            64 => (AANonTerminal::Action, 1),
-            65 => (AANonTerminal::Predicate, 1),
-            66 => (AANonTerminal::TaggedPrecedence, 2),
-            67 => (AANonTerminal::TaggedPrecedence, 2),
-            68 => (AANonTerminal::SymbolList, 1),
-            69 => (AANonTerminal::SymbolList, 2),
-            70 => (AANonTerminal::Symbol, 1),
-            71 => (AANonTerminal::Symbol, 1),
-            72 => (AANonTerminal::Symbol, 1),
+            8 => (AANonTerminal::Definitions, 3),
+            9 => (AANonTerminal::TokenDefinitions, 2),
+            10 => (AANonTerminal::TokenDefinitions, 4),
+            11 => (AANonTerminal::TokenDefinition, 3),
+            12 => (AANonTerminal::NewTokenName, 1),
+            13 => (AANonTerminal::NewTokenName, 1),
+            14 => (AANonTerminal::Pattern, 1),
+            15 => (AANonTerminal::Pattern, 1),
+            16 => (AANonTerminal::SkipDefinitions, 0),
+            17 => (AANonTerminal::SkipDefinitions, 4),
+            18 => (AANonTerminal::SkipDefinition, 2),
+            19 => (AANonTerminal::PrecedenceDefinitions, 0),
+            20 => (AANonTerminal::PrecedenceDefinitions, 4),
+            21 => (AANonTerminal::PrecedenceDefinition, 2),
+            22 => (AANonTerminal::PrecedenceDefinition, 2),
+            23 => (AANonTerminal::PrecedenceDefinition, 2),
+            24 => (AANonTerminal::TagList, 1),
+            25 => (AANonTerminal::TagList, 2),
+            26 => (AANonTerminal::Tag, 1),
+            27 => (AANonTerminal::Tag, 1),
+            28 => (AANonTerminal::Tag, 1),
+            29 => (AANonTerminal::Tag, 1),
+            30 => (AANonTerminal::ProductionRules, 3),
+            31 => (AANonTerminal::ProductionRules, 3),
+            32 => (AANonTerminal::ProductionGroup, 3),
+            33 => (AANonTerminal::ProductionGroupHead, 2),
+            34 => (AANonTerminal::ProductionGroupHead, 2),
+            35 => (AANonTerminal::ProductionGroupHead, 2),
+            36 => (AANonTerminal::ProductionTailList, 1),
+            37 => (AANonTerminal::ProductionTailList, 3),
+            38 => (AANonTerminal::ProductionTail, 0),
+            39 => (AANonTerminal::ProductionTail, 1),
+            40 => (AANonTerminal::ProductionTail, 2),
+            41 => (AANonTerminal::ProductionTail, 1),
+            42 => (AANonTerminal::ProductionTail, 4),
+            43 => (AANonTerminal::ProductionTail, 3),
+            44 => (AANonTerminal::ProductionTail, 3),
+            45 => (AANonTerminal::ProductionTail, 2),
+            46 => (AANonTerminal::ProductionTail, 3),
+            47 => (AANonTerminal::ProductionTail, 2),
+            48 => (AANonTerminal::ProductionTail, 2),
+            49 => (AANonTerminal::ProductionTail, 1),
+            50 => (AANonTerminal::Action, 1),
+            51 => (AANonTerminal::Predicate, 1),
+            52 => (AANonTerminal::TaggedPrecedence, 2),
+            53 => (AANonTerminal::TaggedPrecedence, 2),
+            54 => (AANonTerminal::SymbolList, 1),
+            55 => (AANonTerminal::SymbolList, 2),
+            56 => (AANonTerminal::Symbol, 1),
+            57 => (AANonTerminal::Symbol, 1),
+            58 => (AANonTerminal::Symbol, 1),
             _ => panic!("Malformed production data table"),
         }
     }
@@ -960,221 +785,279 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AAAttributeData> for ParserSpe
                 OInjection => 6,
                 Injection => 3,
                 InjectionHead => 5,
-                _ => panic!("Malformed goto table: no entry for ({} , 0)", lhs),
+                _ => panic!(
+                    "Malformed goto table: no entry for ({} , {})",
+                    lhs, current_state
+                ),
             },
             2 => match lhs {
                 Definitions => 7,
-                FieldDefinitions => 8,
-                _ => panic!("Malformed goto table: no entry for ({} , 2)", lhs),
-            },
-            8 => match lhs {
-                OInjection => 14,
+                OInjection => 9,
                 Injection => 3,
                 InjectionHead => 5,
-                TokenDefinitions => 13,
-                _ => panic!("Malformed goto table: no entry for ({} , 8)", lhs),
+                TokenDefinitions => 8,
+                _ => panic!(
+                    "Malformed goto table: no entry for ({} , {})",
+                    lhs, current_state
+                ),
             },
-            11 => match lhs {
+            8 => match lhs {
                 OInjection => 15,
                 Injection => 3,
                 InjectionHead => 5,
-                _ => panic!("Malformed goto table: no entry for ({} , 11)", lhs),
+                TokenDefinitions => 14,
+                _ => panic!(
+                    "Malformed goto table: no entry for ({} , {})",
+                    lhs, current_state
+                ),
+            },
+            9 => match lhs {
+                TokenDefinitions => 15,
+                _ => panic!(
+                    "Malformed goto table: no entry for ({} , {})",
+                    lhs, current_state
+                ),
             },
             12 => match lhs {
-                ProductionRules => 16,
-                OInjection => 17,
+                OInjection => 18,
                 Injection => 3,
                 InjectionHead => 5,
-                _ => panic!("Malformed goto table: no entry for ({} , 12)", lhs),
+                _ => panic!(
+                    "Malformed goto table: no entry for ({} , {})",
+                    lhs, current_state
+                ),
             },
             13 => match lhs {
-                OInjection => 19,
+                ProductionRules => 19,
+                OInjection => 20,
                 Injection => 3,
                 InjectionHead => 5,
-                SkipDefinitions => 18,
-                _ => panic!("Malformed goto table: no entry for ({} , 13)", lhs),
+                _ => panic!(
+                    "Malformed goto table: no entry for ({} , {})",
+                    lhs, current_state
+                ),
             },
             14 => match lhs {
-                FieldDefinition => 20,
-                TokenDefinition => 22,
-                _ => panic!("Malformed goto table: no entry for ({} , 14)", lhs),
-            },
-            16 => match lhs {
-                Coda => 25,
-                OInjection => 26,
+                OInjection => 22,
                 Injection => 3,
                 InjectionHead => 5,
-                ProductionGroup => 27,
-                ProductionGroupHead => 28,
-                _ => panic!("Malformed goto table: no entry for ({} , 16)", lhs),
+                PrecedenceDefinitions => 21,
+                _ => panic!(
+                    "Malformed goto table: no entry for ({} , {})",
+                    lhs, current_state
+                ),
+            },
+            15 => match lhs {
+                TokenDefinition => 23,
+                _ => panic!(
+                    "Malformed goto table: no entry for ({} , {})",
+                    lhs, current_state
+                ),
             },
             17 => match lhs {
-                ProductionGroup => 30,
-                ProductionGroupHead => 28,
-                _ => panic!("Malformed goto table: no entry for ({} , 17)", lhs),
-            },
-            18 => match lhs {
-                OInjection => 32,
-                Injection => 3,
-                InjectionHead => 5,
-                PrecedenceDefinitions => 31,
-                _ => panic!("Malformed goto table: no entry for ({} , 18)", lhs),
+                NewTokenName => 24,
+                _ => panic!(
+                    "Malformed goto table: no entry for ({} , {})",
+                    lhs, current_state
+                ),
             },
             19 => match lhs {
-                TokenDefinition => 33,
-                _ => panic!("Malformed goto table: no entry for ({} , 19)", lhs),
+                ProductionGroup => 26,
+                ProductionGroupHead => 27,
+                _ => panic!(
+                    "Malformed goto table: no entry for ({} , {})",
+                    lhs, current_state
+                ),
             },
             20 => match lhs {
-                OInjection => 34,
-                Injection => 3,
-                InjectionHead => 5,
-                _ => panic!("Malformed goto table: no entry for ({} , 20)", lhs),
+                ProductionGroup => 29,
+                ProductionGroupHead => 27,
+                _ => panic!(
+                    "Malformed goto table: no entry for ({} , {})",
+                    lhs, current_state
+                ),
             },
             21 => match lhs {
-                FieldType => 35,
-                _ => panic!("Malformed goto table: no entry for ({} , 21)", lhs),
+                OInjection => 30,
+                Injection => 3,
+                InjectionHead => 5,
+                _ => panic!(
+                    "Malformed goto table: no entry for ({} , {})",
+                    lhs, current_state
+                ),
+            },
+            22 => match lhs {
+                SkipDefinition => 31,
+                _ => panic!(
+                    "Malformed goto table: no entry for ({} , {})",
+                    lhs, current_state
+                ),
             },
             23 => match lhs {
-                NewTokenName => 37,
-                _ => panic!("Malformed goto table: no entry for ({} , 23)", lhs),
+                OInjection => 33,
+                Injection => 3,
+                InjectionHead => 5,
+                _ => panic!(
+                    "Malformed goto table: no entry for ({} , {})",
+                    lhs, current_state
+                ),
             },
             24 => match lhs {
-                OInjection => 40,
+                Pattern => 34,
+                _ => panic!(
+                    "Malformed goto table: no entry for ({} , {})",
+                    lhs, current_state
+                ),
+            },
+            26 => match lhs {
+                OInjection => 37,
                 Injection => 3,
                 InjectionHead => 5,
-                _ => panic!("Malformed goto table: no entry for ({} , 24)", lhs),
+                _ => panic!(
+                    "Malformed goto table: no entry for ({} , {})",
+                    lhs, current_state
+                ),
             },
             27 => match lhs {
-                OInjection => 42,
+                ProductionTailList => 38,
+                ProductionTail => 39,
+                Action => 40,
+                Predicate => 41,
+                SymbolList => 42,
+                Symbol => 45,
+                _ => panic!(
+                    "Malformed goto table: no entry for ({} , {})",
+                    lhs, current_state
+                ),
+            },
+            29 => match lhs {
+                OInjection => 50,
                 Injection => 3,
                 InjectionHead => 5,
-                _ => panic!("Malformed goto table: no entry for ({} , 27)", lhs),
-            },
-            28 => match lhs {
-                ProductionTailList => 43,
-                ProductionTail => 44,
-                Action => 45,
-                Predicate => 46,
-                SymbolList => 47,
-                Symbol => 50,
-                _ => panic!("Malformed goto table: no entry for ({} , 28)", lhs),
+                _ => panic!(
+                    "Malformed goto table: no entry for ({} , {})",
+                    lhs, current_state
+                ),
             },
             30 => match lhs {
+                PrecedenceDefinition => 51,
+                _ => panic!(
+                    "Malformed goto table: no entry for ({} , {})",
+                    lhs, current_state
+                ),
+            },
+            31 => match lhs {
                 OInjection => 55,
                 Injection => 3,
                 InjectionHead => 5,
-                _ => panic!("Malformed goto table: no entry for ({} , 30)", lhs),
+                _ => panic!(
+                    "Malformed goto table: no entry for ({} , {})",
+                    lhs, current_state
+                ),
             },
-            31 => match lhs {
-                OInjection => 56,
+            41 => match lhs {
+                Action => 59,
+                _ => panic!(
+                    "Malformed goto table: no entry for ({} , {})",
+                    lhs, current_state
+                ),
+            },
+            42 => match lhs {
+                Action => 62,
+                Predicate => 60,
+                TaggedPrecedence => 61,
+                Symbol => 64,
+                _ => panic!(
+                    "Malformed goto table: no entry for ({} , {})",
+                    lhs, current_state
+                ),
+            },
+            51 => match lhs {
+                OInjection => 65,
                 Injection => 3,
                 InjectionHead => 5,
-                _ => panic!("Malformed goto table: no entry for ({} , 31)", lhs),
+                _ => panic!(
+                    "Malformed goto table: no entry for ({} , {})",
+                    lhs, current_state
+                ),
             },
-            32 => match lhs {
-                SkipDefinition => 57,
-                _ => panic!("Malformed goto table: no entry for ({} , 32)", lhs),
+            52 => match lhs {
+                TagList => 66,
+                Tag => 67,
+                _ => panic!(
+                    "Malformed goto table: no entry for ({} , {})",
+                    lhs, current_state
+                ),
             },
-            33 => match lhs {
-                OInjection => 59,
-                Injection => 3,
-                InjectionHead => 5,
-                _ => panic!("Malformed goto table: no entry for ({} , 33)", lhs),
+            53 => match lhs {
+                TagList => 70,
+                Tag => 67,
+                _ => panic!(
+                    "Malformed goto table: no entry for ({} , {})",
+                    lhs, current_state
+                ),
             },
-            35 => match lhs {
-                FieldName => 60,
-                _ => panic!("Malformed goto table: no entry for ({} , 35)", lhs),
+            54 => match lhs {
+                TagList => 71,
+                Tag => 67,
+                _ => panic!(
+                    "Malformed goto table: no entry for ({} , {})",
+                    lhs, current_state
+                ),
             },
-            37 => match lhs {
-                Pattern => 62,
-                _ => panic!("Malformed goto table: no entry for ({} , 37)", lhs),
-            },
-            38 => match lhs {
-                NewTokenName => 65,
-                _ => panic!("Malformed goto table: no entry for ({} , 38)", lhs),
-            },
-            46 => match lhs {
-                Action => 68,
-                _ => panic!("Malformed goto table: no entry for ({} , 46)", lhs),
-            },
-            47 => match lhs {
-                Action => 71,
-                Predicate => 69,
-                TaggedPrecedence => 70,
-                Symbol => 73,
-                _ => panic!("Malformed goto table: no entry for ({} , 47)", lhs),
-            },
-            56 => match lhs {
-                PrecedenceDefinition => 74,
-                _ => panic!("Malformed goto table: no entry for ({} , 56)", lhs),
-            },
-            57 => match lhs {
-                OInjection => 78,
-                Injection => 3,
-                InjectionHead => 5,
-                _ => panic!("Malformed goto table: no entry for ({} , 57)", lhs),
+            58 => match lhs {
+                ProductionTail => 72,
+                Action => 40,
+                Predicate => 41,
+                SymbolList => 42,
+                Symbol => 45,
+                _ => panic!(
+                    "Malformed goto table: no entry for ({} , {})",
+                    lhs, current_state
+                ),
             },
             60 => match lhs {
-                FieldConversionFunction => 80,
-                _ => panic!("Malformed goto table: no entry for ({} , 60)", lhs),
+                Action => 74,
+                TaggedPrecedence => 73,
+                _ => panic!(
+                    "Malformed goto table: no entry for ({} , {})",
+                    lhs, current_state
+                ),
             },
-            65 => match lhs {
-                Pattern => 82,
-                _ => panic!("Malformed goto table: no entry for ({} , 65)", lhs),
+            61 => match lhs {
+                Action => 75,
+                _ => panic!(
+                    "Malformed goto table: no entry for ({} , {})",
+                    lhs, current_state
+                ),
             },
-            67 => match lhs {
-                ProductionTail => 83,
-                Action => 45,
-                Predicate => 46,
-                SymbolList => 47,
-                Symbol => 50,
-                _ => panic!("Malformed goto table: no entry for ({} , 67)", lhs),
-            },
-            69 => match lhs {
-                Action => 85,
-                TaggedPrecedence => 84,
-                _ => panic!("Malformed goto table: no entry for ({} , 69)", lhs),
+            66 => match lhs {
+                Tag => 78,
+                _ => panic!(
+                    "Malformed goto table: no entry for ({} , {})",
+                    lhs, current_state
+                ),
             },
             70 => match lhs {
-                Action => 86,
-                _ => panic!("Malformed goto table: no entry for ({} , 70)", lhs),
+                Tag => 78,
+                _ => panic!(
+                    "Malformed goto table: no entry for ({} , {})",
+                    lhs, current_state
+                ),
             },
-            74 => match lhs {
-                OInjection => 89,
-                Injection => 3,
-                InjectionHead => 5,
-                _ => panic!("Malformed goto table: no entry for ({} , 74)", lhs),
+            71 => match lhs {
+                Tag => 78,
+                _ => panic!(
+                    "Malformed goto table: no entry for ({} , {})",
+                    lhs, current_state
+                ),
             },
-            75 => match lhs {
-                TagList => 90,
-                Tag => 91,
-                _ => panic!("Malformed goto table: no entry for ({} , 75)", lhs),
-            },
-            76 => match lhs {
-                TagList => 94,
-                Tag => 91,
-                _ => panic!("Malformed goto table: no entry for ({} , 76)", lhs),
-            },
-            77 => match lhs {
-                TagList => 95,
-                Tag => 91,
-                _ => panic!("Malformed goto table: no entry for ({} , 77)", lhs),
-            },
-            84 => match lhs {
-                Action => 96,
-                _ => panic!("Malformed goto table: no entry for ({} , 84)", lhs),
-            },
-            90 => match lhs {
-                Tag => 97,
-                _ => panic!("Malformed goto table: no entry for ({} , 90)", lhs),
-            },
-            94 => match lhs {
-                Tag => 97,
-                _ => panic!("Malformed goto table: no entry for ({} , 94)", lhs),
-            },
-            95 => match lhs {
-                Tag => 97,
-                _ => panic!("Malformed goto table: no entry for ({} , 95)", lhs),
+            73 => match lhs {
+                Action => 79,
+                _ => panic!(
+                    "Malformed goto table: no entry for ({} , {})",
+                    lhs, current_state
+                ),
             },
             _ => panic!(
                 "Malformed goto table: no entry for ({}, {}).",
@@ -1191,37 +1074,98 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AAAttributeData> for ParserSpe
     ) -> AAAttributeData {
         let mut aa_lhs = AAAttributeData::default();
         match aa_production_id {
-            4 => { // injection_head: "%inject" LITERAL
+            4 => {
+                // injection_head: "%inject" LITERAL
                 let file_path = aa_rhs[2 - 1].matched_text().trim_matches('"');
                 match File::open(&file_path) {
                     Ok(mut file) => {
                         let mut text = String::new();
                         if let Err(err) = file.read_to_string(&mut text) {
-                            self.error(aa_rhs[2-1].location(), &format!("Injecting: {}", err));
+                            self.error(aa_rhs[2 - 1].location(), &format!("Injecting: {}", err));
                         } else if text.len() == 0 {
-                            self.error(aa_rhs[2-1].location(), &format!("Injected file \"{}\" is empty.", file_path));
+                            self.error(
+                                aa_rhs[2 - 1].location(),
+                                &format!("Injected file \"{}\" is empty.", file_path),
+                            );
                         } else {
                             aa_token_stream.inject(text, file_path.to_string());
                         }
                     }
-                    Err(err) => self.error(aa_rhs[2-1].location(), &format!("Injecting: {}.", err)),
+                    Err(err) => {
+                        self.error(aa_rhs[2 - 1].location(), &format!("Injecting: {}.", err))
+                    }
                 };
-            },
-            7 => { // preamble: oinjection DCODE oinjection
-                let text = aa_rhs[2 - 1].matched_text();
-                self.set_preamble(&text[2..text.len() -2]);
             }
-            8 => { // preamble: oinjection DCODE oinjection DCODE oinjection
+            7 => {
+                // preamble: oinjection RUSTCODE oinjection
                 let text = aa_rhs[2 - 1].matched_text();
-                self.set_header(&text[2..text.len() -2]);
+                self.set_preamble(&text[2..text.len() - 2]);
+            }
+            8 => {
+                // preamble: oinjection RUSTCODE oinjection RUSTCODE oinjection
+                let text = aa_rhs[2 - 1].matched_text();
+                self.set_header(&text[2..text.len() - 2]);
                 let text = aa_rhs[4 - 1].matched_text();
-                self.set_preamble(&text[2..text.len() -2]);
+                self.set_preamble(&text[2..text.len() - 2]);
             }
-            10 => { // coda: oinjection DCODE
+            10 => {
+                // coda: oinjection RUSTCODE
                 let text = aa_rhs[2 - 1].matched_text();
-                self.set_coda(&text[2..text.len() -2]);
+                self.set_coda(&text[2..text.len() - 2]);
             }
-           _ => (),
+            14 => {
+                // field_definition: "%field" field_type field_name
+                let name = aa_rhs[3 - 1].matched_text();
+                let field_type = aa_rhs[2 - 1].matched_text();
+                let location = aa_rhs[3 - 1].location();
+                if let Err(err) = self.add_field(name, field_type, location) {
+                    self.error(location, &err.to_string())
+                }
+            }
+            15 => {
+                // field_definition: "%field" field_type field_name conversion_function
+                let name = aa_rhs[3 - 1].matched_text();
+                let field_type = aa_rhs[2 - 1].matched_text();
+                let location = aa_rhs[3 - 1].location();
+                // conversion_function won't be used (obsolete)
+                if let Err(err) = self.add_field(name, field_type, location) {
+                    self.error(location, &err.to_string())
+                }
+            }
+            16 => {
+                // field_type: IDENT ?( !is_allowable_name($1.matched_text()) ?)
+                let name = aa_rhs[1 - 1].matched_text();
+                let location = aa_rhs[1 - 1].location();
+                self.warning(
+                    location,
+                    &format!("field type name \"{}\" may clash with generated code", name),
+                );
+                aa_lhs = aa_rhs[1 - 1].clone();
+            }
+            18 => {
+                // field_name: IDENT ?( !is_allowable_name($1.matched_text()) ?)
+                let name = aa_rhs[1 - 1].matched_text();
+                let location = aa_rhs[1 - 1].location();
+                self.warning(
+                    location,
+                    &format!("field name \"{}\" may clash with generated code", name),
+                );
+                aa_lhs = aa_rhs[1 - 1].clone();
+            }
+            20 => {
+                // field_conversion_function: IDENT ?( !is_allowable_name($1.matched_text()) ?)
+                let name = aa_rhs[1 - 1].matched_text();
+                let location = aa_rhs[1 - 1].location();
+                self.warning(
+                    location,
+                    &format!(
+                        "field conversion function name \"{}\" may clash with generated code",
+                        name
+                    ),
+                );
+                aa_lhs = aa_rhs[1 - 1].clone();
+            }
+            _ => (),
         }
         aa_lhs
     }
