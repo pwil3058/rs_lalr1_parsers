@@ -197,16 +197,6 @@ impl From<lalr1plus::Error<AATerminal>> for AttributeData {
 
 type AAAttributeData = AttributeData;
 
-macro_rules! aa_syntax_error {
-    ( $token:expr; $( $tag:expr),* ) => ({
-        lalr1plus::Action::SyntaxError(
-            *$token.tag(),
-            vec![ $( $tag),* ],
-            $token.location().clone(),
-        )
-    });
-}
-
 impl lalr1plus::Parser<AATerminal, AANonTerminal, AAAttributeData> for ParserSpecification {
     fn lexical_analyzer(&self) -> &lexan::LexicalAnalyzer<AATerminal> {
         &AALEXAN
@@ -226,486 +216,473 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AAAttributeData> for ParserSpe
         aa_attributes: &lalr1plus::ParseStack<AATerminal, AANonTerminal, AAAttributeData>,
         token: &lexan::Token<AATerminal>,
     ) -> lalr1plus::Action<AATerminal> {
+        use lalr1plus::Action;
         use AATerminal::*;
         let tag = *token.tag();
         match state {
             0 => match tag {
-                INJECT => lalr1plus::Action::Shift(4),
-                TOKEN => lalr1plus::Action::Reduce(6), // preamble: <empty>
-                RUSTCODE => lalr1plus::Action::Reduce(2), // oinjection: <empty>
-                _ => aa_syntax_error!(token; TOKEN, INJECT, RUSTCODE),
+                INJECT => Action::Shift(4),
+                TOKEN => Action::Reduce(6),    // preamble: <empty>
+                RUSTCODE => Action::Reduce(2), // oinjection: <empty>
+                _ => Action::SyntaxError(vec![TOKEN, INJECT, RUSTCODE]),
             },
             1 => match tag {
-                AAEND => lalr1plus::Action::Accept,
-                _ => aa_syntax_error!(token; AAEND),
+                AAEND => Action::Accept,
+                _ => Action::SyntaxError(vec![AAEND]),
             },
             2 => match tag {
-                INJECT => lalr1plus::Action::Shift(4),
-                TOKEN => lalr1plus::Action::Reduce(2), // oinjection: <empty>
-                _ => aa_syntax_error!(token; TOKEN, INJECT),
+                INJECT => Action::Shift(4),
+                TOKEN => Action::Reduce(2), // oinjection: <empty>
+                _ => Action::SyntaxError(vec![TOKEN, INJECT]),
             },
             3 => match tag {
                 AAEND | TOKEN | LEFT | RIGHT | NONASSOC | SKIP | INJECT | NEWSECTION | IDENT
-                | RUSTCODE => lalr1plus::Action::Reduce(3), // oinjection: injection
-                _ => {
-                    aa_syntax_error!(token; AAEND, TOKEN, LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION, IDENT, RUSTCODE)
-                }
+                | RUSTCODE => Action::Reduce(3), // oinjection: injection
+                _ => Action::SyntaxError(vec![
+                    AAEND, TOKEN, LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION, IDENT, RUSTCODE,
+                ]),
             },
             4 => match tag {
-                LITERAL => lalr1plus::Action::Shift(10),
-                _ => aa_syntax_error!(token; LITERAL),
+                LITERAL => Action::Shift(10),
+                _ => Action::SyntaxError(vec![LITERAL]),
             },
             5 => match tag {
-                DOT => lalr1plus::Action::Shift(11),
-                _ => aa_syntax_error!(token; DOT),
+                DOT => Action::Shift(11),
+                _ => Action::SyntaxError(vec![DOT]),
             },
             6 => match tag {
-                RUSTCODE => lalr1plus::Action::Shift(12),
-                _ => aa_syntax_error!(token; RUSTCODE),
+                RUSTCODE => Action::Shift(12),
+                _ => Action::SyntaxError(vec![RUSTCODE]),
             },
             7 => match tag {
-                NEWSECTION => lalr1plus::Action::Shift(13),
-                _ => aa_syntax_error!(token; NEWSECTION),
+                NEWSECTION => Action::Shift(13),
+                _ => Action::SyntaxError(vec![NEWSECTION]),
             },
             8 => match tag {
-                INJECT => lalr1plus::Action::Shift(4),
-                TOKEN => lalr1plus::Action::Reduce(2), // oinjection: <empty>
-                LEFT | RIGHT | NONASSOC | SKIP | NEWSECTION => lalr1plus::Action::Reduce(16), // skip_definitions: <empty>
-                _ => {
-                    aa_syntax_error!(token; TOKEN, LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION)
-                }
+                INJECT => Action::Shift(4),
+                TOKEN => Action::Reduce(2), // oinjection: <empty>
+                LEFT | RIGHT | NONASSOC | SKIP | NEWSECTION => Action::Reduce(16), // skip_definitions: <empty>
+                _ => Action::SyntaxError(vec![
+                    TOKEN, LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION,
+                ]),
             },
             9 => match tag {
-                TOKEN => lalr1plus::Action::Shift(17),
-                _ => aa_syntax_error!(token; TOKEN),
+                TOKEN => Action::Shift(17),
+                _ => Action::SyntaxError(vec![TOKEN]),
             },
             10 => match tag {
-                DOT => lalr1plus::Action::Reduce(4), // injection_head: "%inject" LITERAL
-                _ => aa_syntax_error!(token; DOT),
+                DOT => Action::Reduce(4), // injection_head: "%inject" LITERAL
+                _ => Action::SyntaxError(vec![DOT]),
             },
             11 => match tag {
                 AAEND | TOKEN | LEFT | RIGHT | NONASSOC | SKIP | INJECT | NEWSECTION | IDENT
-                | RUSTCODE => lalr1plus::Action::Reduce(5), // injection: injection_head "."
-                _ => {
-                    aa_syntax_error!(token; AAEND, TOKEN, LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION, IDENT, RUSTCODE)
-                }
+                | RUSTCODE => Action::Reduce(5), // injection: injection_head "."
+                _ => Action::SyntaxError(vec![
+                    AAEND, TOKEN, LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION, IDENT, RUSTCODE,
+                ]),
             },
             12 => match tag {
-                INJECT => lalr1plus::Action::Shift(4),
-                TOKEN => lalr1plus::Action::Reduce(2), // oinjection: <empty>
-                _ => aa_syntax_error!(token; TOKEN, INJECT),
+                INJECT => Action::Shift(4),
+                TOKEN => Action::Reduce(2), // oinjection: <empty>
+                _ => Action::SyntaxError(vec![TOKEN, INJECT]),
             },
             13 => match tag {
-                INJECT => lalr1plus::Action::Shift(4),
-                IDENT => lalr1plus::Action::Reduce(2), // oinjection: <empty>
-                _ => aa_syntax_error!(token; INJECT, IDENT),
+                INJECT => Action::Shift(4),
+                IDENT => Action::Reduce(2), // oinjection: <empty>
+                _ => Action::SyntaxError(vec![INJECT, IDENT]),
             },
             14 => match tag {
-                INJECT => lalr1plus::Action::Shift(4),
-                LEFT | RIGHT | NONASSOC | NEWSECTION => lalr1plus::Action::Reduce(19), // precedence_definitions: <empty>
-                SKIP => lalr1plus::Action::Reduce(2), // oinjection: <empty>
-                _ => aa_syntax_error!(token; LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION),
+                INJECT => Action::Shift(4),
+                LEFT | RIGHT | NONASSOC | NEWSECTION => Action::Reduce(19), // precedence_definitions: <empty>
+                SKIP => Action::Reduce(2),                                  // oinjection: <empty>
+                _ => Action::SyntaxError(vec![LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION]),
             },
             15 => match tag {
-                TOKEN => lalr1plus::Action::Shift(17),
-                _ => aa_syntax_error!(token; TOKEN),
+                TOKEN => Action::Shift(17),
+                _ => Action::SyntaxError(vec![TOKEN]),
             },
             16 => match tag {
-                TOKEN | LEFT | RIGHT | NONASSOC | SKIP | INJECT | NEWSECTION => {
-                    lalr1plus::Action::Reduce(9)
-                } // token_definitions: oinjection token_definition
-                _ => {
-                    aa_syntax_error!(token; TOKEN, LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION)
-                }
+                TOKEN | LEFT | RIGHT | NONASSOC | SKIP | INJECT | NEWSECTION => Action::Reduce(9), // token_definitions: oinjection token_definition
+                _ => Action::SyntaxError(vec![
+                    TOKEN, LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION,
+                ]),
             },
             17 => match tag {
-                IDENT => lalr1plus::Action::Shift(25),
-                _ => aa_syntax_error!(token; IDENT),
+                IDENT => Action::Shift(25),
+                _ => Action::SyntaxError(vec![IDENT]),
             },
             18 => match tag {
-                TOKEN | INJECT => lalr1plus::Action::Reduce(7), // preamble: oinjection RUSTCODE oinjection
-                _ => aa_syntax_error!(token; TOKEN, INJECT),
+                TOKEN | INJECT => Action::Reduce(7), // preamble: oinjection RUSTCODE oinjection
+                _ => Action::SyntaxError(vec![TOKEN, INJECT]),
             },
             19 => match tag {
-                IDENT => lalr1plus::Action::Shift(28),
-                AAEND => lalr1plus::Action::Reduce(1), // specification: preamble definitions "%%" production_rules
-                _ => aa_syntax_error!(token; AAEND, IDENT),
+                IDENT => Action::Shift(28),
+                AAEND => Action::Reduce(1), // specification: preamble definitions "%%" production_rules
+                _ => Action::SyntaxError(vec![AAEND, IDENT]),
             },
             20 => match tag {
-                IDENT => lalr1plus::Action::Shift(28),
-                _ => aa_syntax_error!(token; IDENT),
+                IDENT => Action::Shift(28),
+                _ => Action::SyntaxError(vec![IDENT]),
             },
             21 => match tag {
-                INJECT => lalr1plus::Action::Shift(4),
-                LEFT | RIGHT | NONASSOC => lalr1plus::Action::Reduce(2), // oinjection: <empty>
-                NEWSECTION => lalr1plus::Action::Reduce(8), // definitions: token_definitions skip_definitions precedence_definitions
-                _ => aa_syntax_error!(token; LEFT, RIGHT, NONASSOC, INJECT, NEWSECTION),
+                INJECT => Action::Shift(4),
+                LEFT | RIGHT | NONASSOC => Action::Reduce(2), // oinjection: <empty>
+                NEWSECTION => Action::Reduce(8), // definitions: token_definitions skip_definitions precedence_definitions
+                _ => Action::SyntaxError(vec![LEFT, RIGHT, NONASSOC, INJECT, NEWSECTION]),
             },
             22 => match tag {
-                SKIP => lalr1plus::Action::Shift(32),
-                _ => aa_syntax_error!(token; SKIP),
+                SKIP => Action::Shift(32),
+                _ => Action::SyntaxError(vec![SKIP]),
             },
             23 => match tag {
-                INJECT => lalr1plus::Action::Shift(4),
-                TOKEN | LEFT | RIGHT | NONASSOC | SKIP | NEWSECTION => lalr1plus::Action::Reduce(2), // oinjection: <empty>
-                _ => {
-                    aa_syntax_error!(token; TOKEN, LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION)
-                }
+                INJECT => Action::Shift(4),
+                TOKEN | LEFT | RIGHT | NONASSOC | SKIP | NEWSECTION => Action::Reduce(2), // oinjection: <empty>
+                _ => Action::SyntaxError(vec![
+                    TOKEN, LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION,
+                ]),
             },
             24 => match tag {
-                REGEX => lalr1plus::Action::Shift(35),
-                LITERAL => lalr1plus::Action::Shift(36),
-                _ => aa_syntax_error!(token; REGEX, LITERAL),
+                REGEX => Action::Shift(35),
+                LITERAL => Action::Shift(36),
+                _ => Action::SyntaxError(vec![REGEX, LITERAL]),
             },
             25 => match tag {
                 REGEX | LITERAL => {
                     if !Self::is_allowable_name(
                         aa_attributes.attribute_n_from_end(2 - 1).matched_text(),
                     ) {
-                        lalr1plus::Action::Reduce(12) // new_token_name: IDENT ?(  !is_allowable_name($1.matched_text())  ?)
+                        Action::Reduce(12) // new_token_name: IDENT ?(  !is_allowable_name($1.matched_text())  ?)
                     } else {
-                        lalr1plus::Action::Reduce(13) // new_token_name: IDENT
+                        Action::Reduce(13) // new_token_name: IDENT
                     }
                 }
-                _ => aa_syntax_error!(token; REGEX, LITERAL),
+                _ => Action::SyntaxError(vec![REGEX, LITERAL]),
             },
             26 => match tag {
-                INJECT => lalr1plus::Action::Shift(4),
-                AAEND | IDENT => lalr1plus::Action::Reduce(2), // oinjection: <empty>
-                _ => aa_syntax_error!(token; AAEND, INJECT, IDENT),
+                INJECT => Action::Shift(4),
+                AAEND | IDENT => Action::Reduce(2), // oinjection: <empty>
+                _ => Action::SyntaxError(vec![AAEND, INJECT, IDENT]),
             },
             27 => match tag {
-                LITERAL => lalr1plus::Action::Shift(47),
-                ERROR => lalr1plus::Action::Shift(48),
-                IDENT => lalr1plus::Action::Shift(46),
-                PREDICATE => lalr1plus::Action::Shift(44),
-                ACTION => lalr1plus::Action::Shift(43),
-                VBAR | DOT => lalr1plus::Action::Reduce(38), // production_tail: <empty>
-                _ => aa_syntax_error!(token; LITERAL, ERROR, VBAR, DOT, IDENT, PREDICATE, ACTION),
+                LITERAL => Action::Shift(47),
+                ERROR => Action::Shift(48),
+                IDENT => Action::Shift(46),
+                PREDICATE => Action::Shift(44),
+                ACTION => Action::Shift(43),
+                VBAR | DOT => Action::Reduce(38), // production_tail: <empty>
+                _ => Action::SyntaxError(vec![LITERAL, ERROR, VBAR, DOT, IDENT, PREDICATE, ACTION]),
             },
             28 => match tag {
-                COLON => lalr1plus::Action::Shift(49),
-                _ => aa_syntax_error!(token; COLON),
+                COLON => Action::Shift(49),
+                _ => Action::SyntaxError(vec![COLON]),
             },
             29 => match tag {
-                INJECT => lalr1plus::Action::Shift(4),
-                AAEND | IDENT => lalr1plus::Action::Reduce(2), // oinjection: <empty>
-                _ => aa_syntax_error!(token; AAEND, INJECT, IDENT),
+                INJECT => Action::Shift(4),
+                AAEND | IDENT => Action::Reduce(2), // oinjection: <empty>
+                _ => Action::SyntaxError(vec![AAEND, INJECT, IDENT]),
             },
             30 => match tag {
-                LEFT => lalr1plus::Action::Shift(52),
-                RIGHT => lalr1plus::Action::Shift(53),
-                NONASSOC => lalr1plus::Action::Shift(54),
-                _ => aa_syntax_error!(token; LEFT, RIGHT, NONASSOC),
+                LEFT => Action::Shift(52),
+                RIGHT => Action::Shift(53),
+                NONASSOC => Action::Shift(54),
+                _ => Action::SyntaxError(vec![LEFT, RIGHT, NONASSOC]),
             },
             31 => match tag {
-                INJECT => lalr1plus::Action::Shift(4),
-                LEFT | RIGHT | NONASSOC | SKIP | NEWSECTION => lalr1plus::Action::Reduce(2), // oinjection: <empty>
-                _ => aa_syntax_error!(token; LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION),
+                INJECT => Action::Shift(4),
+                LEFT | RIGHT | NONASSOC | SKIP | NEWSECTION => Action::Reduce(2), // oinjection: <empty>
+                _ => Action::SyntaxError(vec![LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION]),
             },
             32 => match tag {
-                REGEX => lalr1plus::Action::Shift(56),
-                _ => aa_syntax_error!(token; REGEX),
+                REGEX => Action::Shift(56),
+                _ => Action::SyntaxError(vec![REGEX]),
             },
             33 => match tag {
-                TOKEN | LEFT | RIGHT | NONASSOC | SKIP | INJECT | NEWSECTION => {
-                    lalr1plus::Action::Reduce(10)
-                } // token_definitions: token_definitions oinjection token_definition oinjection
-                _ => {
-                    aa_syntax_error!(token; TOKEN, LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION)
-                }
+                TOKEN | LEFT | RIGHT | NONASSOC | SKIP | INJECT | NEWSECTION => Action::Reduce(10), // token_definitions: token_definitions oinjection token_definition oinjection
+                _ => Action::SyntaxError(vec![
+                    TOKEN, LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION,
+                ]),
             },
             34 => match tag {
-                TOKEN | LEFT | RIGHT | NONASSOC | SKIP | INJECT | NEWSECTION => {
-                    lalr1plus::Action::Reduce(11)
-                } // token_definition: "%token" new_token_name pattern
-                _ => {
-                    aa_syntax_error!(token; TOKEN, LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION)
-                }
+                TOKEN | LEFT | RIGHT | NONASSOC | SKIP | INJECT | NEWSECTION => Action::Reduce(11), // token_definition: "%token" new_token_name pattern
+                _ => Action::SyntaxError(vec![
+                    TOKEN, LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION,
+                ]),
             },
             35 => match tag {
-                TOKEN | LEFT | RIGHT | NONASSOC | SKIP | INJECT | NEWSECTION => {
-                    lalr1plus::Action::Reduce(14)
-                } // pattern: REGEX
-                _ => {
-                    aa_syntax_error!(token; TOKEN, LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION)
-                }
+                TOKEN | LEFT | RIGHT | NONASSOC | SKIP | INJECT | NEWSECTION => Action::Reduce(14), // pattern: REGEX
+                _ => Action::SyntaxError(vec![
+                    TOKEN, LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION,
+                ]),
             },
             36 => match tag {
-                TOKEN | LEFT | RIGHT | NONASSOC | SKIP | INJECT | NEWSECTION => {
-                    lalr1plus::Action::Reduce(15)
-                } // pattern: LITERAL
-                _ => {
-                    aa_syntax_error!(token; TOKEN, LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION)
-                }
+                TOKEN | LEFT | RIGHT | NONASSOC | SKIP | INJECT | NEWSECTION => Action::Reduce(15), // pattern: LITERAL
+                _ => Action::SyntaxError(vec![
+                    TOKEN, LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION,
+                ]),
             },
             37 => match tag {
-                AAEND | IDENT => lalr1plus::Action::Reduce(31), // production_rules: production_rules production_group oinjection
-                _ => aa_syntax_error!(token; AAEND, IDENT),
+                AAEND | IDENT => Action::Reduce(31), // production_rules: production_rules production_group oinjection
+                _ => Action::SyntaxError(vec![AAEND, IDENT]),
             },
             38 => match tag {
-                VBAR => lalr1plus::Action::Shift(58),
-                DOT => lalr1plus::Action::Shift(57),
-                _ => aa_syntax_error!(token; VBAR, DOT),
+                VBAR => Action::Shift(58),
+                DOT => Action::Shift(57),
+                _ => Action::SyntaxError(vec![VBAR, DOT]),
             },
             39 => match tag {
-                VBAR | DOT => lalr1plus::Action::Reduce(36), // production_tail_list: production_tail
-                _ => aa_syntax_error!(token; VBAR, DOT),
+                VBAR | DOT => Action::Reduce(36), // production_tail_list: production_tail
+                _ => Action::SyntaxError(vec![VBAR, DOT]),
             },
             40 => match tag {
-                VBAR | DOT => lalr1plus::Action::Reduce(39), // production_tail: action
-                _ => aa_syntax_error!(token; VBAR, DOT),
+                VBAR | DOT => Action::Reduce(39), // production_tail: action
+                _ => Action::SyntaxError(vec![VBAR, DOT]),
             },
             41 => match tag {
-                ACTION => lalr1plus::Action::Shift(43),
-                VBAR | DOT => lalr1plus::Action::Reduce(41), // production_tail: predicate
-                _ => aa_syntax_error!(token; VBAR, DOT, ACTION),
+                ACTION => Action::Shift(43),
+                VBAR | DOT => Action::Reduce(41), // production_tail: predicate
+                _ => Action::SyntaxError(vec![VBAR, DOT, ACTION]),
             },
             42 => match tag {
-                LITERAL => lalr1plus::Action::Shift(47),
-                PRECEDENCE => lalr1plus::Action::Shift(63),
-                ERROR => lalr1plus::Action::Shift(48),
-                IDENT => lalr1plus::Action::Shift(46),
-                PREDICATE => lalr1plus::Action::Shift(44),
-                ACTION => lalr1plus::Action::Shift(43),
-                VBAR | DOT => lalr1plus::Action::Reduce(49), // production_tail: symbol_list
-                _ => {
-                    aa_syntax_error!(token; LITERAL, PRECEDENCE, ERROR, VBAR, DOT, IDENT, PREDICATE, ACTION)
-                }
+                LITERAL => Action::Shift(47),
+                PRECEDENCE => Action::Shift(63),
+                ERROR => Action::Shift(48),
+                IDENT => Action::Shift(46),
+                PREDICATE => Action::Shift(44),
+                ACTION => Action::Shift(43),
+                VBAR | DOT => Action::Reduce(49), // production_tail: symbol_list
+                _ => Action::SyntaxError(vec![
+                    LITERAL, PRECEDENCE, ERROR, VBAR, DOT, IDENT, PREDICATE, ACTION,
+                ]),
             },
             43 => match tag {
-                VBAR | DOT => lalr1plus::Action::Reduce(50), // action: ACTION
-                _ => aa_syntax_error!(token; VBAR, DOT),
+                VBAR | DOT => Action::Reduce(50), // action: ACTION
+                _ => Action::SyntaxError(vec![VBAR, DOT]),
             },
             44 => match tag {
-                PRECEDENCE | VBAR | DOT | ACTION => lalr1plus::Action::Reduce(51), // predicate: PREDICATE
-                _ => aa_syntax_error!(token; PRECEDENCE, VBAR, DOT, ACTION),
+                PRECEDENCE | VBAR | DOT | ACTION => Action::Reduce(51), // predicate: PREDICATE
+                _ => Action::SyntaxError(vec![PRECEDENCE, VBAR, DOT, ACTION]),
             },
             45 => match tag {
                 LITERAL | PRECEDENCE | ERROR | VBAR | DOT | IDENT | PREDICATE | ACTION => {
-                    lalr1plus::Action::Reduce(54)
+                    Action::Reduce(54)
                 } // symbol_list: symbol
-                _ => {
-                    aa_syntax_error!(token; LITERAL, PRECEDENCE, ERROR, VBAR, DOT, IDENT, PREDICATE, ACTION)
-                }
+                _ => Action::SyntaxError(vec![
+                    LITERAL, PRECEDENCE, ERROR, VBAR, DOT, IDENT, PREDICATE, ACTION,
+                ]),
             },
             46 => match tag {
                 LITERAL | PRECEDENCE | ERROR | VBAR | DOT | IDENT | PREDICATE | ACTION => {
-                    lalr1plus::Action::Reduce(56)
+                    Action::Reduce(56)
                 } // symbol: IDENT
-                _ => {
-                    aa_syntax_error!(token; LITERAL, PRECEDENCE, ERROR, VBAR, DOT, IDENT, PREDICATE, ACTION)
-                }
+                _ => Action::SyntaxError(vec![
+                    LITERAL, PRECEDENCE, ERROR, VBAR, DOT, IDENT, PREDICATE, ACTION,
+                ]),
             },
             47 => match tag {
                 LITERAL | PRECEDENCE | ERROR | VBAR | DOT | IDENT | PREDICATE | ACTION => {
-                    lalr1plus::Action::Reduce(57)
+                    Action::Reduce(57)
                 } // symbol: LITERAL
-                _ => {
-                    aa_syntax_error!(token; LITERAL, PRECEDENCE, ERROR, VBAR, DOT, IDENT, PREDICATE, ACTION)
-                }
+                _ => Action::SyntaxError(vec![
+                    LITERAL, PRECEDENCE, ERROR, VBAR, DOT, IDENT, PREDICATE, ACTION,
+                ]),
             },
             48 => match tag {
                 LITERAL | PRECEDENCE | ERROR | VBAR | DOT | IDENT | PREDICATE | ACTION => {
-                    lalr1plus::Action::Reduce(58)
+                    Action::Reduce(58)
                 } // symbol: "%error"
-                _ => {
-                    aa_syntax_error!(token; LITERAL, PRECEDENCE, ERROR, VBAR, DOT, IDENT, PREDICATE, ACTION)
-                }
+                _ => Action::SyntaxError(vec![
+                    LITERAL, PRECEDENCE, ERROR, VBAR, DOT, IDENT, PREDICATE, ACTION,
+                ]),
             },
             49 => match tag {
                 LITERAL | ERROR | VBAR | DOT | IDENT | PREDICATE | ACTION => {
                     if self.is_known_token(aa_attributes.attribute_n_from_end(3 - 1).matched_text())
                     {
-                        lalr1plus::Action::Reduce(33) // production_group_head: IDENT ":" ?(  self.is_known_token($1.matched_text())  ?)
+                        Action::Reduce(33) // production_group_head: IDENT ":" ?(  self.is_known_token($1.matched_text())  ?)
                     } else if self
                         .is_known_tag(aa_attributes.attribute_n_from_end(3 - 1).matched_text())
                     {
-                        lalr1plus::Action::Reduce(34) // production_group_head: IDENT ":" ?(  self.is_known_tag($1.matched_text())  ?)
+                        Action::Reduce(34) // production_group_head: IDENT ":" ?(  self.is_known_tag($1.matched_text())  ?)
                     } else {
-                        lalr1plus::Action::Reduce(35) // production_group_head: IDENT ":"
+                        Action::Reduce(35) // production_group_head: IDENT ":"
                     }
                 }
-                _ => aa_syntax_error!(token; LITERAL, ERROR, VBAR, DOT, IDENT, PREDICATE, ACTION),
+                _ => Action::SyntaxError(vec![LITERAL, ERROR, VBAR, DOT, IDENT, PREDICATE, ACTION]),
             },
             50 => match tag {
-                AAEND | IDENT => lalr1plus::Action::Reduce(30), // production_rules: oinjection production_group oinjection
-                _ => aa_syntax_error!(token; AAEND, IDENT),
+                AAEND | IDENT => Action::Reduce(30), // production_rules: oinjection production_group oinjection
+                _ => Action::SyntaxError(vec![AAEND, IDENT]),
             },
             51 => match tag {
-                INJECT => lalr1plus::Action::Shift(4),
-                LEFT | RIGHT | NONASSOC | NEWSECTION => lalr1plus::Action::Reduce(2), // oinjection: <empty>
-                _ => aa_syntax_error!(token; LEFT, RIGHT, NONASSOC, INJECT, NEWSECTION),
+                INJECT => Action::Shift(4),
+                LEFT | RIGHT | NONASSOC | NEWSECTION => Action::Reduce(2), // oinjection: <empty>
+                _ => Action::SyntaxError(vec![LEFT, RIGHT, NONASSOC, INJECT, NEWSECTION]),
             },
             52 => match tag {
-                LITERAL => lalr1plus::Action::Shift(68),
-                IDENT => lalr1plus::Action::Shift(69),
-                _ => aa_syntax_error!(token; LITERAL, IDENT),
+                LITERAL => Action::Shift(68),
+                IDENT => Action::Shift(69),
+                _ => Action::SyntaxError(vec![LITERAL, IDENT]),
             },
             53 => match tag {
-                LITERAL => lalr1plus::Action::Shift(68),
-                IDENT => lalr1plus::Action::Shift(69),
-                _ => aa_syntax_error!(token; LITERAL, IDENT),
+                LITERAL => Action::Shift(68),
+                IDENT => Action::Shift(69),
+                _ => Action::SyntaxError(vec![LITERAL, IDENT]),
             },
             54 => match tag {
-                LITERAL => lalr1plus::Action::Shift(68),
-                IDENT => lalr1plus::Action::Shift(69),
-                _ => aa_syntax_error!(token; LITERAL, IDENT),
+                LITERAL => Action::Shift(68),
+                IDENT => Action::Shift(69),
+                _ => Action::SyntaxError(vec![LITERAL, IDENT]),
             },
             55 => match tag {
-                LEFT | RIGHT | NONASSOC | SKIP | INJECT | NEWSECTION => {
-                    lalr1plus::Action::Reduce(17)
-                } // skip_definitions: skip_definitions oinjection skip_definition oinjection
-                _ => aa_syntax_error!(token; LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION),
+                LEFT | RIGHT | NONASSOC | SKIP | INJECT | NEWSECTION => Action::Reduce(17), // skip_definitions: skip_definitions oinjection skip_definition oinjection
+                _ => Action::SyntaxError(vec![LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION]),
             },
             56 => match tag {
-                LEFT | RIGHT | NONASSOC | SKIP | INJECT | NEWSECTION => {
-                    lalr1plus::Action::Reduce(18)
-                } // skip_definition: "%skip" REGEX
-                _ => aa_syntax_error!(token; LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION),
+                LEFT | RIGHT | NONASSOC | SKIP | INJECT | NEWSECTION => Action::Reduce(18), // skip_definition: "%skip" REGEX
+                _ => Action::SyntaxError(vec![LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION]),
             },
             57 => match tag {
-                AAEND | INJECT | IDENT => lalr1plus::Action::Reduce(32), // production_group: production_group_head production_tail_list "."
-                _ => aa_syntax_error!(token; AAEND, INJECT, IDENT),
+                AAEND | INJECT | IDENT => Action::Reduce(32), // production_group: production_group_head production_tail_list "."
+                _ => Action::SyntaxError(vec![AAEND, INJECT, IDENT]),
             },
             58 => match tag {
-                LITERAL => lalr1plus::Action::Shift(47),
-                ERROR => lalr1plus::Action::Shift(48),
-                IDENT => lalr1plus::Action::Shift(46),
-                PREDICATE => lalr1plus::Action::Shift(44),
-                ACTION => lalr1plus::Action::Shift(43),
-                VBAR | DOT => lalr1plus::Action::Reduce(38), // production_tail: <empty>
-                _ => aa_syntax_error!(token; LITERAL, ERROR, VBAR, DOT, IDENT, PREDICATE, ACTION),
+                LITERAL => Action::Shift(47),
+                ERROR => Action::Shift(48),
+                IDENT => Action::Shift(46),
+                PREDICATE => Action::Shift(44),
+                ACTION => Action::Shift(43),
+                VBAR | DOT => Action::Reduce(38), // production_tail: <empty>
+                _ => Action::SyntaxError(vec![LITERAL, ERROR, VBAR, DOT, IDENT, PREDICATE, ACTION]),
             },
             59 => match tag {
-                VBAR | DOT => lalr1plus::Action::Reduce(40), // production_tail: predicate action
-                _ => aa_syntax_error!(token; VBAR, DOT),
+                VBAR | DOT => Action::Reduce(40), // production_tail: predicate action
+                _ => Action::SyntaxError(vec![VBAR, DOT]),
             },
             60 => match tag {
-                PRECEDENCE => lalr1plus::Action::Shift(63),
-                ACTION => lalr1plus::Action::Shift(43),
-                VBAR | DOT => lalr1plus::Action::Reduce(45), // production_tail: symbol_list predicate
-                _ => aa_syntax_error!(token; PRECEDENCE, VBAR, DOT, ACTION),
+                PRECEDENCE => Action::Shift(63),
+                ACTION => Action::Shift(43),
+                VBAR | DOT => Action::Reduce(45), // production_tail: symbol_list predicate
+                _ => Action::SyntaxError(vec![PRECEDENCE, VBAR, DOT, ACTION]),
             },
             61 => match tag {
-                ACTION => lalr1plus::Action::Shift(43),
-                VBAR | DOT => lalr1plus::Action::Reduce(47), // production_tail: symbol_list tagged_precedence
-                _ => aa_syntax_error!(token; VBAR, DOT, ACTION),
+                ACTION => Action::Shift(43),
+                VBAR | DOT => Action::Reduce(47), // production_tail: symbol_list tagged_precedence
+                _ => Action::SyntaxError(vec![VBAR, DOT, ACTION]),
             },
             62 => match tag {
-                VBAR | DOT => lalr1plus::Action::Reduce(48), // production_tail: symbol_list action
-                _ => aa_syntax_error!(token; VBAR, DOT),
+                VBAR | DOT => Action::Reduce(48), // production_tail: symbol_list action
+                _ => Action::SyntaxError(vec![VBAR, DOT]),
             },
             63 => match tag {
-                LITERAL => lalr1plus::Action::Shift(77),
-                IDENT => lalr1plus::Action::Shift(76),
-                _ => aa_syntax_error!(token; LITERAL, IDENT),
+                LITERAL => Action::Shift(77),
+                IDENT => Action::Shift(76),
+                _ => Action::SyntaxError(vec![LITERAL, IDENT]),
             },
             64 => match tag {
                 LITERAL | PRECEDENCE | ERROR | VBAR | DOT | IDENT | PREDICATE | ACTION => {
-                    lalr1plus::Action::Reduce(55)
+                    Action::Reduce(55)
                 } // symbol_list: symbol_list symbol
-                _ => {
-                    aa_syntax_error!(token; LITERAL, PRECEDENCE, ERROR, VBAR, DOT, IDENT, PREDICATE, ACTION)
-                }
+                _ => Action::SyntaxError(vec![
+                    LITERAL, PRECEDENCE, ERROR, VBAR, DOT, IDENT, PREDICATE, ACTION,
+                ]),
             },
             65 => match tag {
-                LEFT | RIGHT | NONASSOC | INJECT | NEWSECTION => lalr1plus::Action::Reduce(20), // precedence_definitions: precedence_definitions oinjection precedence_definition oinjection
-                _ => aa_syntax_error!(token; LEFT, RIGHT, NONASSOC, INJECT, NEWSECTION),
+                LEFT | RIGHT | NONASSOC | INJECT | NEWSECTION => Action::Reduce(20), // precedence_definitions: precedence_definitions oinjection precedence_definition oinjection
+                _ => Action::SyntaxError(vec![LEFT, RIGHT, NONASSOC, INJECT, NEWSECTION]),
             },
             66 => match tag {
-                LITERAL => lalr1plus::Action::Shift(68),
-                IDENT => lalr1plus::Action::Shift(69),
-                LEFT | RIGHT | NONASSOC | INJECT | NEWSECTION => lalr1plus::Action::Reduce(21), // precedence_definition: "%left" tag_list
-                _ => {
-                    aa_syntax_error!(token; LITERAL, LEFT, RIGHT, NONASSOC, INJECT, NEWSECTION, IDENT)
-                }
+                LITERAL => Action::Shift(68),
+                IDENT => Action::Shift(69),
+                LEFT | RIGHT | NONASSOC | INJECT | NEWSECTION => Action::Reduce(21), // precedence_definition: "%left" tag_list
+                _ => Action::SyntaxError(vec![
+                    LITERAL, LEFT, RIGHT, NONASSOC, INJECT, NEWSECTION, IDENT,
+                ]),
             },
             67 => match tag {
                 LITERAL | LEFT | RIGHT | NONASSOC | INJECT | NEWSECTION | IDENT => {
-                    lalr1plus::Action::Reduce(24)
+                    Action::Reduce(24)
                 } // tag_list: tag
-                _ => {
-                    aa_syntax_error!(token; LITERAL, LEFT, RIGHT, NONASSOC, INJECT, NEWSECTION, IDENT)
-                }
+                _ => Action::SyntaxError(vec![
+                    LITERAL, LEFT, RIGHT, NONASSOC, INJECT, NEWSECTION, IDENT,
+                ]),
             },
             68 => match tag {
                 LITERAL | LEFT | RIGHT | NONASSOC | INJECT | NEWSECTION | IDENT => {
-                    lalr1plus::Action::Reduce(26)
+                    Action::Reduce(26)
                 } // tag: LITERAL
-                _ => {
-                    aa_syntax_error!(token; LITERAL, LEFT, RIGHT, NONASSOC, INJECT, NEWSECTION, IDENT)
-                }
+                _ => Action::SyntaxError(vec![
+                    LITERAL, LEFT, RIGHT, NONASSOC, INJECT, NEWSECTION, IDENT,
+                ]),
             },
             69 => match tag {
                 LITERAL | LEFT | RIGHT | NONASSOC | INJECT | NEWSECTION | IDENT => {
                     if self.is_known_token(aa_attributes.attribute_n_from_end(2 - 1).matched_text())
                     {
-                        lalr1plus::Action::Reduce(27) // tag: IDENT ?(  self.is_known_token($1.matched_text())  ?)
+                        Action::Reduce(27) // tag: IDENT ?(  self.is_known_token($1.matched_text())  ?)
                     } else if self.is_known_non_terminal(
                         aa_attributes.attribute_n_from_end(2 - 1).matched_text(),
                     ) {
-                        lalr1plus::Action::Reduce(28) // tag: IDENT ?(  self.is_known_non_terminal($1.matched_text())  ?)
+                        Action::Reduce(28) // tag: IDENT ?(  self.is_known_non_terminal($1.matched_text())  ?)
                     } else {
-                        lalr1plus::Action::Reduce(29) // tag: IDENT
+                        Action::Reduce(29) // tag: IDENT
                     }
                 }
-                _ => {
-                    aa_syntax_error!(token; LITERAL, LEFT, RIGHT, NONASSOC, INJECT, NEWSECTION, IDENT)
-                }
+                _ => Action::SyntaxError(vec![
+                    LITERAL, LEFT, RIGHT, NONASSOC, INJECT, NEWSECTION, IDENT,
+                ]),
             },
             70 => match tag {
-                LITERAL => lalr1plus::Action::Shift(68),
-                IDENT => lalr1plus::Action::Shift(69),
-                LEFT | RIGHT | NONASSOC | INJECT | NEWSECTION => lalr1plus::Action::Reduce(22), // precedence_definition: "%right" tag_list
-                _ => {
-                    aa_syntax_error!(token; LITERAL, LEFT, RIGHT, NONASSOC, INJECT, NEWSECTION, IDENT)
-                }
+                LITERAL => Action::Shift(68),
+                IDENT => Action::Shift(69),
+                LEFT | RIGHT | NONASSOC | INJECT | NEWSECTION => Action::Reduce(22), // precedence_definition: "%right" tag_list
+                _ => Action::SyntaxError(vec![
+                    LITERAL, LEFT, RIGHT, NONASSOC, INJECT, NEWSECTION, IDENT,
+                ]),
             },
             71 => match tag {
-                LITERAL => lalr1plus::Action::Shift(68),
-                IDENT => lalr1plus::Action::Shift(69),
-                LEFT | RIGHT | NONASSOC | INJECT | NEWSECTION => lalr1plus::Action::Reduce(23), // precedence_definition: "%nonassoc" tag_list
-                _ => {
-                    aa_syntax_error!(token; LITERAL, LEFT, RIGHT, NONASSOC, INJECT, NEWSECTION, IDENT)
-                }
+                LITERAL => Action::Shift(68),
+                IDENT => Action::Shift(69),
+                LEFT | RIGHT | NONASSOC | INJECT | NEWSECTION => Action::Reduce(23), // precedence_definition: "%nonassoc" tag_list
+                _ => Action::SyntaxError(vec![
+                    LITERAL, LEFT, RIGHT, NONASSOC, INJECT, NEWSECTION, IDENT,
+                ]),
             },
             72 => match tag {
-                VBAR | DOT => lalr1plus::Action::Reduce(37), // production_tail_list: production_tail_list "|" production_tail
-                _ => aa_syntax_error!(token; VBAR, DOT),
+                VBAR | DOT => Action::Reduce(37), // production_tail_list: production_tail_list "|" production_tail
+                _ => Action::SyntaxError(vec![VBAR, DOT]),
             },
             73 => match tag {
-                ACTION => lalr1plus::Action::Shift(43),
-                VBAR | DOT => lalr1plus::Action::Reduce(43), // production_tail: symbol_list predicate tagged_precedence
-                _ => aa_syntax_error!(token; VBAR, DOT, ACTION),
+                ACTION => Action::Shift(43),
+                VBAR | DOT => Action::Reduce(43), // production_tail: symbol_list predicate tagged_precedence
+                _ => Action::SyntaxError(vec![VBAR, DOT, ACTION]),
             },
             74 => match tag {
-                VBAR | DOT => lalr1plus::Action::Reduce(44), // production_tail: symbol_list predicate action
-                _ => aa_syntax_error!(token; VBAR, DOT),
+                VBAR | DOT => Action::Reduce(44), // production_tail: symbol_list predicate action
+                _ => Action::SyntaxError(vec![VBAR, DOT]),
             },
             75 => match tag {
-                VBAR | DOT => lalr1plus::Action::Reduce(46), // production_tail: symbol_list tagged_precedence action
-                _ => aa_syntax_error!(token; VBAR, DOT),
+                VBAR | DOT => Action::Reduce(46), // production_tail: symbol_list tagged_precedence action
+                _ => Action::SyntaxError(vec![VBAR, DOT]),
             },
             76 => match tag {
-                VBAR | DOT | ACTION => lalr1plus::Action::Reduce(52), // tagged_precedence: "%prec" IDENT
-                _ => aa_syntax_error!(token; VBAR, DOT, ACTION),
+                VBAR | DOT | ACTION => Action::Reduce(52), // tagged_precedence: "%prec" IDENT
+                _ => Action::SyntaxError(vec![VBAR, DOT, ACTION]),
             },
             77 => match tag {
-                VBAR | DOT | ACTION => lalr1plus::Action::Reduce(53), // tagged_precedence: "%prec" LITERAL
-                _ => aa_syntax_error!(token; VBAR, DOT, ACTION),
+                VBAR | DOT | ACTION => Action::Reduce(53), // tagged_precedence: "%prec" LITERAL
+                _ => Action::SyntaxError(vec![VBAR, DOT, ACTION]),
             },
             78 => match tag {
                 LITERAL | LEFT | RIGHT | NONASSOC | INJECT | NEWSECTION | IDENT => {
-                    lalr1plus::Action::Reduce(25)
+                    Action::Reduce(25)
                 } // tag_list: tag_list tag
-                _ => {
-                    aa_syntax_error!(token; LITERAL, LEFT, RIGHT, NONASSOC, INJECT, NEWSECTION, IDENT)
-                }
+                _ => Action::SyntaxError(vec![
+                    LITERAL, LEFT, RIGHT, NONASSOC, INJECT, NEWSECTION, IDENT,
+                ]),
             },
             79 => match tag {
-                VBAR | DOT => lalr1plus::Action::Reduce(42), // production_tail: symbol_list predicate tagged_precedence action
-                _ => aa_syntax_error!(token; VBAR, DOT),
+                VBAR | DOT => Action::Reduce(42), // production_tail: symbol_list predicate tagged_precedence action
+                _ => Action::SyntaxError(vec![VBAR, DOT]),
             },
 
             _ => panic!("{}: invalid parser state.", state),
