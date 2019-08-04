@@ -60,7 +60,7 @@ impl fmt::Display for Location {
 pub enum Error<T: Debug + Copy> {
     UnexpectedText(String, Location),
     AmbiguousMatches(Vec<T>, String, Location),
-    AdvancedWhenEmpty,
+    AdvancedWhenEmpty(Location),
 }
 
 impl<T: Debug + Copy> Error<T> {
@@ -80,7 +80,7 @@ impl<T: Debug + Copy> Error<T> {
 
     pub fn is_advance_when_empty(&self) -> bool {
         match self {
-            Error::AdvancedWhenEmpty => true,
+            Error::AdvancedWhenEmpty(_) => true,
             _ => false,
         }
     }
@@ -97,9 +97,10 @@ impl<T: Debug + Copy> fmt::Display for Error<T> {
                 "Ambiguous matches {:?} \"{}\" at: {}.",
                 tags, text, location
             ),
-            Error::AdvancedWhenEmpty => write!(
+            Error::AdvancedWhenEmpty(location) => write!(
                 dest,
-                "Advanced past end of text.",
+                "Advanced past end of text at: {}.",
+                location,
             ),
         }
     }
@@ -269,7 +270,7 @@ where
         let mut stream = Self {
             lexicon: Arc::clone(lexicon),
             token_stream_stack: vec![],
-            front: Err(Error::AdvancedWhenEmpty),
+            front: Err(Error::AdvancedWhenEmpty(Location::default())),
         };
         stream.inject(text, label);
         stream
@@ -311,7 +312,15 @@ where
                 })
             }
        } else {
-           self.front = Err(Error::AdvancedWhenEmpty)
+           let location = match &self.front {
+               Ok(token) => token.location(),
+               Err(err) => match err {
+                   Error::UnexpectedText(_, location) => location,
+                   Error::AmbiguousMatches(_, _, location) => location,
+                   Error::AdvancedWhenEmpty(location) => location,
+               },
+           };
+           self.front = Err(Error::AdvancedWhenEmpty(location.clone()))
        }
     }
 
