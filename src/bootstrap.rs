@@ -1045,7 +1045,7 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData<AATerminal>> for
                 let name = aa_rhs[2 - 1].matched_text();
                 let pattern = aa_rhs[3 - 1].matched_text();
                 let location = aa_rhs[3 - 1].location();
-                if let Err(err) = self.add_token(name, pattern, location) {
+                if let Err(err) = self.new_token(name, pattern, location) {
                     self.error(location, &err.to_string())
                 }
             }
@@ -1102,11 +1102,40 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData<AATerminal>> for
             }
             26 => {
                 // tag: LITERAL
-                //let name = aa_rhs[1 - 1].matched_text();
-                //let location = aa_rhs[1 - 1].location();
-                //if let Some(symbol) = self.get_literal_token(name, location) {
-                //    aa_lhs = AttributeData::Symbol(Rc::clone(symbol))
-                //}
+                let text = aa_rhs[1 - 1].matched_text();
+                let location = aa_rhs[1 - 1].location();
+                if let Some(symbol) = self.get_literal_token(text, location) {
+                   aa_lhs = AttributeData::Symbol(Some(Rc::clone(symbol)))
+                } else {
+                    let msg = format!("Literal token \"{}\" is not known", text);
+                    self.error(location, &msg);
+                }
+            }
+            27 => {
+                // tag: IDENT ?(  grammar_specification.symbol_table.is_known_token($1.dd_matched_text)  ?)
+                let name = aa_rhs[1 - 1].matched_text();
+                let location = aa_rhs[1 - 1].location();
+                if let Some(symbol) = self.get_token(name, location) {
+                   aa_lhs = AttributeData::Symbol(Some(Rc::clone(symbol)))
+                } else {
+                    let msg = format!("Token \"{}\" is not known", name);
+                    self.error(location, &msg);
+                }
+            }
+            28 => {
+                // tag: IDENT ?(  grammar_specification.symbol_table.is_known_non_terminal($1.dd_matched_text)  ?)
+                aa_lhs = AttributeData::Symbol(None);
+                let name = aa_rhs[1 - 1].matched_text();
+                let location = aa_rhs[1 - 1].location();
+                self.error(location, &format!("Non terminal \"{}\" cannot be used as precedence tag.", name))
+            }
+            29 => {
+                // tag: IDENT
+                let name = aa_rhs[1 - 1].matched_text();
+                let location = aa_rhs[1 - 1].location();
+                if let Err(err) = self.new_tag(name, location) {
+                    self.error(location, &err.to_string())
+                }
             }
             _ => (),
         }

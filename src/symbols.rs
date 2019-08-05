@@ -67,16 +67,40 @@ pub enum SymbolType {
     NonTerminal,
 }
 
+impl SymbolType {
+    pub fn is_tag(&self) -> bool {
+        match self {
+            SymbolType::Tag => true,
+            _ => false
+        }
+    }
+
+    pub fn is_token(&self) -> bool {
+        match self {
+            SymbolType::Token => true,
+            _ => false
+        }
+    }
+
+    pub fn is_non_terminal(&self) -> bool {
+        match self {
+            SymbolType::NonTerminal => true,
+            _ => false
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct Symbol {
     ident: u32,
     name: String,
     symbol_type: SymbolType,
+    pattern: String,
     mutable_data: RefCell<SymbolMutableData>,
 }
 
 impl Symbol {
-    pub fn new_token_at(ident: u32, name: &str, location: &lexan::Location) -> Rc<Symbol> {
+    pub fn new_tag_at(ident: u32, name: &str, location: &lexan::Location) -> Rc<Symbol> {
         let mutable_data = RefCell::new(SymbolMutableData {
             associative_precedence: AssociativePrecedence::default(),
             defined_at: Some(location.clone()),
@@ -85,6 +109,34 @@ impl Symbol {
         Rc::new(Self {
             ident,
             name: name.to_string(),
+            pattern: String::new(),
+            symbol_type: SymbolType::Tag,
+            mutable_data,
+        })
+    }
+
+    pub fn is_tag(&self) -> bool {
+        self.symbol_type.is_tag()
+    }
+
+    pub fn is_token(&self) -> bool {
+        self.symbol_type.is_token()
+    }
+
+    pub fn is_non_terminal(&self) -> bool {
+        self.symbol_type.is_non_terminal()
+    }
+
+    pub fn new_token_at(ident: u32, name: &str, pattern: &str, location: &lexan::Location) -> Rc<Symbol> {
+        let mutable_data = RefCell::new(SymbolMutableData {
+            associative_precedence: AssociativePrecedence::default(),
+            defined_at: Some(location.clone()),
+            used_at: vec![],
+        });
+        Rc::new(Self {
+            ident,
+            name: name.to_string(),
+            pattern: pattern.to_string(),
             symbol_type: SymbolType::Token,
             mutable_data,
         })
@@ -105,11 +157,17 @@ impl Symbol {
     pub fn set_associative_precedence(&self, associativity: Associativity, precedence: u32) {
         self.mutable_data.borrow_mut().associative_precedence = AssociativePrecedence{associativity, precedence}
     }
+
+    pub fn add_used_at(&self, location: &lexan::Location) {
+        self.mutable_data.borrow_mut().used_at.push(location.clone())
+    }
 }
 
 #[derive(Debug, Default, Clone)]
 pub struct SymbolTable {
-    tokens: HashMap<String, Rc<Symbol>>,
+    tokens: HashMap<String, Rc<Symbol>>, // indexed by token name
+    literal_tokens: HashMap<String, Rc<Symbol>>, // indexed by token name
+    tags: HashMap<String, Rc<Symbol>>, // indexed by tag name
     skip_rules: Vec<String>,
     next_precedence: u32,
     next_ident: u32,
@@ -119,6 +177,8 @@ impl SymbolTable {
     pub fn new() -> Self {
         Self {
             tokens: HashMap::new(),
+            literal_tokens: HashMap::new(),
+            tags: HashMap::new(),
             skip_rules: Vec::new(),
             next_precedence: u32::max_value(),
             next_ident: 0
@@ -129,21 +189,35 @@ impl SymbolTable {
         false
     }
 
-    pub fn is_known_tag(&self, _name: &str) -> bool {
-        false
+    pub fn is_known_tag(&self, name: &str) -> bool {
+        self.tags.contains_key(name)
     }
 
     pub fn is_known_token(&self, name: &str) -> bool {
         self.tokens.contains_key(name)
     }
 
-    pub fn add_token(
+    pub fn new_tag(
+        &mut self,
+        name: &str,
+        location: &lexan::Location,
+    ) -> Result<(), Error> {
+        let tag = Symbol::new_tag_at(self.next_ident, name, location);
+        self.next_ident += 1;
+        if let Some(tag) = self.tokens.insert(name.to_string(), tag) {
+            Err(Error::AlreadyDefined(Rc::clone(&tag)))
+        } else {
+            Ok(())
+        }
+    }
+
+    pub fn new_token(
         &mut self,
         name: &str,
         pattern: &str,
         location: &lexan::Location,
     ) -> Result<(), Error> {
-        let token = Symbol::new_token_at(self.next_ident, name, location);
+        let token = Symbol::new_token_at(self.next_ident, name, pattern, location);
         self.next_ident += 1;
         if let Some(token) = self.tokens.insert(name.to_string(), token) {
             Err(Error::AlreadyDefined(Rc::clone(&token)))
@@ -162,5 +236,23 @@ impl SymbolTable {
             symbol.set_associative_precedence(associativity, precedence);
         }
         self.next_precedence -= 1;
+    }
+
+    pub fn get_literal_token(&self, text: &str, location: &lexan::Location) -> Option<&Rc<Symbol>> {
+        if let Some(token) = self.literal_tokens.get(text) {
+            token.add_used_at(location);
+            Some(token)
+        } else {
+            None
+        }
+    }
+
+    pub fn get_token(&self, name: &str, location: &lexan::Location) -> Option<&Rc<Symbol>> {
+        if let Some(token) = self.tokens.get(name) {
+            token.add_used_at(location);
+            Some(token)
+        } else {
+            None
+        }
     }
 }

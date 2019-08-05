@@ -2,7 +2,7 @@ use std::{io::{stderr, Write}, rc::Rc};
 
 use lexan;
 
-use crate::symbols::{self, Associativity, SymbolTable};
+use crate::symbols::{self, Associativity, Symbol, SymbolTable};
 
 #[derive(Debug, Default, Clone)]
 pub struct ParserSpecification {
@@ -45,13 +45,21 @@ impl ParserSpecification {
         self.preamble = preamble.to_string();
     }
 
-    pub fn add_token(
+    pub fn new_token(
         &mut self,
         name: &str,
         pattern: &str,
         location: &lexan::Location,
     ) -> Result<(), symbols::Error> {
-        self.symbol_table.add_token(name, pattern, location)
+        self.symbol_table.new_token(name, pattern, location)
+    }
+
+    pub fn new_tag(
+        &mut self,
+        name: &str,
+        location: &lexan::Location,
+    ) -> Result<(), symbols::Error> {
+        self.symbol_table.new_tag(name, location)
     }
 
     pub fn add_skip_rule(&mut self, rule: &str) {
@@ -60,5 +68,13 @@ impl ParserSpecification {
 
     pub fn set_precedences(&mut self, associativity: Associativity, tags: &Vec<Rc<symbols::Symbol>>) {
         self.symbol_table.set_precedences(associativity, tags);
+    }
+
+    pub fn get_literal_token(&self, text: &str, location: &lexan::Location) -> Option<&Rc<Symbol>> {
+        self.symbol_table.get_literal_token(text, location)
+    }
+
+    pub fn get_token(&self, name: &str, location: &lexan::Location) -> Option<&Rc<Symbol>> {
+        self.symbol_table.get_token(name, location)
     }
 }
