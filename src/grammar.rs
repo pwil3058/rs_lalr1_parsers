@@ -1,4 +1,4 @@
-use std::io::{stderr, Write};
+use std::{io::{stderr, Write}, rc::Rc};
 
 use lexan;
 
@@ -58,7 +58,7 @@ impl ParserSpecification {
         self.symbol_table.add_skip_rule(rule);
     }
 
-    pub fn set_precedences(&mut self, associativity: Associativity, tags: &mut Vec<symbols::Symbol>) {
+    pub fn set_precedences(&mut self, associativity: Associativity, tags: &Vec<Rc<symbols::Symbol>>) {
         self.symbol_table.set_precedences(associativity, tags);
     }
 }

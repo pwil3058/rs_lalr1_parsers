@@ -1,16 +1,25 @@
-use std::{collections::HashMap, fmt};
+use std::{
+    cell::RefCell,
+    collections::HashMap,
+    fmt,
+    rc::Rc,
+};
 
 use lexan;
 
 pub enum Error {
-    AlreadyDefined(String, lexan::Location),
+    AlreadyDefined(Rc<Symbol>),
 }
 
 impl fmt::Display for Error {
     fn fmt(&self, dest: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Error::AlreadyDefined(name, location) => {
-                write!(dest, "\"{}\" already defined at {}", name, location)
+            Error::AlreadyDefined(symbol) => {
+                if let Some(location) = symbol.defined_at() {
+                    write!(dest, "\"{}\" already defined at {}", symbol.name(), location)
+                } else {
+                    write!(dest, "\"{}\" already defined", symbol.name())
+                }
             }
         }
     }
@@ -44,7 +53,14 @@ impl AssociativePrecedence {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
+struct SymbolMutableData {
+    associative_precedence: AssociativePrecedence,
+    defined_at: Option<lexan::Location>,
+    used_at: Vec<lexan::Location>,
+}
+
+#[derive(Debug, Clone)]
 pub enum SymbolType {
     Token,
     Tag,
@@ -56,16 +72,47 @@ pub struct Symbol {
     ident: u32,
     name: String,
     symbol_type: SymbolType,
-    associative_precedence: AssociativePrecedence,
-    defined_at: lexan::Location,
-    used_at: Vec<lexan::Location>,
+    mutable_data: RefCell<SymbolMutableData>,
+}
+
+impl Symbol {
+    pub fn new_token_at(ident: u32, name: &str, location: &lexan::Location) -> Rc<Symbol> {
+        let mutable_data = RefCell::new(SymbolMutableData {
+            associative_precedence: AssociativePrecedence::default(),
+            defined_at: Some(location.clone()),
+            used_at: vec![],
+        });
+        Rc::new(Self {
+            ident,
+            name: name.to_string(),
+            symbol_type: SymbolType::Token,
+            mutable_data,
+        })
+    }
+
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    pub fn defined_at(&self) -> Option<lexan::Location> {
+        if let Some(location) = &self.mutable_data.borrow().defined_at {
+            Some(location.clone())
+        } else {
+            None
+        }
+    }
+
+    pub fn set_associative_precedence(&self, associativity: Associativity, precedence: u32) {
+        self.mutable_data.borrow_mut().associative_precedence = AssociativePrecedence{associativity, precedence}
+    }
 }
 
 #[derive(Debug, Default, Clone)]
 pub struct SymbolTable {
-    tokens: HashMap<String, (String, lexan::Location)>,
+    tokens: HashMap<String, Rc<Symbol>>,
     skip_rules: Vec<String>,
     next_precedence: u32,
+    next_ident: u32,
 }
 
 impl SymbolTable {
@@ -74,6 +121,7 @@ impl SymbolTable {
             tokens: HashMap::new(),
             skip_rules: Vec::new(),
             next_precedence: u32::max_value(),
+            next_ident: 0
         }
     }
 
@@ -95,11 +143,10 @@ impl SymbolTable {
         pattern: &str,
         location: &lexan::Location,
     ) -> Result<(), Error> {
-        if let Some((_, location)) = self
-            .tokens
-            .insert(name.to_string(), (pattern.to_string(), location.clone()))
-        {
-            Err(Error::AlreadyDefined(name.to_string(), location.clone()))
+        let token = Symbol::new_token_at(self.next_ident, name, location);
+        self.next_ident += 1;
+        if let Some(token) = self.tokens.insert(name.to_string(), token) {
+            Err(Error::AlreadyDefined(Rc::clone(&token)))
         } else {
             Ok(())
         }
@@ -109,10 +156,10 @@ impl SymbolTable {
         self.skip_rules.push(rule.to_string());
     }
 
-    pub fn set_precedences(&mut self, associativity: Associativity, tags: &mut Vec<Symbol>) {
+    pub fn set_precedences(&mut self, associativity: Associativity, tags: &Vec<Rc<Symbol>>) {
         let precedence = self.next_precedence;
-        for symbol in tags.iter_mut() {
-            symbol.associative_precedence = AssociativePrecedence{ associativity, precedence };
+        for symbol in tags.iter() {
+            symbol.set_associative_precedence(associativity, precedence);
         }
         self.next_precedence -= 1;
     }

@@ -1,4 +1,4 @@
-use std::{fmt, fs::File, io::Read};
+use std::{fmt, fs::File, io::Read, rc::Rc};
 
 use lalr1plus;
 use lexan;
@@ -1069,6 +1069,44 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData<AATerminal>> for
                 let mut tag_list = aa_rhs[2 - 1].symbol_list().clone();
                 self.set_precedences(Associativity::Left, &mut tag_list);
                 aa_lhs = AttributeData::SymbolList(tag_list);
+            }
+            22 => {
+                //  precedence_definition: "%right" tag_list
+                let mut tag_list = aa_rhs[2 - 1].symbol_list().clone();
+                self.set_precedences(Associativity::Right, &mut tag_list);
+                aa_lhs = AttributeData::SymbolList(tag_list);
+            }
+            23 => {
+                //  precedence_definition: "%nonassoc" tag_list
+                let mut tag_list = aa_rhs[2 - 1].symbol_list().clone();
+                self.set_precedences(Associativity::NonAssoc, &mut tag_list);
+                aa_lhs = AttributeData::SymbolList(tag_list);
+            }
+            24 => {
+                // tag_list: tag
+                aa_lhs = if let Some(tag) = aa_rhs[1 - 1].symbol() {
+                    AttributeData::SymbolList(vec![tag.clone()])
+                } else {
+                    AttributeData::SymbolList(vec![])
+                }
+            }
+            25 => {
+                // tag_list: tag_list tag
+                let mut tag_list = aa_rhs[1 - 1].symbol_list().clone();
+                aa_lhs = if let Some(tag) = aa_rhs[2 - 1].symbol() {
+                    tag_list.push(tag.clone());
+                    AttributeData::SymbolList(tag_list)
+                } else {
+                    AttributeData::SymbolList(tag_list)
+                }
+            }
+            26 => {
+                // tag: LITERAL
+                //let name = aa_rhs[1 - 1].matched_text();
+                //let location = aa_rhs[1 - 1].location();
+                //if let Some(symbol) = self.get_literal_token(name, location) {
+                //    aa_lhs = AttributeData::Symbol(Rc::clone(symbol))
+                //}
             }
             _ => (),
         }

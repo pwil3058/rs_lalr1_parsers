@@ -1,4 +1,4 @@
-use std::fmt::Debug;
+use std::{fmt::Debug, rc::Rc};
 
 use lexan;
 
@@ -12,7 +12,8 @@ where
     Token(lexan::Token<T>),
     SyntaxError(lexan::Token<T>, Vec<T>),
     LexicalError(lexan::Error<T>),
-    SymbolList(Vec<Symbol>),
+    SymbolList(Vec<Rc<Symbol>>),
+    Symbol(Option<Rc<Symbol>>),
     Default,
 }
 
@@ -55,7 +56,14 @@ where
         }
     }
 
-    pub fn symbol_list<'a>(&'a self) -> &'a Vec<Symbol> {
+    pub fn symbol<'a>(&'a self) -> &'a Option<Rc<Symbol>> {
+        match self {
+            AttributeData::Symbol(symbol) => symbol,
+            _ => panic!("Wrong attribute variant."),
+        }
+    }
+
+    pub fn symbol_list<'a>(&'a self) -> &'a Vec<Rc<Symbol>> {
         match self {
             AttributeData::SymbolList(list) => list,
             _ => panic!("Wrong attribute variant."),
