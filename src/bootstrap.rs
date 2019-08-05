@@ -3,7 +3,11 @@ use std::{fmt, fs::File, io::Read};
 use lalr1plus;
 use lexan;
 
-use crate::{grammar::ParserSpecification, symbols::{Associativity, Symbol}};
+use crate::{
+    attributes::*,
+    grammar::ParserSpecification,
+    symbols::Associativity,
+};
 
 #[derive(Debug, Clone, Copy, PartialOrd, Ord, PartialEq, Eq)]
 pub enum AATerminal {
@@ -155,74 +159,7 @@ impl fmt::Display for AANonTerminal {
     }
 }
 
-#[derive(Debug, Clone)]
-pub enum AttributeData {
-    Token(lexan::Token<AATerminal>),
-    SyntaxError(lexan::Token<AATerminal>, Vec<AATerminal>),
-    LexicalError(lexan::Error<AATerminal>),
-    SymbolList(Vec<Symbol>),
-    Default,
-}
-
-impl Default for AttributeData {
-    fn default() -> Self {
-        AttributeData::Default
-    }
-}
-
-impl AttributeData {
-    fn matched_text<'a>(&'a self) -> &'a str {
-        match self {
-            AttributeData::Token(token) => token.lexeme(),
-            AttributeData::SyntaxError(token, _) => token.lexeme(),
-            AttributeData::LexicalError(error) => match error {
-                lexan::Error::UnexpectedText(text, _) => text,
-                lexan::Error::AmbiguousMatches(_, text, _) => text,
-                lexan::Error::AdvancedWhenEmpty(_) => "",
-            },
-            _ => panic!("Wrong attribute variant."),
-        }
-    }
-
-    fn location<'a>(&'a self) -> &'a lexan::Location {
-        match self {
-            AttributeData::Token(token) => token.location(),
-            AttributeData::SyntaxError(token, _) => token.location(),
-            AttributeData::LexicalError(error) => match error {
-                lexan::Error::UnexpectedText(_, location) => location,
-                lexan::Error::AmbiguousMatches(_, _, location) => location,
-                lexan::Error::AdvancedWhenEmpty(location) => location,
-            },
-            _ => panic!("Wrong attribute variant."),
-        }
-    }
-
-    fn symbol_list<'a>(&'a self) -> &'a Vec<Symbol> {
-        match self {
-            AttributeData::SymbolList(list) => list,
-            _ => panic!("Wrong attribute variant."),
-        }
-    }
-}
-
-impl From<lexan::Token<AATerminal>> for AttributeData {
-    fn from(token: lexan::Token<AATerminal>) -> Self {
-        AttributeData::Token(token)
-    }
-}
-
-impl From<lalr1plus::Error<AATerminal>> for AttributeData {
-    fn from(error: lalr1plus::Error<AATerminal>) -> Self {
-        match error {
-            lalr1plus::Error::LexicalError(error) => AttributeData::LexicalError(error),
-            lalr1plus::Error::SyntaxError(token, expected) => {
-                AttributeData::SyntaxError(token, expected)
-            }
-        }
-    }
-}
-
-impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData> for ParserSpecification {
+impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData<AATerminal>> for ParserSpecification {
     fn lexical_analyzer(&self) -> &lexan::LexicalAnalyzer<AATerminal> {
         &AALEXAN
     }
@@ -238,7 +175,7 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData> for ParserSpeci
     fn next_action<'a>(
         &self,
         state: u32,
-        aa_attributes: &lalr1plus::ParseStack<AATerminal, AANonTerminal, AttributeData>,
+        aa_attributes: &lalr1plus::ParseStack<AATerminal, AANonTerminal, AttributeData<AATerminal>>,
         token: &lexan::Token<AATerminal>,
     ) -> lalr1plus::Action<AATerminal> {
         use lalr1plus::Action;
@@ -1071,9 +1008,9 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData> for ParserSpeci
     fn do_semantic_action(
         &mut self,
         aa_production_id: u32,
-        aa_rhs: Vec<AttributeData>,
+        aa_rhs: Vec<AttributeData<AATerminal>>,
         aa_token_stream: &mut lexan::TokenStream<AATerminal>,
-    ) -> AttributeData {
+    ) -> AttributeData<AATerminal> {
         let mut aa_lhs = AttributeData::default();
         match aa_production_id {
             4 => {
