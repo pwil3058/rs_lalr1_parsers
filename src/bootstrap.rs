@@ -3,7 +3,7 @@ use std::{fmt, fs::File, io::Read};
 use lalr1plus;
 use lexan;
 
-use crate::{grammar::ParserSpecification, symbols::Associativity};
+use crate::{grammar::ParserSpecification, symbols::{Associativity, Symbol}};
 
 #[derive(Debug, Clone, Copy, PartialOrd, Ord, PartialEq, Eq)]
 pub enum AATerminal {
@@ -160,7 +160,7 @@ pub enum AttributeData {
     Token(lexan::Token<AATerminal>),
     SyntaxError(lexan::Token<AATerminal>, Vec<AATerminal>),
     LexicalError(lexan::Error<AATerminal>),
-    SymbolList(Vec<String>),
+    SymbolList(Vec<Symbol>),
     Default,
 }
 
@@ -197,7 +197,7 @@ impl AttributeData {
         }
     }
 
-    fn symbol_list<'a>(&'a self) -> &'a Vec<String> {
+    fn symbol_list<'a>(&'a self) -> &'a Vec<Symbol> {
         match self {
             AttributeData::SymbolList(list) => list,
             _ => panic!("Wrong attribute variant."),
@@ -222,9 +222,7 @@ impl From<lalr1plus::Error<AATerminal>> for AttributeData {
     }
 }
 
-type AAAttributeData = AttributeData;
-
-impl lalr1plus::Parser<AATerminal, AANonTerminal, AAAttributeData> for ParserSpecification {
+impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData> for ParserSpecification {
     fn lexical_analyzer(&self) -> &lexan::LexicalAnalyzer<AATerminal> {
         &AALEXAN
     }
@@ -240,7 +238,7 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AAAttributeData> for ParserSpe
     fn next_action<'a>(
         &self,
         state: u32,
-        aa_attributes: &lalr1plus::ParseStack<AATerminal, AANonTerminal, AAAttributeData>,
+        aa_attributes: &lalr1plus::ParseStack<AATerminal, AANonTerminal, AttributeData>,
         token: &lexan::Token<AATerminal>,
     ) -> lalr1plus::Action<AATerminal> {
         use lalr1plus::Action;
@@ -1073,10 +1071,10 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AAAttributeData> for ParserSpe
     fn do_semantic_action(
         &mut self,
         aa_production_id: u32,
-        aa_rhs: Vec<AAAttributeData>,
+        aa_rhs: Vec<AttributeData>,
         aa_token_stream: &mut lexan::TokenStream<AATerminal>,
-    ) -> AAAttributeData {
-        let mut aa_lhs = AAAttributeData::default();
+    ) -> AttributeData {
+        let mut aa_lhs = AttributeData::default();
         match aa_production_id {
             4 => {
                 // injection_head: "%inject" LITERAL
@@ -1131,8 +1129,9 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AAAttributeData> for ParserSpe
             }
             21 => {
                 //  precedence_definition: "%left" tag_list
-                let tag_list = aa_rhs[2 - 1].symbol_list();
-                self.set_precedence(Associativity::Left, tag_list);
+                let mut tag_list = aa_rhs[2 - 1].symbol_list().clone();
+                self.set_precedences(Associativity::Left, &mut tag_list);
+                aa_lhs = AttributeData::SymbolList(tag_list);
             }
             _ => (),
         }

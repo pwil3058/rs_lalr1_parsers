@@ -58,7 +58,7 @@ impl ParserSpecification {
         self.symbol_table.add_skip_rule(rule);
     }
 
-    pub fn set_precedence(&mut self, associativity: Associativity, tags: &Vec<String>) {
-        self.symbol_table.set_precedence(associativity, tags);
+    pub fn set_precedences(&mut self, associativity: Associativity, tags: &mut Vec<symbols::Symbol>) {
+        self.symbol_table.set_precedences(associativity, tags);
     }
 }
