@@ -3,7 +3,7 @@ use std::{fmt, fs::File, io::Read};
 use lalr1plus;
 use lexan;
 
-use crate::grammar::ParserSpecification;
+use crate::{grammar::ParserSpecification, symbols::Associativity};
 
 #[derive(Debug, Clone, Copy, PartialOrd, Ord, PartialEq, Eq)]
 pub enum AATerminal {
@@ -160,6 +160,7 @@ pub enum AttributeData {
     Token(lexan::Token<AATerminal>),
     SyntaxError(lexan::Token<AATerminal>, Vec<AATerminal>),
     LexicalError(lexan::Error<AATerminal>),
+    SymbolList(Vec<String>),
     Default,
 }
 
@@ -178,7 +179,7 @@ impl AttributeData {
                 lexan::Error::UnexpectedText(text, _) => text,
                 lexan::Error::AmbiguousMatches(_, text, _) => text,
                 lexan::Error::AdvancedWhenEmpty(_) => "",
-            }
+            },
             _ => panic!("Wrong attribute variant."),
         }
     }
@@ -191,8 +192,15 @@ impl AttributeData {
                 lexan::Error::UnexpectedText(_, location) => location,
                 lexan::Error::AmbiguousMatches(_, _, location) => location,
                 lexan::Error::AdvancedWhenEmpty(location) => location,
-            }
-             _ => panic!("Wrong attribute variant."),
+            },
+            _ => panic!("Wrong attribute variant."),
+        }
+    }
+
+    fn symbol_list<'a>(&'a self) -> &'a Vec<String> {
+        match self {
+            AttributeData::SymbolList(list) => list,
+            _ => panic!("Wrong attribute variant."),
         }
     }
 }
@@ -207,7 +215,9 @@ impl From<lalr1plus::Error<AATerminal>> for AttributeData {
     fn from(error: lalr1plus::Error<AATerminal>) -> Self {
         match error {
             lalr1plus::Error::LexicalError(error) => AttributeData::LexicalError(error),
-            lalr1plus::Error::SyntaxError(token, expected) => AttributeData::SyntaxError(token, expected),
+            lalr1plus::Error::SyntaxError(token, expected) => {
+                AttributeData::SyntaxError(token, expected)
+            }
         }
     }
 }
@@ -1095,69 +1105,34 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AAAttributeData> for ParserSpe
                 let text = aa_rhs[2 - 1].matched_text();
                 self.set_preamble(&text[2..text.len() - 2]);
             }
-            8 => {
-                // preamble: oinjection RUSTCODE oinjection RUSTCODE oinjection
-                let text = aa_rhs[2 - 1].matched_text();
-                self.set_header(&text[2..text.len() - 2]);
-                let text = aa_rhs[4 - 1].matched_text();
-                self.set_preamble(&text[2..text.len() - 2]);
-            }
-            10 => {
-                // coda: oinjection RUSTCODE
-                let text = aa_rhs[2 - 1].matched_text();
-                self.set_coda(&text[2..text.len() - 2]);
-            }
-            14 => {
-                // field_definition: "%field" field_type field_name
-                let name = aa_rhs[3 - 1].matched_text();
-                let field_type = aa_rhs[2 - 1].matched_text();
+            11 => {
+                // token_definition: "%token" new_token_name pattern
+                let name = aa_rhs[2 - 1].matched_text();
+                let pattern = aa_rhs[3 - 1].matched_text();
                 let location = aa_rhs[3 - 1].location();
-                if let Err(err) = self.add_field(name, field_type, location) {
+                if let Err(err) = self.add_token(name, pattern, location) {
                     self.error(location, &err.to_string())
                 }
             }
-            15 => {
-                // field_definition: "%field" field_type field_name conversion_function
-                let name = aa_rhs[3 - 1].matched_text();
-                let field_type = aa_rhs[2 - 1].matched_text();
-                let location = aa_rhs[3 - 1].location();
-                // conversion_function won't be used (obsolete)
-                if let Err(err) = self.add_field(name, field_type, location) {
-                    self.error(location, &err.to_string())
-                }
-            }
-            16 => {
-                // field_type: IDENT ?( !is_allowable_name($1.matched_text()) ?)
+            12 => {
+                // new_token_name: IDENT ?( !is_allowable_name($1.matched_text()) ?)
                 let name = aa_rhs[1 - 1].matched_text();
                 let location = aa_rhs[1 - 1].location();
                 self.warning(
                     location,
-                    &format!("field type name \"{}\" may clash with generated code", name),
+                    &format!("token name \"{}\" may clash with generated code", name),
                 );
                 aa_lhs = aa_rhs[1 - 1].clone();
             }
             18 => {
-                // field_name: IDENT ?( !is_allowable_name($1.matched_text()) ?)
-                let name = aa_rhs[1 - 1].matched_text();
-                let location = aa_rhs[1 - 1].location();
-                self.warning(
-                    location,
-                    &format!("field name \"{}\" may clash with generated code", name),
-                );
-                aa_lhs = aa_rhs[1 - 1].clone();
+                // skip_definition: "%skip" REGEX
+                let skip_rule = aa_rhs[2 - 1].matched_text();
+                self.add_skip_rule(skip_rule);
             }
-            20 => {
-                // field_conversion_function: IDENT ?( !is_allowable_name($1.matched_text()) ?)
-                let name = aa_rhs[1 - 1].matched_text();
-                let location = aa_rhs[1 - 1].location();
-                self.warning(
-                    location,
-                    &format!(
-                        "field conversion function name \"{}\" may clash with generated code",
-                        name
-                    ),
-                );
-                aa_lhs = aa_rhs[1 - 1].clone();
+            21 => {
+                //  precedence_definition: "%left" tag_list
+                let tag_list = aa_rhs[2 - 1].symbol_list();
+                self.set_precedence(Associativity::Left, tag_list);
             }
             _ => (),
         }

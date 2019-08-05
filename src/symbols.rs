@@ -14,9 +14,18 @@ impl fmt::Display for Error {
     }
 }
 
+#[derive(Debug, Clone, Copy)]
+pub enum Associativity {
+    NonAssoc,
+    Left,
+    Right,
+    Default,
+}
+
 #[derive(Debug, Default, Clone)]
 pub struct SymbolTable {
-    fields: HashMap<String, (String, lexan::Location)>,
+    tokens: HashMap<String, (String, lexan::Location)>,
+    skip_rules: Vec<String>,
 }
 
 impl SymbolTable {
@@ -32,19 +41,27 @@ impl SymbolTable {
         false
     }
 
-    pub fn add_field(
+    pub fn add_token(
         &mut self,
         name: &str,
-        field_type: &str,
+        pattern: &str,
         location: &lexan::Location,
     ) -> Result<(), Error> {
         if let Some((_, location)) = self
-            .fields
-            .insert(name.to_string(), (field_type.to_string(), location.clone()))
+            .tokens
+            .insert(name.to_string(), (pattern.to_string(), location.clone()))
         {
             Err(Error::AlreadyDefined(name.to_string(), location.clone()))
         } else {
             Ok(())
         }
+    }
+
+    pub fn add_skip_rule(&mut self, rule: &str) {
+        self.skip_rules.push(rule.to_string());
+    }
+
+    pub fn set_precedence(&mut self, associativity: Associativity, tags: &Vec<String>) {
+        panic!("not yet implemented")
     }
 }
