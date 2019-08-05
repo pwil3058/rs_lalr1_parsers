@@ -157,7 +157,9 @@ impl fmt::Display for AANonTerminal {
 
 #[derive(Debug, Clone)]
 pub enum AttributeData {
-    Token(String, lexan::Location),
+    Token(lexan::Token<AATerminal>),
+    SyntaxError(lexan::Token<AATerminal>, Vec<AATerminal>),
+    LexicalError(lexan::Error<AATerminal>),
     Default,
 }
 
@@ -170,28 +172,43 @@ impl Default for AttributeData {
 impl AttributeData {
     fn matched_text<'a>(&'a self) -> &'a str {
         match self {
-            AttributeData::Token(string, _) => string,
+            AttributeData::Token(token) => token.lexeme(),
+            AttributeData::SyntaxError(token, _) => token.lexeme(),
+            AttributeData::LexicalError(error) => match error {
+                lexan::Error::UnexpectedText(text, _) => text,
+                lexan::Error::AmbiguousMatches(_, text, _) => text,
+                lexan::Error::AdvancedWhenEmpty(_) => "",
+            }
             _ => panic!("Wrong attribute variant."),
         }
     }
 
     fn location<'a>(&'a self) -> &'a lexan::Location {
         match self {
-            AttributeData::Token(_, location) => location,
-            _ => panic!("Wrong attribute variant."),
+            AttributeData::Token(token) => token.location(),
+            AttributeData::SyntaxError(token, _) => token.location(),
+            AttributeData::LexicalError(error) => match error {
+                lexan::Error::UnexpectedText(_, location) => location,
+                lexan::Error::AmbiguousMatches(_, _, location) => location,
+                lexan::Error::AdvancedWhenEmpty(location) => location,
+            }
+             _ => panic!("Wrong attribute variant."),
         }
     }
 }
 
 impl From<lexan::Token<AATerminal>> for AttributeData {
     fn from(token: lexan::Token<AATerminal>) -> Self {
-        AttributeData::Token(token.lexeme().to_string(), token.location().clone())
+        AttributeData::Token(token)
     }
 }
 
 impl From<lalr1plus::Error<AATerminal>> for AttributeData {
-    fn from(_error: lalr1plus::Error<AATerminal>) -> Self {
-        AttributeData::Default
+    fn from(error: lalr1plus::Error<AATerminal>) -> Self {
+        match error {
+            lalr1plus::Error::LexicalError(error) => AttributeData::LexicalError(error),
+            lalr1plus::Error::SyntaxError(token, expected) => AttributeData::SyntaxError(token, expected),
+        }
     }
 }
 
