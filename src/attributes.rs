@@ -2,6 +2,7 @@ use std::{fmt::Debug, rc::Rc};
 
 use lexan;
 
+use crate::grammar::ProductionTail;
 use crate::symbols::*;
 
 #[derive(Debug, Clone)]
@@ -14,6 +15,9 @@ where
     LexicalError(lexan::Error<T>),
     SymbolList(Vec<Rc<Symbol>>),
     Symbol(Option<Rc<Symbol>>),
+    LeftHandSide(Rc<Symbol>),
+    ProductionTail(ProductionTail),
+    ProductionTailList(Vec<ProductionTail>),
     Default,
 }
 
@@ -66,6 +70,27 @@ where
     pub fn symbol_list<'a>(&'a self) -> &'a Vec<Rc<Symbol>> {
         match self {
             AttributeData::SymbolList(list) => list,
+            _ => panic!("Wrong attribute variant."),
+        }
+    }
+
+    pub fn left_hand_side<'a>(&'a self) -> &'a Rc<Symbol> {
+        match self {
+            AttributeData::LeftHandSide(lhs) => lhs,
+            _ => panic!("Wrong attribute variant."),
+        }
+    }
+
+    pub fn production_tail<'a>(&'a self) -> &'a ProductionTail {
+        match self {
+            AttributeData::ProductionTail(tail) => tail,
+            _ => panic!("Wrong attribute variant."),
+        }
+    }
+
+    pub fn production_tail_list<'a>(&'a self) -> &'a Vec<ProductionTail> {
+        match self {
+            AttributeData::ProductionTailList(list) => list,
             _ => panic!("Wrong attribute variant."),
         }
     }

@@ -6,7 +6,7 @@ use lexan;
 use crate::{
     attributes::*,
     grammar::ParserSpecification,
-    symbols::Associativity,
+    symbols::{Associativity, SpecialSymbols},
 };
 
 #[derive(Debug, Clone, Copy, PartialOrd, Ord, PartialEq, Eq)]
@@ -159,7 +159,9 @@ impl fmt::Display for AANonTerminal {
     }
 }
 
-impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData<AATerminal>> for ParserSpecification {
+impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData<AATerminal>>
+    for ParserSpecification
+{
     fn lexical_analyzer(&self) -> &lexan::LexicalAnalyzer<AATerminal> {
         &AALEXAN
     }
@@ -1105,7 +1107,7 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData<AATerminal>> for
                 let text = aa_rhs[1 - 1].matched_text();
                 let location = aa_rhs[1 - 1].location();
                 if let Some(symbol) = self.get_literal_token(text, location) {
-                   aa_lhs = AttributeData::Symbol(Some(Rc::clone(symbol)))
+                    aa_lhs = AttributeData::Symbol(Some(Rc::clone(symbol)))
                 } else {
                     let msg = format!("Literal token \"{}\" is not known", text);
                     self.error(location, &msg);
@@ -1116,7 +1118,7 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData<AATerminal>> for
                 let name = aa_rhs[1 - 1].matched_text();
                 let location = aa_rhs[1 - 1].location();
                 if let Some(symbol) = self.get_token(name, location) {
-                   aa_lhs = AttributeData::Symbol(Some(Rc::clone(symbol)))
+                    aa_lhs = AttributeData::Symbol(Some(Rc::clone(symbol)))
                 } else {
                     let msg = format!("Token \"{}\" is not known", name);
                     self.error(location, &msg);
@@ -1127,7 +1129,13 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData<AATerminal>> for
                 aa_lhs = AttributeData::Symbol(None);
                 let name = aa_rhs[1 - 1].matched_text();
                 let location = aa_rhs[1 - 1].location();
-                self.error(location, &format!("Non terminal \"{}\" cannot be used as precedence tag.", name))
+                self.error(
+                    location,
+                    &format!(
+                        "Non terminal \"{}\" cannot be used as precedence tag.",
+                        name
+                    ),
+                )
             }
             29 => {
                 // tag: IDENT
@@ -1136,6 +1144,83 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData<AATerminal>> for
                 if let Err(err) = self.new_tag(name, location) {
                     self.error(location, &err.to_string())
                 }
+            }
+            32 => {
+                // production_group: production_group_head production_tail_list "."
+                let lhs = aa_rhs[1 - 1].left_hand_side();
+                let tails = aa_rhs[2 - 1].production_tail_list();
+                for tail in tails.iter() {
+                    self.new_production(Rc::clone(&lhs), tail.clone());
+                }
+            }
+            33 => {
+                // production_group_head: IDENT ":" ?(  grammar_specification.symbol_table.is_known_token($1.dd_matched_text)  ?)
+                let name = aa_rhs[1 - 1].matched_text();
+                let location = aa_rhs[1 - 1].location();
+                if let Some(defined_at) = self.declaration_location(name) {
+                    self.error(
+                        location,
+                        &format!(
+                            "{}: token (defined at {}) cannot be used as left hand side",
+                            name, defined_at
+                        ),
+                    )
+                } else {
+                    self.error(
+                        location,
+                        &format!("{}: token cannot be used as left hand side", name),
+                    )
+                };
+                let semantic_error = self.special_symbol(&SpecialSymbols::SemanticError);
+                aa_lhs = AttributeData::LeftHandSide(Rc::clone(semantic_error));
+            }
+            34 => {
+                // production_group_head: IDENT ":" ?(  grammar_specification.symbol_table.is_known_tag($1.dd_matched_text)  ?)
+                let name = aa_rhs[1 - 1].matched_text();
+                let location = aa_rhs[1 - 1].location();
+                if let Some(defined_at) = self.declaration_location(name) {
+                    self.error(
+                        location,
+                        &format!(
+                            "{}: precedence tag (defined at {}) cannot be used as left hand side",
+                            name, defined_at
+                        ),
+                    )
+                } else {
+                    self.error(
+                        location,
+                        &format!("{}: precedence cannot be used as left hand side", name),
+                    )
+                };
+                let semantic_error = self.special_symbol(&SpecialSymbols::SemanticError);
+                aa_lhs = AttributeData::LeftHandSide(Rc::clone(semantic_error));
+            }
+            35 => {
+                // production_group_head: IDENT ":"
+                let name = aa_rhs[1 - 1].matched_text();
+                let location = aa_rhs[1 - 1].location();
+                if !Self::is_allowable_name(name) {
+                    self.warning(
+                        location,
+                        &format!("token name \"{}\" may clash with generated code", name),
+                    )
+                };
+                let non_terminal = self.define_non_terminal(name, location);
+            }
+            36 => {
+                // production_tail_list: production_tail
+                let production_tail = aa_rhs[1 - 1].production_tail().clone();
+                aa_lhs = AttributeData::ProductionTailList(vec![production_tail]);
+            }
+            37 => {
+                // production_tail_list: production_tail_list "|" production_tail
+                let mut production_tail_list = aa_rhs[1 - 1].production_tail_list().clone();
+                let production_tail = aa_rhs[3 - 1].production_tail().clone();
+                production_tail_list.push(production_tail);
+                aa_lhs = AttributeData::ProductionTailList(production_tail_list);
+            }
+            38 => {
+                // production_tail: <empty>
             }
             _ => (),
         }

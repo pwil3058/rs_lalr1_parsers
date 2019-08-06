@@ -7,5 +7,6 @@ mod grammar;
 mod symbols;
 
 fn main() {
+    let _parser_specification = grammar::ParserSpecification::new();
     println!("Hello, world!");
 }
