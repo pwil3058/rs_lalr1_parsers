@@ -13,16 +13,16 @@ use crate::symbols::{
 pub struct ProductionTail {
     right_hand_side: Vec<Rc<Symbol>>,
     predicate: Option<String>,
-    action: Option<String>,
     associative_precedence: AssociativePrecedence,
+    action: Option<String>,
 }
 
 impl ProductionTail {
     pub fn new(
         right_hand_side: Vec<Rc<Symbol>>,
         predicate: Option<String>,
-        action: Option<String>,
         associative_precedence: Option<AssociativePrecedence>,
+        action: Option<String>,
     ) -> Self {
         let associative_precedence = if let Some(associative_precedence) = associative_precedence {
             associative_precedence

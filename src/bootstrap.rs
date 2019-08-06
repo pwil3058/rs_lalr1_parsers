@@ -5,7 +5,7 @@ use lexan;
 
 use crate::{
     attributes::*,
-    grammar::ParserSpecification,
+    grammar::{ParserSpecification, ProductionTail},
     symbols::{Associativity, SpecialSymbols},
 };
 
@@ -1221,6 +1221,36 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData<AATerminal>>
             }
             38 => {
                 // production_tail: <empty>
+                let tail = ProductionTail::new(vec![], None, None, None);
+                aa_lhs = AttributeData::ProductionTail(tail)
+            }
+            39 => {
+                // production_tail: action
+                let action = aa_rhs[1 - 1].action().to_string();
+                let tail = ProductionTail::new(vec![], None, None, Some(action));
+                aa_lhs = AttributeData::ProductionTail(tail)
+            }
+            40 => {
+                // production_tail: predicate action
+                let predicate = aa_rhs[1 - 1].predicate().to_string();
+                let action = aa_rhs[2 - 1].action().to_string();
+                let tail = ProductionTail::new(vec![], Some(predicate), None, Some(action));
+                aa_lhs = AttributeData::ProductionTail(tail)
+            }
+            41 => {
+                // production_tail: predicate
+                let predicate = aa_rhs[1 - 1].predicate().to_string();
+                let tail = ProductionTail::new(vec![], Some(predicate), None, None);
+                aa_lhs = AttributeData::ProductionTail(tail)
+            }
+            42 => {
+                // production_tail: symbol_list predicate tagged_precedence action
+                let lhs = aa_rhs[1 - 1].symbol_list().clone();
+                let predicate = aa_rhs[2 - 1].predicate().to_string();
+                let tagged_precedence = aa_rhs[3-1].associative_precedence().clone();
+                let action = aa_rhs[4 - 1].action().to_string();
+                let tail = ProductionTail::new(lhs, Some(predicate), Some(tagged_precedence), Some(action));
+                aa_lhs = AttributeData::ProductionTail(tail)
             }
             _ => (),
         }

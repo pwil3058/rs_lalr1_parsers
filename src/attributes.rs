@@ -18,6 +18,9 @@ where
     LeftHandSide(Rc<Symbol>),
     ProductionTail(ProductionTail),
     ProductionTailList(Vec<ProductionTail>),
+    Action(String),
+    Predicate(String),
+    AssociativePrecedence(AssociativePrecedence),
     Default,
 }
 
@@ -91,6 +94,27 @@ where
     pub fn production_tail_list<'a>(&'a self) -> &'a Vec<ProductionTail> {
         match self {
             AttributeData::ProductionTailList(list) => list,
+            _ => panic!("Wrong attribute variant."),
+        }
+    }
+
+    pub fn action<'a>(&'a self) -> &'a str {
+        match self {
+            AttributeData::Action(action) => action,
+            _ => panic!("Wrong attribute variant."),
+        }
+    }
+
+    pub fn predicate<'a>(&'a self) -> &'a str {
+        match self {
+            AttributeData::Predicate(predicate) => predicate,
+            _ => panic!("Wrong attribute variant."),
+        }
+    }
+
+    pub fn associative_precedence<'a>(&'a self) -> &'a AssociativePrecedence {
+        match self {
+            AttributeData::AssociativePrecedence(associative_precedence) => associative_precedence,
             _ => panic!("Wrong attribute variant."),
         }
     }
