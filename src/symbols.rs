@@ -305,11 +305,28 @@ impl SymbolTable {
         self.tokens.contains_key(name)
     }
 
+    pub fn use_symbol_named(&self, symbol_name: &str, location: &lexan::Location) -> Option<&Rc<Symbol>> {
+        if let Some(token) = self.tokens.get(symbol_name) {
+            token.add_used_at(location);
+            Some(token)
+        } else if let Some(tag) = self.tags.get(symbol_name) {
+            tag.add_used_at(location);
+            Some(tag)
+        } else if let Some(non_terminal) = self.non_terminals.get(symbol_name) {
+            non_terminal.add_used_at(location);
+            Some(non_terminal)
+        } else {
+            None
+        }
+    }
+
     pub fn declaration_location(&self, symbol_name: &str) -> Option<lexan::Location> {
         if let Some(token) = self.tokens.get(symbol_name) {
             token.defined_at()
         } else if let Some(tag) = self.tags.get(symbol_name) {
             tag.defined_at()
+        } else if let Some(non_terminal) = self.non_terminals.get(symbol_name) {
+            non_terminal.defined_at()
         } else {
             None
         }

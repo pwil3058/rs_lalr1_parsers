@@ -6,7 +6,7 @@ use lexan;
 use crate::{
     attributes::*,
     grammar::{ParserSpecification, ProductionTail},
-    symbols::{Associativity, SpecialSymbols},
+    symbols::{Associativity, SpecialSymbols, AssociativePrecedence},
 };
 
 #[derive(Debug, Clone, Copy, PartialOrd, Ord, PartialEq, Eq)]
@@ -1206,6 +1206,7 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData<AATerminal>>
                     )
                 };
                 let non_terminal = self.define_non_terminal(name, location);
+                aa_lhs = AttributeData::LeftHandSide(Rc::clone(non_terminal));
             }
             36 => {
                 // production_tail_list: production_tail
@@ -1251,6 +1252,144 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData<AATerminal>>
                 let action = aa_rhs[4 - 1].action().to_string();
                 let tail = ProductionTail::new(lhs, Some(predicate), Some(tagged_precedence), Some(action));
                 aa_lhs = AttributeData::ProductionTail(tail)
+            }
+            43 => {
+                // production_tail: symbol_list predicate tagged_precedence
+                let lhs = aa_rhs[1 - 1].symbol_list().clone();
+                let predicate = aa_rhs[2 - 1].predicate().to_string();
+                let tagged_precedence = aa_rhs[3-1].associative_precedence().clone();
+                let tail = ProductionTail::new(lhs, Some(predicate), Some(tagged_precedence), None);
+                aa_lhs = AttributeData::ProductionTail(tail)
+            }
+            44 => {
+                // production_tail: symbol_list predicate action
+                let lhs = aa_rhs[1 - 1].symbol_list().clone();
+                let predicate = aa_rhs[2 - 1].predicate().to_string();
+                let action = aa_rhs[3 - 1].action().to_string();
+                let tail = ProductionTail::new(lhs, Some(predicate), None, Some(action));
+                aa_lhs = AttributeData::ProductionTail(tail)
+            }
+            45 => {
+                // production_tail: symbol_list predicate
+                let lhs = aa_rhs[1 - 1].symbol_list().clone();
+                let predicate = aa_rhs[2 - 1].predicate().to_string();
+                let tail = ProductionTail::new(lhs, Some(predicate), None, None);
+                aa_lhs = AttributeData::ProductionTail(tail)
+            }
+            46 => {
+                // production_tail: symbol_list tagged_precedence action
+                let lhs = aa_rhs[1 - 1].symbol_list().clone();
+                let tagged_precedence = aa_rhs[2-1].associative_precedence().clone();
+                let action = aa_rhs[3 - 1].action().to_string();
+                let tail = ProductionTail::new(lhs, None, Some(tagged_precedence), Some(action));
+                aa_lhs = AttributeData::ProductionTail(tail)
+            }
+            47 => {
+                // production_tail: symbol_list tagged_precedence
+                let lhs = aa_rhs[1 - 1].symbol_list().clone();
+                let tagged_precedence = aa_rhs[2-1].associative_precedence().clone();
+                let tail = ProductionTail::new(lhs, None, Some(tagged_precedence), None);
+                aa_lhs = AttributeData::ProductionTail(tail)
+            }
+            48 => {
+                // production_tail: symbol_list action
+                let lhs = aa_rhs[1 - 1].symbol_list().clone();
+                let action = aa_rhs[2 - 1].action().to_string();
+                let tail = ProductionTail::new(lhs, None, None, Some(action));
+                aa_lhs = AttributeData::ProductionTail(tail)
+            }
+            49 => {
+                // production_tail: symbol_list
+                let lhs = aa_rhs[1 - 1].symbol_list().clone();
+                let tail = ProductionTail::new(lhs, None, None, None);
+                aa_lhs = AttributeData::ProductionTail(tail)
+            }
+            50 => {
+                // action: ACTION
+                let text = aa_rhs[1 - 1].matched_text();
+                aa_lhs = AttributeData::Action(text[2..text.len() - 2].to_string());
+            }
+            51 => {
+                // predicate: PREDICATE
+                let text = aa_rhs[1 - 1].matched_text();
+                aa_lhs = AttributeData::Predicate(text[2..text.len() - 2].to_string());
+            }
+            52 => {
+                // tagged_precedence: "%prec" IDENT
+                let name = aa_rhs[2 - 1].matched_text();
+                let location = aa_rhs[2 - 1].location();
+                let mut ap = AssociativePrecedence::default();
+                if let Some(symbol) = self.use_symbol_named(name, location) {
+                    if symbol.is_non_terminal() {
+                        self.error(location, &format!("{}: illegal precedence tag (must be token or tag)", name));
+                    } else {
+                        ap = symbol.associative_precedence();
+                    }
+                } else {
+                    self.error(location, &format!("{}: unknown symbol", name));
+                };
+                aa_lhs = AttributeData::AssociativePrecedence(ap);
+            }
+            53 => {
+                // tagged_precedence: "%prec" LITERAL
+                let lexeme = aa_rhs[2 - 1].matched_text();
+                let location = aa_rhs[2 - 1].location();
+                let mut ap = AssociativePrecedence::default();
+                if let Some(symbol) = self.get_literal_token(lexeme, location) {
+                    if symbol.is_non_terminal() {
+                        self.error(location, &format!("{}: illegal precedence tag (must be token or tag)", lexeme));
+                    } else {
+                        ap = symbol.associative_precedence();
+                    }
+                } else {
+                    self.error(location, &format!("{}: unknown literal", lexeme));
+                };
+                aa_lhs = AttributeData::AssociativePrecedence(ap);
+            }
+            54 => {
+                // symbol_list: symbol
+                if let Some(symbol) = aa_rhs[1 - 1].symbol() {
+                    aa_lhs = AttributeData::SymbolList(vec![Rc::clone(&symbol)]);
+                } else {
+                    panic!("Missing symbol");
+                }
+            }
+            55 => {
+                // symbol_list: symbol_list symbol
+                let mut symbol_list = aa_rhs[1 - 1].symbol_list().clone();
+                if let Some(symbol) = aa_rhs[2 - 1].symbol() {
+                    symbol_list.push(Rc::clone(&symbol));
+                    aa_lhs = AttributeData::SymbolList(symbol_list);
+                } else {
+                    panic!("Missing symbol");
+                }
+            }
+            56 => {
+                // symbol: IDENT
+                let name = aa_rhs[1 - 1].matched_text();
+                let location = aa_rhs[2 - 1].location();
+                if let Some(symbol) = self.use_symbol_named(name, location) {
+                    aa_lhs = AttributeData::Symbol(Some(Rc::clone(symbol)));
+                } else {
+                    self.error(location, &format!("{}: unknown symbol)", name));
+                    aa_lhs = AttributeData::Symbol(None);
+                }
+            }
+            57 => {
+                // symbol: LITERAL
+                let lexeme = aa_rhs[1 - 1].matched_text();
+                let location = aa_rhs[2 - 1].location();
+                if let Some(symbol) = self.get_literal_token(lexeme, location) {
+                    aa_lhs = AttributeData::Symbol(Some(Rc::clone(symbol)));
+                } else {
+                    self.error(location, &format!("{}: unknown symbol)", lexeme));
+                    aa_lhs = AttributeData::Symbol(None);
+                }
+            }
+            58 => {
+                // symbol: %error
+                let symbol = self.special_symbol(&SpecialSymbols::SyntaxError);
+                aa_lhs = AttributeData::Symbol(Some(Rc::clone(symbol)));
             }
             _ => (),
         }
