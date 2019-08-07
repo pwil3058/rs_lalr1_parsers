@@ -50,6 +50,19 @@ where
         }
     }
 
+    pub fn text_and_location<'a>(&'a self) -> (&'a str, &'a lexan::Location) {
+        match self {
+            AttributeData::Token(token) => (token.lexeme(), token.location()),
+            AttributeData::SyntaxError(token, _) => (token.lexeme(), token.location()),
+            AttributeData::LexicalError(error) => match error {
+                lexan::Error::UnexpectedText(text, location) => (text, location),
+                lexan::Error::AmbiguousMatches(_, text, location) => (text, location),
+                lexan::Error::AdvancedWhenEmpty(location) => ("", location),
+            },
+            _ => panic!("Wrong attribute variant."),
+        }
+    }
+
     pub fn location<'a>(&'a self) -> &'a lexan::Location {
         match self {
             AttributeData::Token(token) => token.location(),

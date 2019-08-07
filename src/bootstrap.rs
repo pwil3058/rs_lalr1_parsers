@@ -180,6 +180,7 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData<AATerminal>>
         aa_attributes: &lalr1plus::ParseStack<AATerminal, AANonTerminal, AttributeData<AATerminal>>,
         token: &lexan::Token<AATerminal>,
     ) -> lalr1plus::Action<AATerminal> {
+        //println!("token: {:?}", token);
         use lalr1plus::Action;
         use AATerminal::*;
         let tag = *token.tag();
@@ -746,14 +747,14 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData<AATerminal>>
                 OInjection => 15,
                 Injection => 3,
                 InjectionHead => 5,
-                TokenDefinitions => 14,
+                SkipDefinitions => 14,
                 _ => panic!(
                     "Malformed goto table: no entry for ({} , {})",
                     lhs, current_state
                 ),
             },
             9 => match lhs {
-                TokenDefinitions => 15,
+                TokenDefinition => 15,
                 _ => panic!(
                     "Malformed goto table: no entry for ({} , {})",
                     lhs, current_state
@@ -1013,7 +1014,11 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData<AATerminal>>
         aa_rhs: Vec<AttributeData<AATerminal>>,
         aa_token_stream: &mut lexan::TokenStream<AATerminal>,
     ) -> AttributeData<AATerminal> {
-        let mut aa_lhs = AttributeData::default();
+        let mut aa_lhs = if let Some(attr_data) = aa_rhs.first() {
+            attr_data.clone()
+        } else {
+            AttributeData::default()
+        };
         match aa_production_id {
             4 => {
                 // injection_head: "%inject" LITERAL
@@ -1111,6 +1116,7 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData<AATerminal>>
                 } else {
                     let msg = format!("Literal token \"{}\" is not known", text);
                     self.error(location, &msg);
+                    aa_lhs = AttributeData::Symbol(None)
                 }
             }
             27 => {
@@ -1122,6 +1128,7 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData<AATerminal>>
                 } else {
                     let msg = format!("Token \"{}\" is not known", name);
                     self.error(location, &msg);
+                    aa_lhs = AttributeData::Symbol(None)
                 }
             }
             28 => {
