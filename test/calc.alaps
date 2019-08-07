@@ -1,0 +1,75 @@
+%{
+import std.stdio;
+double[string] variables;
+enum Errors { undefinedVariables = 1, divideByZero = 2, syntaxError = 4, lexError = 8 };
+uint errors;
+
+void report_errors()
+{
+    auto report = "Errors:";
+    if (errors & Errors.undefinedVariables) {
+        report ~= " \"Undefined Variables\"";
+    }
+    if (errors & Errors.divideByZero) {
+        report ~= " \"Divide by Zero\"";
+    }
+    if (errors & Errors.syntaxError) {
+        report ~= " \"Syntax Errors\"";
+    }
+    if (errors & Errors.lexError) {
+        report ~= " \"Lexical Errors\"";
+    }
+    stderr.writeln(report);
+}
+%}
+
+%token          EOL     (\n)
+%token          PLUS    "+"
+%token          MINUS   "-"
+%token          TIMES   "*"
+%token          DIVIDE  "/"
+%token          ASSIGN  "="
+%token          NUMBER  ([0-9]+(\.[0-9]+){0,1})
+%token          ID      ([a-zA-Z]+)
+%token          LPR     "("
+%token          RPR     ")"
+
+%skip   ([\t\r ]+)
+
+%right  UMINUS
+%left   "*" "/"
+%left   "+" "-"
+%left   EOL
+
+%%
+line: setup expr ?(errors > 0?) !{report_errors();!}
+    | setup expr !{writeln($2.value);!}
+    | setup ID "=" expr ?(errors == 0?) !{variables[$2.id] = $4.value;!}
+    | setup ID "=" expr !{report_errors();!}
+    | line EOL line
+    | line EOL
+    | %error !{errors |= Errors.syntaxError;!}
+    .
+
+setup: !{errors = 0;!}.
+
+expr: expr "+" expr ?($1.value == 0?) !{$$.value = $3.value;!}
+    | expr "+" expr ?($3.value == 0?) !{$$.value = $1.value;!}
+    | expr "+" expr !{$$.value = $1.value + $3.value;!}
+    | expr "-" expr ?($1.value == 0?) !{$$.value = -$3.value;!}
+    | expr "-" expr ?($3.value == 0?) !{$$.value = $1.value;!}
+    | expr "-" expr !{$$.value = $1.value - $3.value;!}
+    | expr "*" expr ?($1.value == 0 || $3.value == 0?) !{$$.value = -$3.value;!}
+    | expr "*" expr ?($1.value == 1?) !{$$.value = $3.value;!}
+    | expr "*" expr ?($3.value == 1?) !{$$.value = $1.value;!}
+    | expr "*" expr !{$$.value = $1.value * $3.value;!}
+    | expr "/" expr ?($3.value == 1?) !{$$.value = $1.value;!}
+    | expr "/" expr ?($3.value == 0?) !{errors |= Errors.divideByZero;!}
+    | expr "/" expr ?($1.value == 0?) !{$$.value = 0;!}
+    | expr "/" expr !{$$.value = $1.value / $3.value;!}
+    | "(" expr ")" !{$$.value = $2.value;!}
+    | "-" expr %prec UMINUS !{$$.value = -$2.value;!}
+    | NUMBER !{$$.value = $1.value;!}
+    | ID ?($1.id in variables?) !{$$.value = variables[$1.id];!}
+    | ID !{errors |= Errors.undefinedVariables; $$.value = 0;!}
+    .
