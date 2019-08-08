@@ -147,6 +147,18 @@ impl Symbol {
         self.symbol_type.is_non_terminal()
     }
 
+    pub fn is_undefined(&self) -> bool {
+        self.mutable_data.borrow().defined_at.is_none()
+    }
+
+    pub fn is_unused(&self) -> bool {
+        self.mutable_data.borrow().used_at.len() == 0
+    }
+
+    pub fn used_at(&self) -> Vec<lexan::Location> {
+        self.mutable_data.borrow().used_at.iter().cloned().collect()
+    }
+
     pub fn new_token_at(
         ident: u32,
         name: &str,
@@ -237,6 +249,10 @@ impl Symbol {
             .used_at
             .push(location.clone())
     }
+
+    pub fn set_defined_at(&self, location: &lexan::Location) {
+        self.mutable_data.borrow_mut().defined_at = Some(location.clone());
+    }
 }
 
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
@@ -306,6 +322,22 @@ impl SymbolTable {
         st.special_symbols
             .insert(SpecialSymbols::SemanticError, symbol);
         st
+    }
+
+    pub fn undefined_symbols(&self) -> impl Iterator<Item = &Rc<Symbol>> {
+        self.tokens
+            .values()
+            .chain(self.tags.values())
+            .chain(self.non_terminals.values())
+            .filter(|s| s.is_undefined())
+    }
+
+    pub fn unused_symbols(&self) -> impl Iterator<Item = &Rc<Symbol>> {
+        self.tokens
+            .values()
+            .chain(self.tags.values())
+            .chain(self.non_terminals.values())
+            .filter(|s| s.is_unused())
     }
 
     pub fn special_symbol(&self, t: &SpecialSymbols) -> &Rc<Symbol> {
@@ -388,7 +420,7 @@ impl SymbolTable {
 
     pub fn define_non_terminal(&mut self, name: &str, location: &lexan::Location) -> &Rc<Symbol> {
         if let Some(non_terminal) = self.non_terminals.get_mut(name) {
-            non_terminal.add_reference(location);
+            non_terminal.set_defined_at(location);
         } else {
             let ident = self.next_ident;
             self.non_terminals.insert(

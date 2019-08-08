@@ -5,9 +5,7 @@ use std::{
 
 use lexan;
 
-use crate::symbols::{
-    AssociativePrecedence, SpecialSymbols, Symbol, SymbolTable,
-};
+use crate::symbols::{AssociativePrecedence, SpecialSymbols, Symbol, SymbolTable};
 
 #[derive(Debug, Clone, Default)]
 pub struct ProductionTail {
@@ -67,13 +65,21 @@ impl Production {
     }
 }
 
+pub fn report_error(location: &lexan::Location, what: &str) {
+    writeln!(stderr(), "{}: Error: {}.", location, what).expect("what?");
+}
+
+pub fn report_warning(location: &lexan::Location, what: &str) {
+    writeln!(stderr(), "{}: Warning: {}.", location, what).expect("what?");
+}
+
 #[derive(Debug, Default, Clone)]
 pub struct ParserSpecification {
     pub symbol_table: SymbolTable,
     productions: Vec<Production>,
     preamble: String,
-    error_count: u32,
-    warning_count: u32,
+    pub error_count: u32,
+    pub warning_count: u32,
 }
 
 impl ParserSpecification {
@@ -95,12 +101,12 @@ impl ParserSpecification {
     }
 
     pub fn error(&mut self, location: &lexan::Location, what: &str) {
-        writeln!(stderr(), "{}:Error: {}.", location, what).expect("what?");
+        report_error(location, what);
         self.error_count += 1;
     }
 
     pub fn warning(&mut self, location: &lexan::Location, what: &str) {
-        writeln!(stderr(), "{}:Warning: {}.", location, what).expect("what?");
+        report_warning(location, what);
         self.warning_count += 1;
     }
 

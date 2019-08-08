@@ -2,8 +2,7 @@
 extern crate lazy_static;
 extern crate clap;
 
-use std::fs;
-use std::io::prelude::*;
+use std::{fs, io::prelude::*, rc::Rc};
 
 use lalr1plus::parser::*;
 
@@ -26,5 +25,34 @@ fn main() {
     if let Err(error) = parser_specification.parse_text(input, file_name.to_string()) {
         writeln!(std::io::stderr(), "Parse failed: {:?}", error).unwrap();
         std::process::exit(1);
+    }
+
+    for symbol in parser_specification.symbol_table.unused_symbols() {
+        let location = symbol.defined_at().unwrap();
+        grammar::report_warning(
+            &location,
+            &format!("Symbol \"{}\" is not used", symbol.name()),
+        );
+    }
+
+    let mut undefined_symbols = 0;
+    for symbol in parser_specification.symbol_table.undefined_symbols() {
+        for location in symbol.used_at() {
+            grammar::report_error(
+                &location,
+                &format!("Symbol \"{}\" is not defined", symbol.name()),
+            );
+        }
+        undefined_symbols += 1;
+    }
+
+    if (undefined_symbols + parser_specification.error_count) > 0 {
+        writeln!(
+            std::io::stderr(),
+            "Too man errors {} aborting.",
+            (undefined_symbols + parser_specification.error_count)
+        )
+        .unwrap();
+        std::process::exit(2);
     }
 }
