@@ -186,7 +186,11 @@ impl Symbol {
         })
     }
 
-    pub fn new_non_terminal_used_at(ident: u32, name: &str, location: &lexan::Location) -> Rc<Symbol> {
+    pub fn new_non_terminal_used_at(
+        ident: u32,
+        name: &str,
+        location: &lexan::Location,
+    ) -> Rc<Symbol> {
         let mutable_data = RefCell::new(SymbolMutableData {
             associative_precedence: AssociativePrecedence::default(),
             defined_at: None,
@@ -320,7 +324,11 @@ impl SymbolTable {
         self.tokens.contains_key(name)
     }
 
-    pub fn use_symbol_named(&mut self, symbol_name: &str, location: &lexan::Location) -> Option<&Rc<Symbol>> {
+    pub fn use_symbol_named(
+        &mut self,
+        symbol_name: &str,
+        location: &lexan::Location,
+    ) -> Option<&Rc<Symbol>> {
         if let Some(token) = self.tokens.get(symbol_name) {
             token.add_used_at(location);
             Some(token)

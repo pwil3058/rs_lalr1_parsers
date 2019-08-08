@@ -6,7 +6,7 @@ use std::{
 use lexan;
 
 use crate::symbols::{
-    self, AssociativePrecedence, Associativity, SpecialSymbols, Symbol, SymbolTable,
+    AssociativePrecedence, SpecialSymbols, Symbol, SymbolTable,
 };
 
 #[derive(Debug, Clone, Default)]
@@ -94,18 +94,6 @@ impl ParserSpecification {
         !(name.starts_with("aa") || name.starts_with("AA"))
     }
 
-    pub fn is_known_tag(&self, name: &str) -> bool {
-        self.symbol_table.is_known_tag(name)
-    }
-
-    pub fn is_known_token(&self, name: &str) -> bool {
-        self.symbol_table.is_known_token(name)
-    }
-
-    pub fn is_known_non_terminal(&self, name: &str) -> bool {
-        self.symbol_table.is_known_non_terminal(name)
-    }
-
     pub fn error(&mut self, location: &lexan::Location, what: &str) {
         writeln!(stderr(), "{}:Error: {}.", location, what).expect("what?");
         self.error_count += 1;
@@ -120,23 +108,6 @@ impl ParserSpecification {
         self.preamble = preamble.to_string();
     }
 
-    pub fn new_token(
-        &mut self,
-        name: &str,
-        pattern: &str,
-        location: &lexan::Location,
-    ) -> Result<(), symbols::Error> {
-        self.symbol_table.new_token(name, pattern, location)
-    }
-
-    pub fn new_tag(
-        &mut self,
-        name: &str,
-        location: &lexan::Location,
-    ) -> Result<(), symbols::Error> {
-        self.symbol_table.new_tag(name, location)
-    }
-
     pub fn new_production(&mut self, left_hand_side: Rc<Symbol>, tail: ProductionTail) {
         let ident = self.productions.len() as u32;
         if ident == 1 {
@@ -144,40 +115,5 @@ impl ParserSpecification {
         }
         self.productions
             .push(Production::new(ident, left_hand_side, tail));
-    }
-
-    pub fn add_skip_rule(&mut self, rule: &str) {
-        self.symbol_table.add_skip_rule(rule);
-    }
-
-    pub fn set_precedences(
-        &mut self,
-        associativity: Associativity,
-        tags: &Vec<Rc<symbols::Symbol>>,
-    ) {
-        self.symbol_table.set_precedences(associativity, tags);
-    }
-
-    pub fn get_literal_token(&self, text: &str, location: &lexan::Location) -> Option<&Rc<Symbol>> {
-        self.symbol_table.get_literal_token(text, location)
-    }
-
-    pub fn get_token(&self, name: &str, location: &lexan::Location) -> Option<&Rc<Symbol>> {
-        self.symbol_table.get_token(name, location)
-    }
-
-    pub fn declaration_location(&self, symbol_name: &str) -> Option<lexan::Location> {
-        self.symbol_table.declaration_location(symbol_name)
-    }
-
-    pub fn special_symbol(&self, t: &SpecialSymbols) -> &Rc<Symbol> {
-        self.symbol_table.special_symbol(t)
-    }
-
-    pub fn define_non_terminal(&mut self, name: &str, location: &lexan::Location) -> &Rc<Symbol> {
-        self.symbol_table.define_non_terminal(name, location)
-    }
-    pub fn use_symbol_named(&mut self, symbol_name: &str, location: &lexan::Location) -> Option<&Rc<Symbol>> {
-        self.symbol_table.use_symbol_named(symbol_name, location)
     }
 }

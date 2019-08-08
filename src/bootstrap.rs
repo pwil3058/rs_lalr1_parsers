@@ -6,7 +6,7 @@ use lexan;
 use crate::{
     attributes::*,
     grammar::{ParserSpecification, ProductionTail},
-    symbols::{Associativity, SpecialSymbols, AssociativePrecedence},
+    symbols::{AssociativePrecedence, Associativity, SpecialSymbols},
 };
 
 #[derive(Debug, Clone, Copy, PartialOrd, Ord, PartialEq, Eq)]
@@ -180,7 +180,6 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData<AATerminal>>
         aa_attributes: &lalr1plus::ParseStack<AATerminal, AANonTerminal, AttributeData<AATerminal>>,
         token: &lexan::Token<AATerminal>,
     ) -> lalr1plus::Action<AATerminal> {
-        //println!("token: {:?}", token);
         use lalr1plus::Action;
         use AATerminal::*;
         let tag = *token.tag();
@@ -314,7 +313,10 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData<AATerminal>>
             25 => match tag {
                 REGEX | LITERAL => {
                     if !Self::is_allowable_name(
-                        aa_attributes.attribute_n_from_end(2 - 1).matched_text().unwrap(),
+                        aa_attributes
+                            .attribute_n_from_end(2 - 1)
+                            .matched_text()
+                            .unwrap(),
                     ) {
                         Action::Reduce(12) // new_token_name: IDENT ?(  !is_allowable_name($1.matched_text())  ?)
                     } else {
@@ -461,12 +463,19 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData<AATerminal>>
             },
             49 => match tag {
                 LITERAL | ERROR | VBAR | DOT | IDENT | PREDICATE | ACTION => {
-                    if self.is_known_token(aa_attributes.attribute_n_from_end(3 - 1).matched_text().unwrap())
-                    {
+                    if self.symbol_table.is_known_token(
+                        aa_attributes
+                            .attribute_n_from_end(3 - 1)
+                            .matched_text()
+                            .unwrap(),
+                    ) {
                         Action::Reduce(33) // production_group_head: IDENT ":" ?(  self.is_known_token($1.matched_text())  ?)
-                    } else if self
-                        .is_known_tag(aa_attributes.attribute_n_from_end(3 - 1).matched_text().unwrap())
-                    {
+                    } else if self.symbol_table.is_known_tag(
+                        aa_attributes
+                            .attribute_n_from_end(3 - 1)
+                            .matched_text()
+                            .unwrap(),
+                    ) {
                         Action::Reduce(34) // production_group_head: IDENT ":" ?(  self.is_known_tag($1.matched_text())  ?)
                     } else {
                         Action::Reduce(35) // production_group_head: IDENT ":"
@@ -581,11 +590,18 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData<AATerminal>>
             },
             69 => match tag {
                 LITERAL | LEFT | RIGHT | NONASSOC | INJECT | NEWSECTION | IDENT => {
-                    if self.is_known_token(aa_attributes.attribute_n_from_end(2 - 1).matched_text().unwrap())
-                    {
+                    if self.symbol_table.is_known_token(
+                        aa_attributes
+                            .attribute_n_from_end(2 - 1)
+                            .matched_text()
+                            .unwrap(),
+                    ) {
                         Action::Reduce(27) // tag: IDENT ?(  self.is_known_token($1.matched_text())  ?)
-                    } else if self.is_known_non_terminal(
-                        aa_attributes.attribute_n_from_end(2 - 1).matched_text().unwrap(),
+                    } else if self.symbol_table.is_known_non_terminal(
+                        aa_attributes
+                            .attribute_n_from_end(2 - 1)
+                            .matched_text()
+                            .unwrap(),
                     ) {
                         Action::Reduce(28) // tag: IDENT ?(  self.is_known_non_terminal($1.matched_text())  ?)
                     } else {
@@ -1027,7 +1043,10 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData<AATerminal>>
                     Ok(mut file) => {
                         let mut text = String::new();
                         if let Err(err) = file.read_to_string(&mut text) {
-                            self.error(aa_rhs[2 - 1].location().unwrap(), &format!("Injecting: {}", err));
+                            self.error(
+                                aa_rhs[2 - 1].location().unwrap(),
+                                &format!("Injecting: {}", err),
+                            );
                         } else if text.len() == 0 {
                             self.error(
                                 aa_rhs[2 - 1].location().unwrap(),
@@ -1037,9 +1056,10 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData<AATerminal>>
                             aa_token_stream.inject(text, file_path.to_string());
                         }
                     }
-                    Err(err) => {
-                        self.error(aa_rhs[2 - 1].location().unwrap(), &format!("Injecting: {}.", err))
-                    }
+                    Err(err) => self.error(
+                        aa_rhs[2 - 1].location().unwrap(),
+                        &format!("Injecting: {}.", err),
+                    ),
                 };
             }
             7 => {
@@ -1052,7 +1072,7 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData<AATerminal>>
                 let name = aa_rhs[2 - 1].matched_text().unwrap();
                 let pattern = aa_rhs[3 - 1].matched_text().unwrap();
                 let location = aa_rhs[3 - 1].location().unwrap();
-                if let Err(err) = self.new_token(name, pattern, location) {
+                if let Err(err) = self.symbol_table.new_token(name, pattern, location) {
                     self.error(location, &err.to_string())
                 }
             }
@@ -1069,24 +1089,27 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData<AATerminal>>
             18 => {
                 // skip_definition: "%skip" REGEX
                 let skip_rule = aa_rhs[2 - 1].matched_text().unwrap();
-                self.add_skip_rule(skip_rule);
+                self.symbol_table.add_skip_rule(skip_rule);
             }
             21 => {
                 //  precedence_definition: "%left" tag_list
                 let mut tag_list = aa_rhs[2 - 1].symbol_list().clone();
-                self.set_precedences(Associativity::Left, &mut tag_list);
+                self.symbol_table
+                    .set_precedences(Associativity::Left, &mut tag_list);
                 aa_lhs = AttributeData::SymbolList(tag_list);
             }
             22 => {
                 //  precedence_definition: "%right" tag_list
                 let mut tag_list = aa_rhs[2 - 1].symbol_list().clone();
-                self.set_precedences(Associativity::Right, &mut tag_list);
+                self.symbol_table
+                    .set_precedences(Associativity::Right, &mut tag_list);
                 aa_lhs = AttributeData::SymbolList(tag_list);
             }
             23 => {
                 //  precedence_definition: "%nonassoc" tag_list
                 let mut tag_list = aa_rhs[2 - 1].symbol_list().clone();
-                self.set_precedences(Associativity::NonAssoc, &mut tag_list);
+                self.symbol_table
+                    .set_precedences(Associativity::NonAssoc, &mut tag_list);
                 aa_lhs = AttributeData::SymbolList(tag_list);
             }
             24 => {
@@ -1111,7 +1134,7 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData<AATerminal>>
                 // tag: LITERAL
                 let text = aa_rhs[1 - 1].matched_text().unwrap();
                 let location = aa_rhs[1 - 1].location().unwrap();
-                if let Some(symbol) = self.get_literal_token(text, location) {
+                if let Some(symbol) = self.symbol_table.get_literal_token(text, location) {
                     aa_lhs = AttributeData::Symbol(Some(Rc::clone(symbol)))
                 } else {
                     let msg = format!("Literal token \"{}\" is not known", text);
@@ -1123,7 +1146,7 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData<AATerminal>>
                 // tag: IDENT ?(  grammar_specification.symbol_table.is_known_token($1.dd_matched_text)  ?)
                 let name = aa_rhs[1 - 1].matched_text().unwrap();
                 let location = aa_rhs[1 - 1].location().unwrap();
-                if let Some(symbol) = self.get_token(name, location) {
+                if let Some(symbol) = self.symbol_table.get_token(name, location) {
                     aa_lhs = AttributeData::Symbol(Some(Rc::clone(symbol)))
                 } else {
                     let msg = format!("Token \"{}\" is not known", name);
@@ -1148,7 +1171,7 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData<AATerminal>>
                 // tag: IDENT
                 let name = aa_rhs[1 - 1].matched_text().unwrap();
                 let location = aa_rhs[1 - 1].location().unwrap();
-                if let Err(err) = self.new_tag(name, location) {
+                if let Err(err) = self.symbol_table.new_tag(name, location) {
                     self.error(location, &err.to_string())
                 }
             }
@@ -1164,7 +1187,7 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData<AATerminal>>
                 // production_group_head: IDENT ":" ?(  grammar_specification.symbol_table.is_known_token($1.dd_matched_text)  ?)
                 let name = aa_rhs[1 - 1].matched_text().unwrap();
                 let location = aa_rhs[1 - 1].location().unwrap();
-                if let Some(defined_at) = self.declaration_location(name) {
+                if let Some(defined_at) = self.symbol_table.declaration_location(name) {
                     self.error(
                         location,
                         &format!(
@@ -1178,14 +1201,16 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData<AATerminal>>
                         &format!("{}: token cannot be used as left hand side", name),
                     )
                 };
-                let semantic_error = self.special_symbol(&SpecialSymbols::SemanticError);
+                let semantic_error = self
+                    .symbol_table
+                    .special_symbol(&SpecialSymbols::SemanticError);
                 aa_lhs = AttributeData::LeftHandSide(Rc::clone(semantic_error));
             }
             34 => {
                 // production_group_head: IDENT ":" ?(  grammar_specification.symbol_table.is_known_tag($1.dd_matched_text)  ?)
                 let name = aa_rhs[1 - 1].matched_text().unwrap();
                 let location = aa_rhs[1 - 1].location().unwrap();
-                if let Some(defined_at) = self.declaration_location(name) {
+                if let Some(defined_at) = self.symbol_table.declaration_location(name) {
                     self.error(
                         location,
                         &format!(
@@ -1199,7 +1224,9 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData<AATerminal>>
                         &format!("{}: precedence cannot be used as left hand side", name),
                     )
                 };
-                let semantic_error = self.special_symbol(&SpecialSymbols::SemanticError);
+                let semantic_error = self
+                    .symbol_table
+                    .special_symbol(&SpecialSymbols::SemanticError);
                 aa_lhs = AttributeData::LeftHandSide(Rc::clone(semantic_error));
             }
             35 => {
@@ -1212,7 +1239,7 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData<AATerminal>>
                         &format!("token name \"{}\" may clash with generated code", name),
                     )
                 };
-                let non_terminal = self.define_non_terminal(name, location);
+                let non_terminal = self.symbol_table.define_non_terminal(name, location);
                 aa_lhs = AttributeData::LeftHandSide(Rc::clone(non_terminal));
             }
             36 => {
@@ -1255,16 +1282,21 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData<AATerminal>>
                 // production_tail: symbol_list predicate tagged_precedence action
                 let lhs = aa_rhs[1 - 1].symbol_list().clone();
                 let predicate = aa_rhs[2 - 1].predicate().to_string();
-                let tagged_precedence = aa_rhs[3-1].associative_precedence().clone();
+                let tagged_precedence = aa_rhs[3 - 1].associative_precedence().clone();
                 let action = aa_rhs[4 - 1].action().to_string();
-                let tail = ProductionTail::new(lhs, Some(predicate), Some(tagged_precedence), Some(action));
+                let tail = ProductionTail::new(
+                    lhs,
+                    Some(predicate),
+                    Some(tagged_precedence),
+                    Some(action),
+                );
                 aa_lhs = AttributeData::ProductionTail(tail)
             }
             43 => {
                 // production_tail: symbol_list predicate tagged_precedence
                 let lhs = aa_rhs[1 - 1].symbol_list().clone();
                 let predicate = aa_rhs[2 - 1].predicate().to_string();
-                let tagged_precedence = aa_rhs[3-1].associative_precedence().clone();
+                let tagged_precedence = aa_rhs[3 - 1].associative_precedence().clone();
                 let tail = ProductionTail::new(lhs, Some(predicate), Some(tagged_precedence), None);
                 aa_lhs = AttributeData::ProductionTail(tail)
             }
@@ -1286,7 +1318,7 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData<AATerminal>>
             46 => {
                 // production_tail: symbol_list tagged_precedence action
                 let lhs = aa_rhs[1 - 1].symbol_list().clone();
-                let tagged_precedence = aa_rhs[2-1].associative_precedence().clone();
+                let tagged_precedence = aa_rhs[2 - 1].associative_precedence().clone();
                 let action = aa_rhs[3 - 1].action().to_string();
                 let tail = ProductionTail::new(lhs, None, Some(tagged_precedence), Some(action));
                 aa_lhs = AttributeData::ProductionTail(tail)
@@ -1294,7 +1326,7 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData<AATerminal>>
             47 => {
                 // production_tail: symbol_list tagged_precedence
                 let lhs = aa_rhs[1 - 1].symbol_list().clone();
-                let tagged_precedence = aa_rhs[2-1].associative_precedence().clone();
+                let tagged_precedence = aa_rhs[2 - 1].associative_precedence().clone();
                 let tail = ProductionTail::new(lhs, None, Some(tagged_precedence), None);
                 aa_lhs = AttributeData::ProductionTail(tail)
             }
@@ -1326,9 +1358,12 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData<AATerminal>>
                 let name = aa_rhs[2 - 1].matched_text().unwrap();
                 let location = aa_rhs[2 - 1].location().unwrap();
                 let mut ap = AssociativePrecedence::default();
-                if let Some(symbol) = self.use_symbol_named(name, location) {
+                if let Some(symbol) = self.symbol_table.use_symbol_named(name, location) {
                     if symbol.is_non_terminal() {
-                        self.error(location, &format!("{}: illegal precedence tag (must be token or tag)", name));
+                        self.error(
+                            location,
+                            &format!("{}: illegal precedence tag (must be token or tag)", name),
+                        );
                     } else {
                         ap = symbol.associative_precedence();
                     }
@@ -1342,9 +1377,12 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData<AATerminal>>
                 let lexeme = aa_rhs[2 - 1].matched_text().unwrap();
                 let location = aa_rhs[2 - 1].location().unwrap();
                 let mut ap = AssociativePrecedence::default();
-                if let Some(symbol) = self.get_literal_token(lexeme, location) {
+                if let Some(symbol) = self.symbol_table.get_literal_token(lexeme, location) {
                     if symbol.is_non_terminal() {
-                        self.error(location, &format!("{}: illegal precedence tag (must be token or tag)", lexeme));
+                        self.error(
+                            location,
+                            &format!("{}: illegal precedence tag (must be token or tag)", lexeme),
+                        );
                     } else {
                         ap = symbol.associative_precedence();
                     }
@@ -1375,7 +1413,7 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData<AATerminal>>
                 // symbol: IDENT
                 let name = aa_rhs[1 - 1].matched_text().unwrap();
                 let location = aa_rhs[1 - 1].location().unwrap();
-                if let Some(symbol) = self.use_symbol_named(name, location) {
+                if let Some(symbol) = self.symbol_table.use_symbol_named(name, location) {
                     aa_lhs = AttributeData::Symbol(Some(Rc::clone(symbol)));
                 } else {
                     let symbol = self.symbol_table.use_new_non_terminal(name, location);
@@ -1386,7 +1424,7 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData<AATerminal>>
                 // symbol: LITERAL
                 let lexeme = aa_rhs[1 - 1].matched_text().unwrap();
                 let location = aa_rhs[1 - 1].location().unwrap();
-                if let Some(symbol) = self.get_literal_token(lexeme, location) {
+                if let Some(symbol) = self.symbol_table.get_literal_token(lexeme, location) {
                     aa_lhs = AttributeData::Symbol(Some(Rc::clone(symbol)));
                 } else {
                     self.error(location, &format!("{}: unknown literal)", lexeme));
@@ -1395,7 +1433,9 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData<AATerminal>>
             }
             58 => {
                 // symbol: %error
-                let symbol = self.special_symbol(&SpecialSymbols::SyntaxError);
+                let symbol = self
+                    .symbol_table
+                    .special_symbol(&SpecialSymbols::SyntaxError);
                 aa_lhs = AttributeData::Symbol(Some(Rc::clone(symbol)));
             }
             _ => (),
