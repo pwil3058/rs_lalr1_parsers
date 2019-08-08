@@ -314,7 +314,7 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData<AATerminal>>
             25 => match tag {
                 REGEX | LITERAL => {
                     if !Self::is_allowable_name(
-                        aa_attributes.attribute_n_from_end(2 - 1).matched_text(),
+                        aa_attributes.attribute_n_from_end(2 - 1).matched_text().unwrap(),
                     ) {
                         Action::Reduce(12) // new_token_name: IDENT ?(  !is_allowable_name($1.matched_text())  ?)
                     } else {
@@ -461,11 +461,11 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData<AATerminal>>
             },
             49 => match tag {
                 LITERAL | ERROR | VBAR | DOT | IDENT | PREDICATE | ACTION => {
-                    if self.is_known_token(aa_attributes.attribute_n_from_end(3 - 1).matched_text())
+                    if self.is_known_token(aa_attributes.attribute_n_from_end(3 - 1).matched_text().unwrap())
                     {
                         Action::Reduce(33) // production_group_head: IDENT ":" ?(  self.is_known_token($1.matched_text())  ?)
                     } else if self
-                        .is_known_tag(aa_attributes.attribute_n_from_end(3 - 1).matched_text())
+                        .is_known_tag(aa_attributes.attribute_n_from_end(3 - 1).matched_text().unwrap())
                     {
                         Action::Reduce(34) // production_group_head: IDENT ":" ?(  self.is_known_tag($1.matched_text())  ?)
                     } else {
@@ -581,11 +581,11 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData<AATerminal>>
             },
             69 => match tag {
                 LITERAL | LEFT | RIGHT | NONASSOC | INJECT | NEWSECTION | IDENT => {
-                    if self.is_known_token(aa_attributes.attribute_n_from_end(2 - 1).matched_text())
+                    if self.is_known_token(aa_attributes.attribute_n_from_end(2 - 1).matched_text().unwrap())
                     {
                         Action::Reduce(27) // tag: IDENT ?(  self.is_known_token($1.matched_text())  ?)
                     } else if self.is_known_non_terminal(
-                        aa_attributes.attribute_n_from_end(2 - 1).matched_text(),
+                        aa_attributes.attribute_n_from_end(2 - 1).matched_text().unwrap(),
                     ) {
                         Action::Reduce(28) // tag: IDENT ?(  self.is_known_non_terminal($1.matched_text())  ?)
                     } else {
@@ -656,7 +656,7 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData<AATerminal>>
 
     fn production_data(production_id: u32) -> (AANonTerminal, usize) {
         match production_id {
-            1 => (AANonTerminal::Specification, 5),
+            1 => (AANonTerminal::Specification, 4),
             2 => (AANonTerminal::OInjection, 0),
             3 => (AANonTerminal::OInjection, 1),
             4 => (AANonTerminal::InjectionHead, 2),
@@ -1022,15 +1022,15 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData<AATerminal>>
         match aa_production_id {
             4 => {
                 // injection_head: "%inject" LITERAL
-                let file_path = aa_rhs[2 - 1].matched_text().trim_matches('"');
+                let file_path = aa_rhs[2 - 1].matched_text().unwrap().trim_matches('"');
                 match File::open(&file_path) {
                     Ok(mut file) => {
                         let mut text = String::new();
                         if let Err(err) = file.read_to_string(&mut text) {
-                            self.error(aa_rhs[2 - 1].location(), &format!("Injecting: {}", err));
+                            self.error(aa_rhs[2 - 1].location().unwrap(), &format!("Injecting: {}", err));
                         } else if text.len() == 0 {
                             self.error(
-                                aa_rhs[2 - 1].location(),
+                                aa_rhs[2 - 1].location().unwrap(),
                                 &format!("Injected file \"{}\" is empty.", file_path),
                             );
                         } else {
@@ -1038,28 +1038,28 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData<AATerminal>>
                         }
                     }
                     Err(err) => {
-                        self.error(aa_rhs[2 - 1].location(), &format!("Injecting: {}.", err))
+                        self.error(aa_rhs[2 - 1].location().unwrap(), &format!("Injecting: {}.", err))
                     }
                 };
             }
             7 => {
                 // preamble: oinjection RUSTCODE oinjection
-                let text = aa_rhs[2 - 1].matched_text();
+                let text = aa_rhs[2 - 1].matched_text().unwrap();
                 self.set_preamble(&text[2..text.len() - 2]);
             }
             11 => {
                 // token_definition: "%token" new_token_name pattern
-                let name = aa_rhs[2 - 1].matched_text();
-                let pattern = aa_rhs[3 - 1].matched_text();
-                let location = aa_rhs[3 - 1].location();
+                let name = aa_rhs[2 - 1].matched_text().unwrap();
+                let pattern = aa_rhs[3 - 1].matched_text().unwrap();
+                let location = aa_rhs[3 - 1].location().unwrap();
                 if let Err(err) = self.new_token(name, pattern, location) {
                     self.error(location, &err.to_string())
                 }
             }
             12 => {
                 // new_token_name: IDENT ?( !is_allowable_name($1.matched_text()) ?)
-                let name = aa_rhs[1 - 1].matched_text();
-                let location = aa_rhs[1 - 1].location();
+                let name = aa_rhs[1 - 1].matched_text().unwrap();
+                let location = aa_rhs[1 - 1].location().unwrap();
                 self.warning(
                     location,
                     &format!("token name \"{}\" may clash with generated code", name),
@@ -1068,7 +1068,7 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData<AATerminal>>
             }
             18 => {
                 // skip_definition: "%skip" REGEX
-                let skip_rule = aa_rhs[2 - 1].matched_text();
+                let skip_rule = aa_rhs[2 - 1].matched_text().unwrap();
                 self.add_skip_rule(skip_rule);
             }
             21 => {
@@ -1109,8 +1109,8 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData<AATerminal>>
             }
             26 => {
                 // tag: LITERAL
-                let text = aa_rhs[1 - 1].matched_text();
-                let location = aa_rhs[1 - 1].location();
+                let text = aa_rhs[1 - 1].matched_text().unwrap();
+                let location = aa_rhs[1 - 1].location().unwrap();
                 if let Some(symbol) = self.get_literal_token(text, location) {
                     aa_lhs = AttributeData::Symbol(Some(Rc::clone(symbol)))
                 } else {
@@ -1121,8 +1121,8 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData<AATerminal>>
             }
             27 => {
                 // tag: IDENT ?(  grammar_specification.symbol_table.is_known_token($1.dd_matched_text)  ?)
-                let name = aa_rhs[1 - 1].matched_text();
-                let location = aa_rhs[1 - 1].location();
+                let name = aa_rhs[1 - 1].matched_text().unwrap();
+                let location = aa_rhs[1 - 1].location().unwrap();
                 if let Some(symbol) = self.get_token(name, location) {
                     aa_lhs = AttributeData::Symbol(Some(Rc::clone(symbol)))
                 } else {
@@ -1134,8 +1134,8 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData<AATerminal>>
             28 => {
                 // tag: IDENT ?(  grammar_specification.symbol_table.is_known_non_terminal($1.dd_matched_text)  ?)
                 aa_lhs = AttributeData::Symbol(None);
-                let name = aa_rhs[1 - 1].matched_text();
-                let location = aa_rhs[1 - 1].location();
+                let name = aa_rhs[1 - 1].matched_text().unwrap();
+                let location = aa_rhs[1 - 1].location().unwrap();
                 self.error(
                     location,
                     &format!(
@@ -1146,8 +1146,8 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData<AATerminal>>
             }
             29 => {
                 // tag: IDENT
-                let name = aa_rhs[1 - 1].matched_text();
-                let location = aa_rhs[1 - 1].location();
+                let name = aa_rhs[1 - 1].matched_text().unwrap();
+                let location = aa_rhs[1 - 1].location().unwrap();
                 if let Err(err) = self.new_tag(name, location) {
                     self.error(location, &err.to_string())
                 }
@@ -1162,8 +1162,8 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData<AATerminal>>
             }
             33 => {
                 // production_group_head: IDENT ":" ?(  grammar_specification.symbol_table.is_known_token($1.dd_matched_text)  ?)
-                let name = aa_rhs[1 - 1].matched_text();
-                let location = aa_rhs[1 - 1].location();
+                let name = aa_rhs[1 - 1].matched_text().unwrap();
+                let location = aa_rhs[1 - 1].location().unwrap();
                 if let Some(defined_at) = self.declaration_location(name) {
                     self.error(
                         location,
@@ -1183,8 +1183,8 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData<AATerminal>>
             }
             34 => {
                 // production_group_head: IDENT ":" ?(  grammar_specification.symbol_table.is_known_tag($1.dd_matched_text)  ?)
-                let name = aa_rhs[1 - 1].matched_text();
-                let location = aa_rhs[1 - 1].location();
+                let name = aa_rhs[1 - 1].matched_text().unwrap();
+                let location = aa_rhs[1 - 1].location().unwrap();
                 if let Some(defined_at) = self.declaration_location(name) {
                     self.error(
                         location,
@@ -1204,8 +1204,8 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData<AATerminal>>
             }
             35 => {
                 // production_group_head: IDENT ":"
-                let name = aa_rhs[1 - 1].matched_text();
-                let location = aa_rhs[1 - 1].location();
+                let name = aa_rhs[1 - 1].matched_text().unwrap();
+                let location = aa_rhs[1 - 1].location().unwrap();
                 if !Self::is_allowable_name(name) {
                     self.warning(
                         location,
@@ -1313,18 +1313,18 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData<AATerminal>>
             }
             50 => {
                 // action: ACTION
-                let text = aa_rhs[1 - 1].matched_text();
+                let text = aa_rhs[1 - 1].matched_text().unwrap();
                 aa_lhs = AttributeData::Action(text[2..text.len() - 2].to_string());
             }
             51 => {
                 // predicate: PREDICATE
-                let text = aa_rhs[1 - 1].matched_text();
+                let text = aa_rhs[1 - 1].matched_text().unwrap();
                 aa_lhs = AttributeData::Predicate(text[2..text.len() - 2].to_string());
             }
             52 => {
                 // tagged_precedence: "%prec" IDENT
-                let name = aa_rhs[2 - 1].matched_text();
-                let location = aa_rhs[2 - 1].location();
+                let name = aa_rhs[2 - 1].matched_text().unwrap();
+                let location = aa_rhs[2 - 1].location().unwrap();
                 let mut ap = AssociativePrecedence::default();
                 if let Some(symbol) = self.use_symbol_named(name, location) {
                     if symbol.is_non_terminal() {
@@ -1339,8 +1339,8 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData<AATerminal>>
             }
             53 => {
                 // tagged_precedence: "%prec" LITERAL
-                let lexeme = aa_rhs[2 - 1].matched_text();
-                let location = aa_rhs[2 - 1].location();
+                let lexeme = aa_rhs[2 - 1].matched_text().unwrap();
+                let location = aa_rhs[2 - 1].location().unwrap();
                 let mut ap = AssociativePrecedence::default();
                 if let Some(symbol) = self.get_literal_token(lexeme, location) {
                     if symbol.is_non_terminal() {
@@ -1373,23 +1373,23 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData<AATerminal>>
             }
             56 => {
                 // symbol: IDENT
-                let name = aa_rhs[1 - 1].matched_text();
-                let location = aa_rhs[2 - 1].location();
+                let name = aa_rhs[1 - 1].matched_text().unwrap();
+                let location = aa_rhs[1 - 1].location().unwrap();
                 if let Some(symbol) = self.use_symbol_named(name, location) {
                     aa_lhs = AttributeData::Symbol(Some(Rc::clone(symbol)));
                 } else {
-                    self.error(location, &format!("{}: unknown symbol)", name));
-                    aa_lhs = AttributeData::Symbol(None);
+                    let symbol = self.symbol_table.use_new_non_terminal(name, location);
+                    aa_lhs = AttributeData::Symbol(Some(Rc::clone(symbol)));
                 }
             }
             57 => {
                 // symbol: LITERAL
-                let lexeme = aa_rhs[1 - 1].matched_text();
-                let location = aa_rhs[2 - 1].location();
+                let lexeme = aa_rhs[1 - 1].matched_text().unwrap();
+                let location = aa_rhs[1 - 1].location().unwrap();
                 if let Some(symbol) = self.get_literal_token(lexeme, location) {
                     aa_lhs = AttributeData::Symbol(Some(Rc::clone(symbol)));
                 } else {
-                    self.error(location, &format!("{}: unknown symbol)", lexeme));
+                    self.error(location, &format!("{}: unknown literal)", lexeme));
                     aa_lhs = AttributeData::Symbol(None);
                 }
             }

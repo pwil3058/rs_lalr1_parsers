@@ -69,7 +69,7 @@ impl Production {
 
 #[derive(Debug, Default, Clone)]
 pub struct ParserSpecification {
-    symbol_table: SymbolTable,
+    pub symbol_table: SymbolTable,
     productions: Vec<Production>,
     preamble: String,
     error_count: u32,
@@ -177,7 +177,7 @@ impl ParserSpecification {
     pub fn define_non_terminal(&mut self, name: &str, location: &lexan::Location) -> &Rc<Symbol> {
         self.symbol_table.define_non_terminal(name, location)
     }
-    pub fn use_symbol_named(&self, symbol_name: &str, location: &lexan::Location) -> Option<&Rc<Symbol>> {
+    pub fn use_symbol_named(&mut self, symbol_name: &str, location: &lexan::Location) -> Option<&Rc<Symbol>> {
         self.symbol_table.use_symbol_named(symbol_name, location)
     }
 }

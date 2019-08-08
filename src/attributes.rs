@@ -37,49 +37,49 @@ impl<T> AttributeData<T>
 where
     T: Debug + Copy + Eq + Ord,
 {
-    pub fn matched_text<'a>(&'a self) -> &'a str {
+    pub fn matched_text<'a>(&'a self) -> Option<&'a str> {
         match self {
-            AttributeData::Token(token) => token.lexeme(),
-            AttributeData::SyntaxError(token, _) => token.lexeme(),
+            AttributeData::Token(token) => Some(token.lexeme()),
+            AttributeData::SyntaxError(token, _) => Some(token.lexeme()),
             AttributeData::LexicalError(error) => match error {
-                lexan::Error::UnexpectedText(text, _) => text,
-                lexan::Error::AmbiguousMatches(_, text, _) => text,
-                lexan::Error::AdvancedWhenEmpty(_) => "",
+                lexan::Error::UnexpectedText(text, _) => Some(text),
+                lexan::Error::AmbiguousMatches(_, text, _) => Some(text),
+                lexan::Error::AdvancedWhenEmpty(_) => None,
             },
-            _ => panic!("Wrong attribute variant."),
+            _ => None, //panic!("Wrong attribute variant."),
         }
     }
 
-    pub fn text_and_location<'a>(&'a self) -> (&'a str, &'a lexan::Location) {
+    pub fn text_and_location<'a>(&'a self) -> Option<(&'a str, &'a lexan::Location)> {
         match self {
-            AttributeData::Token(token) => (token.lexeme(), token.location()),
-            AttributeData::SyntaxError(token, _) => (token.lexeme(), token.location()),
+            AttributeData::Token(token) => Some((token.lexeme(), token.location())),
+            AttributeData::SyntaxError(token, _) => Some((token.lexeme(), token.location())),
             AttributeData::LexicalError(error) => match error {
-                lexan::Error::UnexpectedText(text, location) => (text, location),
-                lexan::Error::AmbiguousMatches(_, text, location) => (text, location),
-                lexan::Error::AdvancedWhenEmpty(location) => ("", location),
+                lexan::Error::UnexpectedText(text, location) => Some((text, location)),
+                lexan::Error::AmbiguousMatches(_, text, location) => Some((text, location)),
+                lexan::Error::AdvancedWhenEmpty(_) => None,
             },
-            _ => panic!("Wrong attribute variant."),
+            _ => None, // panic!("Wrong attribute variant."),
         }
     }
 
-    pub fn location<'a>(&'a self) -> &'a lexan::Location {
+    pub fn location<'a>(&'a self) -> Option<&'a lexan::Location> {
         match self {
-            AttributeData::Token(token) => token.location(),
-            AttributeData::SyntaxError(token, _) => token.location(),
+            AttributeData::Token(token) => Some(token.location()),
+            AttributeData::SyntaxError(token, _) => Some(token.location()),
             AttributeData::LexicalError(error) => match error {
-                lexan::Error::UnexpectedText(_, location) => location,
-                lexan::Error::AmbiguousMatches(_, _, location) => location,
-                lexan::Error::AdvancedWhenEmpty(location) => location,
+                lexan::Error::UnexpectedText(_, location) => Some(location),
+                lexan::Error::AmbiguousMatches(_, _, location) => Some(location),
+                lexan::Error::AdvancedWhenEmpty(location) => Some(location),
             },
-            _ => panic!("Wrong attribute variant."),
+            _ => None, //panic!("Wrong attribute variant."),
         }
     }
 
     pub fn symbol<'a>(&'a self) -> &'a Option<Rc<Symbol>> {
         match self {
             AttributeData::Symbol(symbol) => symbol,
-            _ => panic!("Wrong attribute variant."),
+            _ => &None, //panic!("Wrong attribute variant."),
         }
     }
 

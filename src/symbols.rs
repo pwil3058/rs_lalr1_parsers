@@ -186,6 +186,21 @@ impl Symbol {
         })
     }
 
+    pub fn new_non_terminal_used_at(ident: u32, name: &str, location: &lexan::Location) -> Rc<Symbol> {
+        let mutable_data = RefCell::new(SymbolMutableData {
+            associative_precedence: AssociativePrecedence::default(),
+            defined_at: None,
+            used_at: vec![location.clone()],
+        });
+        Rc::new(Self {
+            ident,
+            name: name.to_string(),
+            pattern: String::new(),
+            symbol_type: SymbolType::NonTerminal,
+            mutable_data,
+        })
+    }
+
     pub fn defined_at(&self) -> Option<lexan::Location> {
         if let Some(location) = &self.mutable_data.borrow().defined_at {
             Some(location.clone())
@@ -305,7 +320,7 @@ impl SymbolTable {
         self.tokens.contains_key(name)
     }
 
-    pub fn use_symbol_named(&self, symbol_name: &str, location: &lexan::Location) -> Option<&Rc<Symbol>> {
+    pub fn use_symbol_named(&mut self, symbol_name: &str, location: &lexan::Location) -> Option<&Rc<Symbol>> {
         if let Some(token) = self.tokens.get(symbol_name) {
             token.add_used_at(location);
             Some(token)
@@ -350,8 +365,14 @@ impl SymbolTable {
     ) -> Result<(), Error> {
         let token = Symbol::new_token_at(self.next_ident, name, pattern, location);
         self.next_ident += 1;
-        if let Some(token) = self.tokens.insert(name.to_string(), token) {
+        if let Some(token) = self.tokens.insert(name.to_string(), token.clone()) {
             Err(Error::AlreadyDefined(Rc::clone(&token)))
+        } else if pattern.starts_with('"') {
+            if let Some(token) = self.literal_tokens.insert(pattern.to_string(), token) {
+                Err(Error::AlreadyDefined(Rc::clone(&token)))
+            } else {
+                Ok(())
+            }
         } else {
             Ok(())
         }
@@ -372,6 +393,13 @@ impl SymbolTable {
         //self.non_terminals.entry(name.to_string()).or_insert_with(
         //    || Symbol::new_non_terminal_at(ident, name, location)
         //)
+    }
+
+    pub fn use_new_non_terminal(&mut self, name: &str, location: &lexan::Location) -> &Rc<Symbol> {
+        let symbol = Symbol::new_non_terminal_used_at(self.next_ident, name, location);
+        self.next_ident += 1;
+        self.non_terminals.insert(name.to_string(), symbol);
+        self.non_terminals.get(name).unwrap()
     }
 
     pub fn add_skip_rule(&mut self, rule: &str) {
