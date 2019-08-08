@@ -5,7 +5,7 @@ use lexan;
 
 use crate::{
     attributes::*,
-    grammar::{ParserSpecification, ProductionTail},
+    grammar::{GrammarSpecification, ProductionTail},
     symbols::{AssociativePrecedence, Associativity, SpecialSymbols},
 };
 
@@ -160,7 +160,7 @@ impl fmt::Display for AANonTerminal {
 }
 
 impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData<AATerminal>>
-    for ParserSpecification
+    for GrammarSpecification
 {
     fn lexical_analyzer(&self) -> &lexan::LexicalAnalyzer<AATerminal> {
         &AALEXAN

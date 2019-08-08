@@ -21,13 +21,13 @@ fn main() {
     let mut file = fs::File::open(file_name).unwrap();
     let mut input = String::new();
     file.read_to_string(&mut input).unwrap();
-    let mut parser_specification = grammar::ParserSpecification::new();
-    if let Err(error) = parser_specification.parse_text(input, file_name.to_string()) {
+    let mut grammar_specification = grammar::GrammarSpecification::new();
+    if let Err(error) = grammar_specification.parse_text(input, file_name.to_string()) {
         writeln!(std::io::stderr(), "Parse failed: {:?}", error).unwrap();
         std::process::exit(1);
     }
 
-    for symbol in parser_specification.symbol_table.unused_symbols() {
+    for symbol in grammar_specification.symbol_table.unused_symbols() {
         let location = symbol.defined_at().unwrap();
         grammar::report_warning(
             &location,
@@ -36,7 +36,7 @@ fn main() {
     }
 
     let mut undefined_symbols = 0;
-    for symbol in parser_specification.symbol_table.undefined_symbols() {
+    for symbol in grammar_specification.symbol_table.undefined_symbols() {
         for location in symbol.used_at() {
             grammar::report_error(
                 &location,
@@ -46,11 +46,11 @@ fn main() {
         undefined_symbols += 1;
     }
 
-    if (undefined_symbols + parser_specification.error_count) > 0 {
+    if (undefined_symbols + grammar_specification.error_count) > 0 {
         writeln!(
             std::io::stderr(),
             "Too man errors {} aborting.",
-            (undefined_symbols + parser_specification.error_count)
+            (undefined_symbols + grammar_specification.error_count)
         )
         .unwrap();
         std::process::exit(2);

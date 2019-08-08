@@ -1,4 +1,5 @@
 use std::{
+    collections::{HashMap, HashSet},
     io::{stderr, Write},
     rc::Rc,
 };
@@ -74,7 +75,7 @@ pub fn report_warning(location: &lexan::Location, what: &str) {
 }
 
 #[derive(Debug, Default, Clone)]
-pub struct ParserSpecification {
+pub struct GrammarSpecification {
     pub symbol_table: SymbolTable,
     productions: Vec<Production>,
     preamble: String,
@@ -82,7 +83,7 @@ pub struct ParserSpecification {
     pub warning_count: u32,
 }
 
-impl ParserSpecification {
+impl GrammarSpecification {
     pub fn new() -> Self {
         let symbol_table = SymbolTable::new();
         let start_symbol = symbol_table.special_symbol(&SpecialSymbols::Start);
@@ -122,4 +123,27 @@ impl ParserSpecification {
         self.productions
             .push(Production::new(ident, left_hand_side, tail));
     }
+}
+
+struct GrammarItemKey {
+    production: Production,
+    dot: u32,
+}
+
+impl GrammarItemKey {
+    fn new(production: Production) -> Self {
+        Self { production, dot: 0 }
+    }
+}
+
+struct ParserState {
+    ident: u32,
+    grammar_items: HashSet<GrammarItemKey>,
+    shift_list: HashMap<Symbol, Rc<ParserState>>,
+    goto_table: HashMap<Symbol, Rc<ParserState>>,
+    error_recovery_state: Option<Rc<ParserState>>,
+}
+
+pub struct Grammar {
+    specification: GrammarSpecification,
 }
