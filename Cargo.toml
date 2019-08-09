@@ -12,3 +12,4 @@ clap = "2"
 
 lexan = { path = "../../CRATES/rs_lexan.git" }
 lalr1plus = { path = "../../CRATES/rs_lalr1plus.git" }
+ordered_collections = { path = "../../CRATES/rs_ordered_collections.git"}

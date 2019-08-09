@@ -2,6 +2,31 @@
 extern crate lazy_static;
 extern crate clap;
 
+#[macro_export]
+macro_rules! impl_ident_cmp {
+    ( $ident:ident ) => {
+        impl std::cmp::PartialEq for $ident {
+            fn eq(&self, other: &Self) -> bool {
+                self.ident == other.ident
+            }
+        }
+
+        impl std::cmp::Eq for $ident {}
+
+        impl std::cmp::Ord for $ident {
+            fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+                self.ident.cmp(&other.ident)
+            }
+        }
+
+        impl std::cmp::PartialOrd for $ident {
+            fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+                Some(self.cmp(other))
+            }
+        }
+    };
+}
+
 use std::{fs, io::prelude::*, rc::Rc};
 
 use lalr1plus::parser::*;
@@ -55,4 +80,9 @@ fn main() {
         .unwrap();
         std::process::exit(2);
     }
+
+    let grammar = match grammar::Grammar::new(grammar_specification) {
+        Ok(grammar) => grammar,
+        Err(_) => panic!("not yet implemented"),
+    };
 }

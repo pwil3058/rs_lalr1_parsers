@@ -1,6 +1,7 @@
 use std::{cell::RefCell, collections::HashMap, fmt, rc::Rc};
 
 use lexan;
+use ordered_collections::OrderedSet;
 
 pub enum Error {
     AlreadyDefined(Rc<Symbol>),
@@ -54,9 +55,16 @@ impl AssociativePrecedence {
 }
 
 #[derive(Debug, Clone)]
+pub struct FirstsData {
+    token_set: OrderedSet<Rc<Symbol>>,
+    transparent: bool,
+}
+
+#[derive(Debug, Clone)]
 struct SymbolMutableData {
     associative_precedence: AssociativePrecedence,
     defined_at: Option<lexan::Location>,
+    firsts_data: Option<FirstsData>,
     used_at: Vec<lexan::Location>,
 }
 
@@ -65,6 +73,7 @@ impl Default for SymbolMutableData {
         Self {
             associative_precedence: AssociativePrecedence::default(),
             defined_at: None,
+            firsts_data: None,
             used_at: vec![],
         }
     }
@@ -109,8 +118,10 @@ pub struct Symbol {
     mutable_data: RefCell<SymbolMutableData>,
 }
 
+impl_ident_cmp!(Symbol);
+
 impl Symbol {
-    pub fn new(ident: u32, name: String, symbol_type: SymbolType, pattern: String) -> Rc<Self> {
+    fn new(ident: u32, name: String, symbol_type: SymbolType, pattern: String) -> Rc<Self> {
         Rc::new(Self {
             ident,
             name,
@@ -123,6 +134,7 @@ impl Symbol {
     pub fn new_tag_at(ident: u32, name: &str, location: &lexan::Location) -> Rc<Symbol> {
         let mutable_data = RefCell::new(SymbolMutableData {
             associative_precedence: AssociativePrecedence::default(),
+            firsts_data: None,
             defined_at: Some(location.clone()),
             used_at: vec![],
         });
@@ -167,16 +179,24 @@ impl Symbol {
     ) -> Rc<Symbol> {
         let mutable_data = RefCell::new(SymbolMutableData {
             associative_precedence: AssociativePrecedence::default(),
+            firsts_data: None,
             defined_at: Some(location.clone()),
             used_at: vec![],
         });
-        Rc::new(Self {
+        let token = Rc::new(Self {
             ident,
             name: name.to_string(),
             pattern: pattern.to_string(),
             symbol_type: SymbolType::Token,
             mutable_data,
-        })
+        });
+        let mut token_set: OrderedSet<Rc<Symbol>> = OrderedSet::new();
+        token_set.insert(Rc::clone(&token));
+        token.set_firsts_data(FirstsData {
+            token_set,
+            transparent: false,
+        });
+        token
     }
 
     pub fn name(&self) -> &str {
@@ -186,6 +206,7 @@ impl Symbol {
     pub fn new_non_terminal_at(ident: u32, name: &str, location: &lexan::Location) -> Rc<Symbol> {
         let mutable_data = RefCell::new(SymbolMutableData {
             associative_precedence: AssociativePrecedence::default(),
+            firsts_data: None,
             defined_at: Some(location.clone()),
             used_at: vec![],
         });
@@ -205,6 +226,7 @@ impl Symbol {
     ) -> Rc<Symbol> {
         let mutable_data = RefCell::new(SymbolMutableData {
             associative_precedence: AssociativePrecedence::default(),
+            firsts_data: None,
             defined_at: None,
             used_at: vec![location.clone()],
         });
@@ -252,6 +274,10 @@ impl Symbol {
 
     pub fn set_defined_at(&self, location: &lexan::Location) {
         self.mutable_data.borrow_mut().defined_at = Some(location.clone());
+    }
+
+    pub fn set_firsts_data(&self, firsts_data: FirstsData) {
+        self.mutable_data.borrow_mut().firsts_data = Some(firsts_data);
     }
 }
 
@@ -340,8 +366,8 @@ impl SymbolTable {
             .filter(|s| s.is_unused())
     }
 
-    pub fn special_symbol(&self, t: &SpecialSymbols) -> &Rc<Symbol> {
-        self.special_symbols.get(t).unwrap()
+    pub fn special_symbol(&self, t: &SpecialSymbols) -> Rc<Symbol> {
+        Rc::clone(self.special_symbols.get(t).unwrap())
     }
 
     pub fn is_known_non_terminal(&self, _name: &str) -> bool {

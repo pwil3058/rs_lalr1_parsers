@@ -1204,7 +1204,7 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData<AATerminal>>
                 let semantic_error = self
                     .symbol_table
                     .special_symbol(&SpecialSymbols::SemanticError);
-                aa_lhs = AttributeData::LeftHandSide(Rc::clone(semantic_error));
+                aa_lhs = AttributeData::LeftHandSide(semantic_error);
             }
             34 => {
                 // production_group_head: IDENT ":" ?(  grammar_specification.symbol_table.is_known_tag($1.dd_matched_text)  ?)
@@ -1227,7 +1227,7 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData<AATerminal>>
                 let semantic_error = self
                     .symbol_table
                     .special_symbol(&SpecialSymbols::SemanticError);
-                aa_lhs = AttributeData::LeftHandSide(Rc::clone(semantic_error));
+                aa_lhs = AttributeData::LeftHandSide(semantic_error);
             }
             35 => {
                 // production_group_head: IDENT ":"
@@ -1436,7 +1436,7 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData<AATerminal>>
                 let symbol = self
                     .symbol_table
                     .special_symbol(&SpecialSymbols::SyntaxError);
-                aa_lhs = AttributeData::Symbol(Some(Rc::clone(symbol)));
+                aa_lhs = AttributeData::Symbol(Some(symbol));
             }
             _ => (),
         }
