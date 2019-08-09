@@ -56,8 +56,14 @@ impl AssociativePrecedence {
 
 #[derive(Debug, Clone)]
 pub struct FirstsData {
-    token_set: OrderedSet<Rc<Symbol>>,
-    transparent: bool,
+    pub token_set: OrderedSet<Rc<Symbol>>,
+    pub transparent: bool,
+}
+
+impl FirstsData {
+    pub fn new(token_set: OrderedSet<Rc<Symbol>>, transparent: bool) -> Self {
+        Self { token_set, transparent }
+    }
 }
 
 #[derive(Debug, Clone)]

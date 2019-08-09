@@ -4,11 +4,11 @@ use std::{
     rc::Rc,
 };
 
-use ordered_collections::{OrderedMap, OrderedSet};
+use ordered_collections::{ordered_set::ord_set_iterators::ToSet, OrderedMap, OrderedSet};
 
 use lexan;
 
-use crate::symbols::{AssociativePrecedence, SpecialSymbols, Symbol, SymbolTable};
+use crate::symbols::{AssociativePrecedence, FirstsData, SpecialSymbols, Symbol, SymbolTable};
 
 #[derive(Debug)]
 pub struct Error {}
@@ -134,17 +134,40 @@ impl GrammarSpecification {
     }
 
     fn first_allcaps(&self, symbol_string: &[Rc<Symbol>], token: &Rc<Symbol>) -> OrderedSet<Rc<Symbol>> {
-        let token_set: OrderedSet<Rc<Symbol>> = OrderedSet::new();
+        let mut token_set: OrderedSet<Rc<Symbol>> = OrderedSet::new();
+        for symbol in symbol_string.iter() {
+            let firsts_data = self.firsts_data(symbol);
+            token_set = token_set.union(&firsts_data.token_set).to_set();
+        }
+        panic!("not yet implemented");
         token_set
+    }
+
+    fn firsts_data(&self, symbol: &Rc<Symbol>) -> FirstsData {
+        panic!("not yet implemented");
+        FirstsData::new(OrderedSet::new(), false)
     }
 
     pub fn closure(&self, mut closure_set: GrammarItemSet) -> GrammarItemSet {
         loop {
-            let additions = 0;
+            let mut additions = 0;
             for (item_key, look_ahead_set) in closure_set.0.iter().filter(|x| x.0.is_closable()) {
                 let prospective_lhs = item_key.next_symbol().expect("it's closable");
                 for look_ahead_symbol in look_ahead_set.iter() {
                     let firsts = self.first_allcaps(item_key.rhs_tail(), look_ahead_symbol);
+                    for production in self.productions.iter().filter(|x| &x.left_hand_side == prospective_lhs) {
+                        let prospective_key = GrammarItemKey::new(Rc::clone(production));
+                        if let Some(set) = closure_set.0.get_mut(&prospective_key) {
+                            if !set.is_superset(&firsts) {
+                                additions += 1;
+                                *set = set.union(&firsts).to_set();
+                            }
+                        } else {
+                            additions += 1;
+                            closure_set.0.insert(prospective_key, firsts.clone());
+                        }
+                        panic!("not yet implemented");
+                    }
                 }
             }
             if additions == 0 {
