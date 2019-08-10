@@ -33,7 +33,7 @@ impl Location {
         self.offset
     }
 
-    pub fn label<'a>(&'a self) -> &'a str {
+    pub fn label<'a>(&'a self) -> &'a String {
         &self.label
     }
 }
@@ -120,7 +120,7 @@ impl<T: Debug + Copy + Eq> Token<T> {
         &self.tag
     }
 
-    pub fn lexeme<'a>(&'a self) -> &'a str {
+    pub fn lexeme<'a>(&'a self) -> &'a String {
         &self.lexeme
     }
 
