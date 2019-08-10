@@ -1,7 +1,7 @@
-use std::{cell::RefCell, collections::HashMap, fmt, rc::Rc};
+use std::{cell::RefCell, fmt, rc::Rc};
 
 use lexan;
-use ordered_collections::OrderedSet;
+use ordered_collections::{OrderedMap, OrderedSet};
 
 pub enum Error {
     AlreadyDefined(Rc<Symbol>),
@@ -62,15 +62,18 @@ pub struct FirstsData {
 
 impl FirstsData {
     pub fn new(token_set: OrderedSet<Rc<Symbol>>, transparent: bool) -> Self {
-        Self { token_set, transparent }
+        Self {
+            token_set,
+            transparent,
+        }
     }
 }
 
 #[derive(Debug, Clone)]
-struct SymbolMutableData {
+pub struct SymbolMutableData {
     associative_precedence: AssociativePrecedence,
     defined_at: Option<lexan::Location>,
-    firsts_data: Option<FirstsData>,
+    pub firsts_data: Option<FirstsData>,
     used_at: Vec<lexan::Location>,
 }
 
@@ -121,7 +124,7 @@ pub struct Symbol {
     name: String,
     symbol_type: SymbolType,
     pattern: String,
-    mutable_data: RefCell<SymbolMutableData>,
+    pub mutable_data: RefCell<SymbolMutableData>,
 }
 
 impl_ident_cmp!(Symbol);
@@ -205,7 +208,7 @@ impl Symbol {
         token
     }
 
-    pub fn name(&self) -> &str {
+    pub fn name(&self) -> &String {
         &self.name
     }
 
@@ -287,7 +290,7 @@ impl Symbol {
     }
 }
 
-#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub enum SpecialSymbols {
     Start,
     End,
@@ -298,11 +301,11 @@ pub enum SpecialSymbols {
 
 #[derive(Debug, Default, Clone)]
 pub struct SymbolTable {
-    special_symbols: HashMap<SpecialSymbols, Rc<Symbol>>,
-    tokens: HashMap<String, Rc<Symbol>>, // indexed by token name
-    literal_tokens: HashMap<String, Rc<Symbol>>, // indexed by token name
-    tags: HashMap<String, Rc<Symbol>>,   // indexed by tag name
-    non_terminals: HashMap<String, Rc<Symbol>>, // indexed by tag name
+    special_symbols: OrderedMap<SpecialSymbols, Rc<Symbol>>,
+    tokens: OrderedMap<String, Rc<Symbol>>, // indexed by token name
+    literal_tokens: OrderedMap<String, Rc<Symbol>>, // indexed by token name
+    tags: OrderedMap<String, Rc<Symbol>>,   // indexed by tag name
+    non_terminals: OrderedMap<String, Rc<Symbol>>, // indexed by tag name
     skip_rules: Vec<String>,
     next_precedence: u32,
     next_ident: u32,
@@ -311,11 +314,11 @@ pub struct SymbolTable {
 impl SymbolTable {
     pub fn new() -> Self {
         let mut st = Self {
-            special_symbols: HashMap::new(),
-            tokens: HashMap::new(),
-            literal_tokens: HashMap::new(),
-            tags: HashMap::new(),
-            non_terminals: HashMap::new(),
+            special_symbols: OrderedMap::new(),
+            tokens: OrderedMap::new(),
+            literal_tokens: OrderedMap::new(),
+            tags: OrderedMap::new(),
+            non_terminals: OrderedMap::new(),
             skip_rules: Vec::new(),
             next_precedence: u32::max_value(),
             next_ident: 5,
@@ -376,21 +379,21 @@ impl SymbolTable {
         Rc::clone(self.special_symbols.get(t).unwrap())
     }
 
-    pub fn is_known_non_terminal(&self, _name: &str) -> bool {
+    pub fn is_known_non_terminal(&self, _name: &String) -> bool {
         false
     }
 
-    pub fn is_known_tag(&self, name: &str) -> bool {
+    pub fn is_known_tag(&self, name: &String) -> bool {
         self.tags.contains_key(name)
     }
 
-    pub fn is_known_token(&self, name: &str) -> bool {
+    pub fn is_known_token(&self, name: &String) -> bool {
         self.tokens.contains_key(name)
     }
 
     pub fn use_symbol_named(
         &mut self,
-        symbol_name: &str,
+        symbol_name: &String,
         location: &lexan::Location,
     ) -> Option<&Rc<Symbol>> {
         if let Some(token) = self.tokens.get(symbol_name) {
@@ -407,7 +410,7 @@ impl SymbolTable {
         }
     }
 
-    pub fn declaration_location(&self, symbol_name: &str) -> Option<lexan::Location> {
+    pub fn declaration_location(&self, symbol_name: &String) -> Option<lexan::Location> {
         if let Some(token) = self.tokens.get(symbol_name) {
             token.defined_at()
         } else if let Some(tag) = self.tags.get(symbol_name) {
@@ -450,7 +453,7 @@ impl SymbolTable {
         }
     }
 
-    pub fn define_non_terminal(&mut self, name: &str, location: &lexan::Location) -> &Rc<Symbol> {
+    pub fn define_non_terminal(&mut self, name: &String, location: &lexan::Location) -> &Rc<Symbol> {
         if let Some(non_terminal) = self.non_terminals.get_mut(name) {
             non_terminal.set_defined_at(location);
         } else {
@@ -467,14 +470,14 @@ impl SymbolTable {
         //)
     }
 
-    pub fn use_new_non_terminal(&mut self, name: &str, location: &lexan::Location) -> &Rc<Symbol> {
+    pub fn use_new_non_terminal(&mut self, name: &String, location: &lexan::Location) -> &Rc<Symbol> {
         let symbol = Symbol::new_non_terminal_used_at(self.next_ident, name, location);
         self.next_ident += 1;
         self.non_terminals.insert(name.to_string(), symbol);
         self.non_terminals.get(name).unwrap()
     }
 
-    pub fn add_skip_rule(&mut self, rule: &str) {
+    pub fn add_skip_rule(&mut self, rule: &String) {
         self.skip_rules.push(rule.to_string());
     }
 
@@ -486,7 +489,7 @@ impl SymbolTable {
         self.next_precedence -= 1;
     }
 
-    pub fn get_literal_token(&self, text: &str, location: &lexan::Location) -> Option<&Rc<Symbol>> {
+    pub fn get_literal_token(&self, text: &String, location: &lexan::Location) -> Option<&Rc<Symbol>> {
         if let Some(token) = self.literal_tokens.get(text) {
             token.add_used_at(location);
             Some(token)
@@ -495,7 +498,7 @@ impl SymbolTable {
         }
     }
 
-    pub fn get_token(&self, name: &str, location: &lexan::Location) -> Option<&Rc<Symbol>> {
+    pub fn get_token(&self, name: &String, location: &lexan::Location) -> Option<&Rc<Symbol>> {
         if let Some(token) = self.tokens.get(name) {
             token.add_used_at(location);
             Some(token)

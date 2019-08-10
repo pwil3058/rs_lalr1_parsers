@@ -37,7 +37,7 @@ impl<T> AttributeData<T>
 where
     T: Debug + Copy + Eq + Ord,
 {
-    pub fn matched_text<'a>(&'a self) -> Option<&'a str> {
+    pub fn matched_text<'a>(&'a self) -> Option<&'a String> {
         match self {
             AttributeData::Token(token) => Some(token.lexeme()),
             AttributeData::SyntaxError(token, _) => Some(token.lexeme()),
@@ -50,7 +50,7 @@ where
         }
     }
 
-    pub fn text_and_location<'a>(&'a self) -> Option<(&'a str, &'a lexan::Location)> {
+    pub fn text_and_location<'a>(&'a self) -> Option<(&'a String, &'a lexan::Location)> {
         match self {
             AttributeData::Token(token) => Some((token.lexeme(), token.location())),
             AttributeData::SyntaxError(token, _) => Some((token.lexeme(), token.location())),
