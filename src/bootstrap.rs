@@ -5,7 +5,8 @@ use lexan;
 
 use crate::{
     attributes::*,
-    grammar::{GrammarSpecification, ProductionTail},
+    grammar::GrammarSpecification,
+    state::ProductionTail,
     symbols::{AssociativePrecedence, Associativity, SpecialSymbols},
 };
 

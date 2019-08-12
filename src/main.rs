@@ -34,6 +34,7 @@ use lalr1plus::parser::*;
 mod attributes;
 mod bootstrap;
 mod grammar;
+mod state;
 mod symbols;
 
 fn main() {

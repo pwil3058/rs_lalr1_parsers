@@ -8,70 +8,11 @@ use ordered_collections::{ordered_set::ord_set_iterators::ToSet, OrderedMap, Ord
 
 use lexan;
 
+use crate::state::{GrammarItemKey, GrammarItemSet, ParserState, Production, ProductionTail};
 use crate::symbols::{AssociativePrecedence, FirstsData, SpecialSymbols, Symbol, SymbolTable};
 
 #[derive(Debug)]
 pub struct Error {}
-
-#[derive(Debug, Clone, Default)]
-pub struct ProductionTail {
-    right_hand_side: Vec<Rc<Symbol>>,
-    predicate: Option<String>,
-    associative_precedence: AssociativePrecedence,
-    action: Option<String>,
-}
-
-impl ProductionTail {
-    pub fn new(
-        right_hand_side: Vec<Rc<Symbol>>,
-        predicate: Option<String>,
-        associative_precedence: Option<AssociativePrecedence>,
-        action: Option<String>,
-    ) -> Self {
-        let associative_precedence = if let Some(associative_precedence) = associative_precedence {
-            associative_precedence
-        } else if let Some(associative_precedence) = rhs_associated_precedence(&right_hand_side) {
-            associative_precedence
-        } else {
-            AssociativePrecedence::default()
-        };
-        Self {
-            right_hand_side,
-            predicate,
-            action,
-            associative_precedence,
-        }
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct Production {
-    ident: u32,
-    left_hand_side: Rc<Symbol>,
-    tail: ProductionTail,
-}
-
-impl_ident_cmp!(Production);
-
-fn rhs_associated_precedence(symbols: &[Rc<Symbol>]) -> Option<AssociativePrecedence> {
-    for symbol in symbols.iter() {
-        if symbol.is_token() {
-            let associative_precedence = symbol.associative_precedence();
-            return Some(associative_precedence);
-        }
-    }
-    None
-}
-
-impl Production {
-    pub fn new(ident: u32, left_hand_side: Rc<Symbol>, tail: ProductionTail) -> Self {
-        Self {
-            ident,
-            left_hand_side,
-            tail,
-        }
-    }
-}
 
 pub fn report_error(location: &lexan::Location, what: &str) {
     writeln!(stderr(), "{}: Error: {}.", location, what).expect("what?");
@@ -166,18 +107,16 @@ impl GrammarSpecification {
             let relevant_productions: Vec<&Rc<Production>> = self
                 .productions
                 .iter()
-                .filter(|x| &x.left_hand_side == symbol)
+                .filter(|x| x.left_hand_side() == symbol)
                 .collect();
-            let mut transparent = relevant_productions
-                .iter()
-                .any(|x| x.tail.right_hand_side.len() == 0);
+            let mut transparent = relevant_productions.iter().any(|x| x.is_empty());
             let mut token_set = OrderedSet::<Rc<Symbol>>::new();
             let mut transparency_changed = true;
             while transparency_changed {
                 transparency_changed = false;
                 for production in relevant_productions.iter() {
                     let mut transparent_production = true;
-                    for rhs_symbol in production.tail.right_hand_side.iter() {
+                    for rhs_symbol in production.right_hand_side_symbols() {
                         if rhs_symbol == symbol {
                             if transparent {
                                 continue;
@@ -222,17 +161,17 @@ impl GrammarSpecification {
                     for production in self
                         .productions
                         .iter()
-                        .filter(|x| &x.left_hand_side == prospective_lhs)
+                        .filter(|x| x.left_hand_side() == prospective_lhs)
                     {
                         let prospective_key = GrammarItemKey::new(Rc::clone(production));
-                        if let Some(set) = closure_set.0.get_mut(&prospective_key) {
+                        if let Some(set) = closure_set.get_mut(&prospective_key) {
                             if !set.is_superset(&firsts) {
                                 additions += 1;
                                 *set = set.union(&firsts).to_set();
                             }
                         } else {
                             additions += 1;
-                            closure_set.0.insert(prospective_key, firsts.clone());
+                            closure_set.insert(prospective_key, firsts.clone());
                         }
                     }
                 }
@@ -242,176 +181,6 @@ impl GrammarSpecification {
             }
         }
         closure_set
-    }
-}
-
-#[derive(PartialOrd, Ord, PartialEq, Eq)]
-struct GrammarItemKey {
-    production: Rc<Production>,
-    dot: usize,
-}
-
-impl GrammarItemKey {
-    fn new(production: Rc<Production>) -> Rc<Self> {
-        Rc::new(Self { production, dot: 0 })
-    }
-
-    fn shifted(&self) -> Rc<Self> {
-        let production = Rc::clone(&self.production);
-        let dot = self.dot + 1;
-        Rc::new(Self { production, dot })
-    }
-
-    fn is_closable(&self) -> bool {
-        if let Some(symbol) = self.production.tail.right_hand_side.get(self.dot) {
-            symbol.is_non_terminal()
-        } else {
-            false
-        }
-    }
-
-    fn is_kernel_item(&self) -> bool {
-        self.dot > 0 || self.production.left_hand_side.is_start_symbol()
-    }
-
-    fn is_reducible(&self) -> bool {
-        self.dot >= self.production.tail.right_hand_side.len()
-    }
-
-    fn next_symbol(&self) -> Option<&Rc<Symbol>> {
-        self.production.tail.right_hand_side.get(self.dot)
-    }
-
-    fn next_symbol_is(&self, symbol: &Rc<Symbol>) -> bool {
-        if let Some(next_symbol) = self.next_symbol() {
-            next_symbol == symbol
-        } else {
-            false
-        }
-    }
-
-    fn rhs_tail(&self) -> &[Rc<Symbol>] {
-        &self.production.tail.right_hand_side[self.dot + 1..]
-    }
-}
-
-struct GrammarItemSet(OrderedMap<Rc<GrammarItemKey>, OrderedSet<Rc<Symbol>>>);
-
-impl GrammarItemSet {
-    fn closables(&self) -> Vec<(Rc<GrammarItemKey>, OrderedSet<Rc<Symbol>>)> {
-        let mut closables = vec![];
-        for (key, set) in self.0.iter().filter(|x| x.0.is_closable()) {
-            closables.push((Rc::clone(key), set.clone()));
-        }
-        closables
-    }
-
-    fn generate_goto_kernel(&self, symbol: &Rc<Symbol>) -> GrammarItemSet {
-        let mut map = OrderedMap::new();
-        for (item_key, look_ahead_set) in self.0.iter() {
-            if item_key.next_symbol_is(symbol) {
-                map.insert(item_key.shifted(), look_ahead_set.clone());
-            }
-        }
-        GrammarItemSet(map)
-    }
-
-    fn kernel_keys(&self) -> OrderedSet<Rc<GrammarItemKey>> {
-        let mut keys = OrderedSet::new();
-        for key in self.0.keys().filter(|x| x.is_reducible()) {
-            keys.insert(Rc::clone(key));
-        }
-        keys
-    }
-}
-
-#[derive(Debug, Clone, Copy)]
-enum ProcessedState {
-    Unprocessed,
-    NeedsReprocessing,
-    Processed,
-}
-
-struct ParserState {
-    ident: u32,
-    grammar_items: RefCell<GrammarItemSet>,
-    shift_list: RefCell<OrderedMap<Rc<Symbol>, Rc<ParserState>>>,
-    goto_table: RefCell<OrderedMap<Rc<Symbol>, Rc<ParserState>>>,
-    error_recovery_state: Cell<Option<Rc<ParserState>>>,
-    processed_state: Cell<ProcessedState>,
-}
-
-impl_ident_cmp!(ParserState);
-
-impl ParserState {
-    fn new(ident: u32, grammar_items: GrammarItemSet) -> Rc<Self> {
-        Rc::new(Self {
-            ident,
-            grammar_items: RefCell::new(grammar_items),
-            shift_list: RefCell::new(OrderedMap::new()),
-            goto_table: RefCell::new(OrderedMap::new()),
-            error_recovery_state: Cell::new(None),
-            processed_state: Cell::new(ProcessedState::Unprocessed),
-        })
-    }
-
-    fn is_processed(&self) -> bool {
-        match self.processed_state.get() {
-            ProcessedState::Processed => true,
-            _ => false,
-        }
-    }
-
-    fn is_unprocessed(&self) -> bool {
-        match self.processed_state.get() {
-            ProcessedState::Unprocessed => true,
-            _ => false,
-        }
-    }
-
-    fn mark_as_processed(&self) {
-        self.processed_state.set(ProcessedState::Processed)
-    }
-
-    fn merge_lookahead_sets(&self, item_set: &GrammarItemSet) {
-        let mut additions = 0;
-        for (key, other_look_ahead_set) in item_set.0.iter() {
-            if let Some(mut look_ahead_set) = self.grammar_items.borrow_mut().0.get_mut(key) {
-                let current_len = look_ahead_set.len();
-                *look_ahead_set = look_ahead_set.union(other_look_ahead_set).to_set();
-                additions += current_len - look_ahead_set.len();
-            } else {
-                panic!("key sets should be identical to get here")
-            }
-        }
-        if additions > 0 {
-            self.processed_state.set(ProcessedState::NeedsReprocessing);
-        }
-    }
-
-    fn add_shift_action(&self, token: Rc<Symbol>, state: Rc<ParserState>) {
-        self.shift_list.borrow_mut().insert(token, state);
-    }
-
-    fn add_goto(&self, token: Rc<Symbol>, state: Rc<ParserState>) {
-        self.goto_table.borrow_mut().insert(token, state);
-    }
-
-    fn set_error_recovery_state(&self, state: &Rc<ParserState>) {
-        self.error_recovery_state.set(Some(Rc::clone(state)));
-    }
-
-    fn has_empty_look_ahead_set(&self) -> bool {
-        if self.shift_list.borrow().len() > 0 {
-            return false;
-        } else {
-            for (key, look_ahead_set) in self.grammar_items.borrow().0.iter() {
-                if key.is_reducible() && look_ahead_set.len() > 0 {
-                    return false;
-                }
-            }
-        };
-        true
     }
 }
 
@@ -461,21 +230,12 @@ impl Grammar {
             let first_time = unprocessed_state.is_unprocessed();
             unprocessed_state.mark_as_processed();
             let mut already_done: OrderedSet<Rc<Symbol>> = OrderedSet::new();
-            for item_key in unprocessed_state
-                .grammar_items
-                .borrow()
-                .0
-                .keys()
-                .filter(|x| !x.is_reducible())
-            {
+            for item_key in unprocessed_state.non_kernel_keys() {
                 let symbol_x = item_key.next_symbol().expect("not reducible");
                 if !already_done.insert(Rc::clone(symbol_x)) {
                     continue;
                 };
-                let kernel_x = unprocessed_state
-                    .grammar_items
-                    .borrow()
-                    .generate_goto_kernel(&symbol_x);
+                let kernel_x = unprocessed_state.generate_goto_kernel(&symbol_x);
                 let item_set_x = grammar.specification.closure(kernel_x);
                 let goto_state =
                     if let Some(equivalent_state) = grammar.equivalent_state(&item_set_x) {
@@ -511,7 +271,7 @@ impl Grammar {
     fn equivalent_state(&self, item_set: &GrammarItemSet) -> Option<&Rc<ParserState>> {
         let target_keys = item_set.kernel_keys();
         for parser_state in self.parser_states.iter() {
-            if target_keys == parser_state.grammar_items.borrow().kernel_keys() {
+            if target_keys == parser_state.kernel_keys() {
                 return Some(parser_state);
             }
         }

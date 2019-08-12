@@ -2,7 +2,7 @@ use std::{fmt::Debug, rc::Rc};
 
 use lexan;
 
-use crate::grammar::ProductionTail;
+use crate::state::ProductionTail;
 use crate::symbols::*;
 
 #[derive(Debug, Clone)]
