@@ -156,6 +156,14 @@ impl Symbol {
         })
     }
 
+    pub fn is_start_symbol(&self) -> bool {
+        self.ident == 0
+    }
+
+    pub fn is_syntax_error(&self) -> bool {
+        self.ident == 3
+    }
+
     pub fn is_tag(&self) -> bool {
         self.symbol_type.is_tag()
     }
@@ -453,7 +461,11 @@ impl SymbolTable {
         }
     }
 
-    pub fn define_non_terminal(&mut self, name: &String, location: &lexan::Location) -> &Rc<Symbol> {
+    pub fn define_non_terminal(
+        &mut self,
+        name: &String,
+        location: &lexan::Location,
+    ) -> &Rc<Symbol> {
         if let Some(non_terminal) = self.non_terminals.get_mut(name) {
             non_terminal.set_defined_at(location);
         } else {
@@ -470,7 +482,11 @@ impl SymbolTable {
         //)
     }
 
-    pub fn use_new_non_terminal(&mut self, name: &String, location: &lexan::Location) -> &Rc<Symbol> {
+    pub fn use_new_non_terminal(
+        &mut self,
+        name: &String,
+        location: &lexan::Location,
+    ) -> &Rc<Symbol> {
         let symbol = Symbol::new_non_terminal_used_at(self.next_ident, name, location);
         self.next_ident += 1;
         self.non_terminals.insert(name.to_string(), symbol);
@@ -489,7 +505,11 @@ impl SymbolTable {
         self.next_precedence -= 1;
     }
 
-    pub fn get_literal_token(&self, text: &String, location: &lexan::Location) -> Option<&Rc<Symbol>> {
+    pub fn get_literal_token(
+        &self,
+        text: &String,
+        location: &lexan::Location,
+    ) -> Option<&Rc<Symbol>> {
         if let Some(token) = self.literal_tokens.get(text) {
             token.add_used_at(location);
             Some(token)
