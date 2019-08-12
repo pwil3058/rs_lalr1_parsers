@@ -4,7 +4,10 @@ use std::{
     rc::Rc,
 };
 
-use ordered_collections::{ordered_set::ord_set_iterators::ToSet, OrderedMap, OrderedSet};
+use ordered_collections::{
+    ordered_set::ord_set_iterators::{Selection, ToSet},
+    OrderedMap, OrderedSet,
+};
 
 use crate::symbols::{AssociativePrecedence, Symbol};
 
@@ -75,7 +78,7 @@ impl Production {
         &self.left_hand_side
     }
 
-    pub fn right_hand_side_symbols(&self) -> impl Iterator<Item=&Rc<Symbol>> {
+    pub fn right_hand_side_symbols(&self) -> impl Iterator<Item = &Rc<Symbol>> {
         self.tail.right_hand_side.iter()
     }
 }
@@ -133,6 +136,10 @@ impl GrammarItemKey {
 pub struct GrammarItemSet(OrderedMap<Rc<GrammarItemKey>, OrderedSet<Rc<Symbol>>>);
 
 impl GrammarItemSet {
+    pub fn new(map: OrderedMap<Rc<GrammarItemKey>, OrderedSet<Rc<Symbol>>>) -> Self {
+        GrammarItemSet(map)
+    }
+
     pub fn closables(&self) -> Vec<(Rc<GrammarItemKey>, OrderedSet<Rc<Symbol>>)> {
         let mut closables = vec![];
         for (key, set) in self.0.iter().filter(|x| x.0.is_closable()) {
@@ -159,15 +166,19 @@ impl GrammarItemSet {
         keys
     }
 
-    pub fn irreducible_keys(&self) -> impl Iterator<Item=&Rc<GrammarItemKey>> {
-        self.0.keys().filter(|x| !x.is_reducible())
+    pub fn irreducible_keys(&self) -> OrderedSet<Rc<GrammarItemKey>> {
+        self.0.keys().select(|x| !x.is_reducible()).to_set()
     }
 
-    pub fn get_mut(&self, key: &Rc<GrammarItemKey>) -> Option<&mut OrderedSet<Rc<Symbol>>> {
+    pub fn get_mut(&mut self, key: &Rc<GrammarItemKey>) -> Option<&mut OrderedSet<Rc<Symbol>>> {
         self.0.get_mut(key)
     }
 
-    pub fn insert(&mut self, key: Rc<GrammarItemKey>, look_ahead_set: OrderedSet<Rc<Symbol>>) -> Option<OrderedSet<Rc<Symbol>>> {
+    pub fn insert(
+        &mut self,
+        key: Rc<GrammarItemKey>,
+        look_ahead_set: OrderedSet<Rc<Symbol>>,
+    ) -> Option<OrderedSet<Rc<Symbol>>> {
         self.0.insert(key, look_ahead_set)
     }
 }
@@ -265,7 +276,7 @@ impl ParserState {
         self.grammar_items.borrow().kernel_keys()
     }
 
-    pub fn non_kernel_keys(&self) -> impl Iterator<Item=&Rc<GrammarItemKey>> {
+    pub fn non_kernel_keys(&self) -> OrderedSet<Rc<GrammarItemKey>> {
         self.grammar_items.borrow().irreducible_keys()
     }
 

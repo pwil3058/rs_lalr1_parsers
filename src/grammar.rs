@@ -213,7 +213,7 @@ impl Grammar {
         );
         let mut map: OrderedMap<Rc<GrammarItemKey>, OrderedSet<Rc<Symbol>>> = OrderedMap::new();
         map.insert(start_item_key, start_look_ahead_set);
-        let start_kernel = grammar.specification.closure(GrammarItemSet(map));
+        let start_kernel = grammar.specification.closure(GrammarItemSet::new(map));
         let start_state = grammar.new_parser_state(start_kernel);
 
         loop {
@@ -230,7 +230,7 @@ impl Grammar {
             let first_time = unprocessed_state.is_unprocessed();
             unprocessed_state.mark_as_processed();
             let mut already_done: OrderedSet<Rc<Symbol>> = OrderedSet::new();
-            for item_key in unprocessed_state.non_kernel_keys() {
+            for item_key in unprocessed_state.non_kernel_keys().iter() {
                 let symbol_x = item_key.next_symbol().expect("not reducible");
                 if !already_done.insert(Rc::clone(symbol_x)) {
                     continue;
