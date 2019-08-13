@@ -118,13 +118,19 @@ impl SymbolType {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct Symbol {
     ident: u32,
     name: String,
     symbol_type: SymbolType,
     pattern: String,
     pub mutable_data: RefCell<SymbolMutableData>,
+}
+
+impl fmt::Debug for Symbol {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "Symbol({}):", self.name)
+    }
 }
 
 impl_ident_cmp!(Symbol);

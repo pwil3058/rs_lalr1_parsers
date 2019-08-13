@@ -1,5 +1,6 @@
 use std::{
     cell::{Cell, RefCell},
+    fmt,
     io::{stderr, Write},
     rc::Rc,
 };
@@ -83,7 +84,7 @@ impl Production {
     }
 }
 
-#[derive(PartialOrd, Ord, PartialEq, Eq)]
+#[derive(Debug, PartialOrd, Ord, PartialEq, Eq)]
 pub struct GrammarItemKey {
     production: Rc<Production>,
     dot: usize,
@@ -140,6 +141,10 @@ impl GrammarItemSet {
         GrammarItemSet(map)
     }
 
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+
     pub fn closables(&self) -> Vec<(Rc<GrammarItemKey>, OrderedSet<Rc<Symbol>>)> {
         let mut closables = vec![];
         for (key, set) in self.0.iter().filter(|x| x.0.is_closable()) {
@@ -170,6 +175,10 @@ impl GrammarItemSet {
         self.0.keys().select(|x| !x.is_reducible()).to_set()
     }
 
+    pub fn keys(&self) -> OrderedSet<Rc<GrammarItemKey>> {
+        self.0.keys().to_set()
+    }
+
     pub fn get_mut(&mut self, key: &Rc<GrammarItemKey>) -> Option<&mut OrderedSet<Rc<Symbol>>> {
         self.0.get_mut(key)
     }
@@ -191,12 +200,19 @@ pub enum ProcessedState {
 }
 
 pub struct ParserState {
-    ident: u32,
+    pub ident: u32,
     grammar_items: RefCell<GrammarItemSet>,
     shift_list: RefCell<OrderedMap<Rc<Symbol>, Rc<ParserState>>>,
     goto_table: RefCell<OrderedMap<Rc<Symbol>, Rc<ParserState>>>,
     error_recovery_state: Cell<Option<Rc<ParserState>>>,
     processed_state: Cell<ProcessedState>,
+}
+
+
+impl fmt::Debug for ParserState {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "State#{}({:?}):", self.ident, self.grammar_items.borrow().keys())
+    }
 }
 
 impl_ident_cmp!(ParserState);
@@ -233,7 +249,7 @@ impl ParserState {
 
     pub fn merge_lookahead_sets(&self, item_set: &GrammarItemSet) {
         let mut additions = 0;
-        for (key, other_look_ahead_set) in item_set.0.iter() {
+        for (key, other_look_ahead_set) in item_set.0.iter().filter(|(k,_)| k.is_kernel_item()) {
             if let Some(mut look_ahead_set) = self.grammar_items.borrow_mut().0.get_mut(key) {
                 let current_len = look_ahead_set.len();
                 *look_ahead_set = look_ahead_set.union(other_look_ahead_set).to_set();

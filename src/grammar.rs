@@ -268,11 +268,13 @@ impl Grammar {
 
     fn equivalent_state(&self, item_set: &GrammarItemSet) -> Option<&Rc<ParserState>> {
         let target_keys = item_set.kernel_keys();
-        for parser_state in self.parser_states.iter() {
-            if target_keys == parser_state.kernel_keys() {
-                return Some(parser_state);
+        if target_keys.len() > 0 {
+            for parser_state in self.parser_states.iter() {
+                if target_keys == parser_state.kernel_keys() {
+                    return Some(parser_state);
+                }
             }
-        }
+        };
         None
     }
 }
