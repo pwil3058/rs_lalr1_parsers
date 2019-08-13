@@ -150,8 +150,9 @@ impl GrammarSpecification {
     }
 
     fn closure(&self, mut closure_set: GrammarItemSet) -> GrammarItemSet {
-        loop {
-            let mut additions = 0;
+        let mut additions_made = true;
+        while additions_made {
+            additions_made = false;
             for (item_key, look_ahead_set) in closure_set.closables() {
                 let prospective_lhs = item_key.next_symbol().expect("it's closable");
                 for look_ahead_symbol in look_ahead_set.iter() {
@@ -163,19 +164,15 @@ impl GrammarSpecification {
                     {
                         let prospective_key = GrammarItemKey::new(Rc::clone(production));
                         if let Some(set) = closure_set.get_mut(&prospective_key) {
-                            if !set.is_superset(&firsts) {
-                                additions += 1;
-                                *set = set.union(&firsts).to_set();
-                            }
+                            let len = set.len();
+                            *set = set.union(&firsts).to_set();
+                            additions_made |= set.len() > len;
                         } else {
-                            additions += 1;
                             closure_set.insert(prospective_key, firsts.clone());
-                        }
+                            additions_made = true;
+                         }
                     }
                 }
-            }
-            if additions == 0 {
-                break;
             }
         }
         closure_set
