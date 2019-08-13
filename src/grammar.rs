@@ -211,17 +211,7 @@ impl Grammar {
         let start_kernel = grammar.specification.closure(GrammarItemSet::new(map));
         let start_state = grammar.new_parser_state(start_kernel);
 
-        loop {
-            let unprocessed_state = if let Some(state) = grammar
-                .parser_states
-                .iter()
-                .filter(|x| !x.is_processed())
-                .next()
-            {
-                Rc::clone(state)
-            } else {
-                break;
-            };
+        while let Some(unprocessed_state) = grammar.first_unprocessed_state() {
             let first_time = unprocessed_state.is_unprocessed();
             unprocessed_state.mark_as_processed();
             let mut already_done: OrderedSet<Rc<Symbol>> = OrderedSet::new();
@@ -254,6 +244,13 @@ impl Grammar {
         panic!("conflicts not resolved");
 
         Ok(grammar)
+    }
+
+    fn first_unprocessed_state(&self) -> Option<Rc<ParserState>> {
+        match self.parser_states.iter().filter(|x| !x.is_processed()).next() {
+            Some(unprocessed_state) => Some(Rc::clone(unprocessed_state)),
+            None => None
+        }
     }
 
     fn new_parser_state(&mut self, grammar_items: GrammarItemSet) -> Rc<ParserState> {
