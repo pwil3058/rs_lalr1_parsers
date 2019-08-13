@@ -3,6 +3,7 @@ use std::{cell::RefCell, fmt, rc::Rc};
 use lexan;
 use ordered_collections::{OrderedMap, OrderedSet};
 
+#[derive(Debug)]
 pub enum Error {
     AlreadyDefined(Rc<Symbol>),
 }
@@ -163,15 +164,15 @@ impl Symbol {
     }
 
     pub fn is_start_symbol(&self) -> bool {
-        self.ident == 0
+        self.name == "AASTART"
     }
 
     pub fn is_syntax_error(&self) -> bool {
-        self.ident == 3
+        self.name == "AASYNTAXERROR"
     }
 
     fn is_special_symbol(&self) -> bool {
-        self.ident < 5
+        self.ident < NUM_SPECIAL_SYMBOLS
     }
 
     pub fn is_tag(&self) -> bool {
@@ -338,6 +339,8 @@ pub struct SymbolTable {
     next_ident: u32,
 }
 
+const NUM_SPECIAL_SYMBOLS: u32 = 5;
+
 impl SymbolTable {
     pub fn new() -> Self {
         let mut st = Self {
@@ -348,50 +351,27 @@ impl SymbolTable {
             non_terminals: OrderedMap::new(),
             skip_rules: Vec::new(),
             next_precedence: u32::max_value(),
-            next_ident: 5,
+            next_ident: 0,
         };
-        let symbol = Symbol::new(
-            0,
-            "AASTART".to_string(),
-            SymbolType::NonTerminal,
-            String::new(),
-        );
-        st.non_terminals.insert(symbol.name().to_string(), Rc::clone(&symbol));
+        let start_location = lexan::Location::default();
+
+        let symbol = st.define_non_terminal("AASTART", &start_location);
         st.special_symbols.insert(SpecialSymbols::Start, symbol);
-        let symbol = Symbol::new(1, "AAEND".to_string(), SymbolType::Token, String::new());
-        let mut token_set: OrderedSet<Rc<Symbol>> = OrderedSet::new();
-        token_set.insert(Rc::clone(&symbol));
-        let firsts_data = FirstsData { token_set, transparent: false };
-        symbol.set_firsts_data(firsts_data);
-        st.tokens.insert(symbol.name().to_string(), Rc::clone(&symbol));
-        st.special_symbols.insert(SpecialSymbols::End, symbol);
-        let symbol = Symbol::new(
-            2,
-            "AALEXICALERROR".to_string(),
-            SymbolType::NonTerminal,
-            String::new(),
-        );
-        st.non_terminals.insert(symbol.name().to_string(), Rc::clone(&symbol));
-        st.special_symbols
-            .insert(SpecialSymbols::LexicalError, symbol);
-        let symbol = Symbol::new(
-            3,
-            "AASYNTAXERROR".to_string(),
-            SymbolType::NonTerminal,
-            String::new(),
-        );
-        st.non_terminals.insert(symbol.name().to_string(), Rc::clone(&symbol));
-        st.special_symbols
-            .insert(SpecialSymbols::SyntaxError, symbol);
-        let symbol = Symbol::new(
-            4,
-            "AASEMANTICERROR".to_string(),
-            SymbolType::NonTerminal,
-            String::new(),
-        );
-        st.non_terminals.insert(symbol.name().to_string(), Rc::clone(&symbol));
-        st.special_symbols
-            .insert(SpecialSymbols::SemanticError, symbol);
+
+        let token = st.new_token("AAEND", "", &start_location);
+        st.special_symbols.insert(SpecialSymbols::End, token.unwrap());
+
+        let symbol = st.define_non_terminal("AALEXICALERROR", &start_location);
+        st.special_symbols.insert(SpecialSymbols::LexicalError, symbol);
+
+        let symbol = st.define_non_terminal("AASYNTAXERROR", &start_location);
+        st.special_symbols.insert(SpecialSymbols::SyntaxError, symbol);
+
+        let symbol = st.define_non_terminal("AASEMANTICERROR", &start_location);
+        st.special_symbols.insert(SpecialSymbols::SemanticError, symbol);
+
+        assert!(NUM_SPECIAL_SYMBOLS == st.next_ident);
+
         st
     }
 
@@ -477,52 +457,49 @@ impl SymbolTable {
         name: &str,
         pattern: &str,
         location: &lexan::Location,
-    ) -> Result<(), Error> {
+    ) -> Result<Rc<Symbol>, Error> {
         let token = Symbol::new_token_at(self.next_ident, name, pattern, location);
         self.next_ident += 1;
-        if let Some(token) = self.tokens.insert(name.to_string(), token.clone()) {
+        if let Some(token) = self.tokens.insert(name.to_string(), Rc::clone(&token)) {
             Err(Error::AlreadyDefined(Rc::clone(&token)))
         } else if pattern.starts_with('"') {
-            if let Some(token) = self.literal_tokens.insert(pattern.to_string(), token) {
+            if let Some(token) = self.literal_tokens.insert(pattern.to_string(), Rc::clone(&token)) {
                 Err(Error::AlreadyDefined(Rc::clone(&token)))
             } else {
-                Ok(())
+                Ok(token)
             }
         } else {
-            Ok(())
+            Ok(token)
         }
     }
 
     pub fn define_non_terminal(
         &mut self,
-        name: &String,
+        name: &str,
         location: &lexan::Location,
-    ) -> &Rc<Symbol> {
+    ) -> Rc<Symbol> {
         if let Some(non_terminal) = self.non_terminals.get_mut(name) {
             non_terminal.set_defined_at(location);
+            Rc::clone(non_terminal)
         } else {
             let ident = self.next_ident;
-            self.non_terminals.insert(
-                name.to_string(),
-                Symbol::new_non_terminal_at(ident, name, location),
-            );
             self.next_ident += 1;
-        };
-        self.non_terminals.get(name).unwrap()
-        //self.non_terminals.entry(name.to_string()).or_insert_with(
-        //    || Symbol::new_non_terminal_at(ident, name, location)
-        //)
+            let non_terminal = Symbol::new_non_terminal_at(ident, name, location);
+            self.non_terminals.insert(name.to_string(), Rc::clone(&non_terminal));
+            non_terminal
+        }
     }
 
     pub fn use_new_non_terminal(
         &mut self,
         name: &String,
         location: &lexan::Location,
-    ) -> &Rc<Symbol> {
-        let symbol = Symbol::new_non_terminal_used_at(self.next_ident, name, location);
+    ) -> Rc<Symbol> {
+        let ident = self.next_ident;
         self.next_ident += 1;
-        self.non_terminals.insert(name.to_string(), symbol);
-        self.non_terminals.get(name).unwrap()
+        let non_terminal = Symbol::new_non_terminal_used_at(ident, name, location);
+        self.non_terminals.insert(name.to_string(), Rc::clone(&non_terminal));
+        non_terminal
     }
 
     pub fn add_skip_rule(&mut self, rule: &String) {

@@ -1241,7 +1241,7 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData<AATerminal>>
                     )
                 };
                 let non_terminal = self.symbol_table.define_non_terminal(name, location);
-                aa_lhs = AttributeData::LeftHandSide(Rc::clone(non_terminal));
+                aa_lhs = AttributeData::LeftHandSide(non_terminal);
             }
             36 => {
                 // production_tail_list: production_tail
@@ -1418,7 +1418,7 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData<AATerminal>>
                     aa_lhs = AttributeData::Symbol(Some(Rc::clone(symbol)));
                 } else {
                     let symbol = self.symbol_table.use_new_non_terminal(name, location);
-                    aa_lhs = AttributeData::Symbol(Some(Rc::clone(symbol)));
+                    aa_lhs = AttributeData::Symbol(Some(symbol));
                 }
             }
             57 => {
