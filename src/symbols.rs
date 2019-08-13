@@ -164,6 +164,10 @@ impl Symbol {
         self.ident == 3
     }
 
+    fn is_special_symbol(&self) -> bool {
+        self.ident < 5
+    }
+
     pub fn is_tag(&self) -> bool {
         self.symbol_type.is_tag()
     }
@@ -177,11 +181,11 @@ impl Symbol {
     }
 
     pub fn is_undefined(&self) -> bool {
-        self.mutable_data.borrow().defined_at.is_none()
+        self.mutable_data.borrow().defined_at.is_none() && !self.is_special_symbol()
     }
 
     pub fn is_unused(&self) -> bool {
-        self.mutable_data.borrow().used_at.len() == 0
+        self.mutable_data.borrow().used_at.len() == 0 && !self.is_special_symbol()
     }
 
     pub fn used_at(&self) -> Vec<lexan::Location> {
@@ -293,6 +297,15 @@ impl Symbol {
         self.mutable_data.borrow_mut().defined_at = Some(location.clone());
     }
 
+    pub fn firsts_data(&self) -> FirstsData {
+        let msg = format!("{} :should be set", self.name);
+        self.mutable_data.borrow().firsts_data.clone().expect(&msg)
+    }
+
+    pub fn firsts_data_is_none(&self) -> bool {
+        self.mutable_data.borrow().firsts_data.is_none()
+    }
+
     pub fn set_firsts_data(&self, firsts_data: FirstsData) {
         self.mutable_data.borrow_mut().firsts_data = Some(firsts_data);
     }
@@ -337,8 +350,14 @@ impl SymbolTable {
             SymbolType::NonTerminal,
             String::new(),
         );
+        st.non_terminals.insert(symbol.name().to_string(), Rc::clone(&symbol));
         st.special_symbols.insert(SpecialSymbols::Start, symbol);
         let symbol = Symbol::new(1, "AAEND".to_string(), SymbolType::Token, String::new());
+        let mut token_set: OrderedSet<Rc<Symbol>> = OrderedSet::new();
+        token_set.insert(Rc::clone(&symbol));
+        let firsts_data = FirstsData { token_set, transparent: false };
+        symbol.set_firsts_data(firsts_data);
+        st.tokens.insert(symbol.name().to_string(), Rc::clone(&symbol));
         st.special_symbols.insert(SpecialSymbols::End, symbol);
         let symbol = Symbol::new(
             2,
@@ -346,6 +365,7 @@ impl SymbolTable {
             SymbolType::NonTerminal,
             String::new(),
         );
+        st.non_terminals.insert(symbol.name().to_string(), Rc::clone(&symbol));
         st.special_symbols
             .insert(SpecialSymbols::LexicalError, symbol);
         let symbol = Symbol::new(
@@ -354,6 +374,7 @@ impl SymbolTable {
             SymbolType::NonTerminal,
             String::new(),
         );
+        st.non_terminals.insert(symbol.name().to_string(), Rc::clone(&symbol));
         st.special_symbols
             .insert(SpecialSymbols::SyntaxError, symbol);
         let symbol = Symbol::new(
@@ -362,6 +383,7 @@ impl SymbolTable {
             SymbolType::NonTerminal,
             String::new(),
         );
+        st.non_terminals.insert(symbol.name().to_string(), Rc::clone(&symbol));
         st.special_symbols
             .insert(SpecialSymbols::SemanticError, symbol);
         st
@@ -381,6 +403,10 @@ impl SymbolTable {
             .chain(self.tags.values())
             .chain(self.non_terminals.values())
             .filter(|s| s.is_unused())
+    }
+
+    pub fn non_terminal_symbols(&self) -> impl Iterator<Item = &Rc<Symbol>> {
+        self.non_terminals.values()
     }
 
     pub fn special_symbol(&self, t: &SpecialSymbols) -> Rc<Symbol> {

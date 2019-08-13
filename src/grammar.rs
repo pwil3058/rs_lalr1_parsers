@@ -7,9 +7,12 @@ use std::{
 use ordered_collections::{ordered_set::ord_set_iterators::ToSet, OrderedMap, OrderedSet};
 
 use lexan;
+use lalr1plus::{self, parser::Parser};
 
 use crate::state::{GrammarItemKey, GrammarItemSet, ParserState, Production, ProductionTail};
 use crate::symbols::{AssociativePrecedence, FirstsData, SpecialSymbols, Symbol, SymbolTable};
+
+use crate::bootstrap::*;
 
 #[derive(Debug)]
 pub struct Error {}
@@ -32,15 +35,22 @@ pub struct GrammarSpecification {
 }
 
 impl GrammarSpecification {
-    pub fn new() -> Self {
+    pub fn new(text: String, label: String) -> Result<Self, lalr1plus::Error<AATerminal>> {
         let symbol_table = SymbolTable::new();
-        Self {
+        let mut spec = Self {
             symbol_table,
             productions: vec![],
             preamble: String::new(),
             error_count: 0,
             warning_count: 0,
+        };
+        spec.parse_text(text, label)?;
+        for symbol in spec.symbol_table.non_terminal_symbols() {
+            if symbol.firsts_data_is_none() {
+                spec.set_firsts_data(symbol)
+            }
         }
+        Ok(spec)
     }
 
     pub fn is_allowable_name(name: &str) -> bool {
@@ -81,7 +91,7 @@ impl GrammarSpecification {
     ) -> OrderedSet<Rc<Symbol>> {
         let mut token_set: OrderedSet<Rc<Symbol>> = OrderedSet::new();
         for symbol in symbol_string.iter() {
-            let firsts_data = self.firsts_data(symbol);
+            let firsts_data = symbol.firsts_data();
             token_set = token_set.union(&firsts_data.token_set).to_set();
             if !firsts_data.transparent {
                 return token_set;
@@ -91,64 +101,52 @@ impl GrammarSpecification {
         token_set
     }
 
-    fn firsts_data(&self, symbol: &Rc<Symbol>) -> FirstsData {
-        if symbol.mutable_data.borrow().firsts_data.is_none() {
-            self.set_firsts_data(symbol);
-        };
-        symbol.mutable_data.borrow().firsts_data.clone().unwrap()
-    }
-
     fn set_firsts_data(&self, symbol: &Rc<Symbol>) {
-        assert!(symbol.mutable_data.borrow().firsts_data.is_none());
-        if !symbol.is_non_terminal() {
-            let set: OrderedSet<Rc<Symbol>> = vec![Rc::clone(symbol)].into();
-            symbol.set_firsts_data(FirstsData::new(set, false));
-        } else {
-            let relevant_productions: Vec<&Rc<Production>> = self
-                .productions
-                .iter()
-                .filter(|x| x.left_hand_side() == symbol)
-                .collect();
-            let mut transparent = relevant_productions.iter().any(|x| x.is_empty());
-            let mut token_set = OrderedSet::<Rc<Symbol>>::new();
-            let mut transparency_changed = true;
-            while transparency_changed {
-                transparency_changed = false;
-                for production in relevant_productions.iter() {
-                    let mut transparent_production = true;
-                    for rhs_symbol in production.right_hand_side_symbols() {
-                        if rhs_symbol == symbol {
-                            if transparent {
-                                continue;
-                            } else {
-                                transparent_production = false;
-                                break;
-                            }
-                        }
-                        if rhs_symbol.mutable_data.borrow().firsts_data.is_none() {
-                            self.set_firsts_data(rhs_symbol)
-                        }
-                        let firsts_data = rhs_symbol
-                            .mutable_data
-                            .borrow()
-                            .firsts_data
-                            .clone()
-                            .unwrap();
-                        token_set = token_set.union(&firsts_data.token_set).to_set();
-                        if !firsts_data.transparent {
+        assert!(symbol.firsts_data_is_none());
+        assert!(symbol.is_non_terminal());
+        let relevant_productions: Vec<&Rc<Production>> = self
+            .productions
+            .iter()
+            .filter(|x| x.left_hand_side() == symbol)
+            .collect();
+        let mut transparent = relevant_productions.iter().any(|x| x.is_empty());
+        let mut token_set = OrderedSet::<Rc<Symbol>>::new();
+        let mut transparency_changed = true;
+        while transparency_changed {
+            transparency_changed = false;
+            for production in relevant_productions.iter() {
+                let mut transparent_production = true;
+                for rhs_symbol in production.right_hand_side_symbols() {
+                    if rhs_symbol == symbol {
+                        if transparent {
+                            continue;
+                        } else {
                             transparent_production = false;
                             break;
                         }
                     }
-                    if transparent_production {
-                        transparency_changed = !transparent;
-                        transparent = true;
+                    if rhs_symbol.firsts_data_is_none() {
+                        self.set_firsts_data(rhs_symbol)
+                    }
+                    let firsts_data = rhs_symbol
+                        .mutable_data
+                        .borrow()
+                        .firsts_data
+                        .clone()
+                        .unwrap();
+                    token_set = token_set.union(&firsts_data.token_set).to_set();
+                    if !firsts_data.transparent {
+                        transparent_production = false;
+                        break;
                     }
                 }
+                if transparent_production {
+                    transparency_changed = !transparent;
+                    transparent = true;
+                }
             }
-            let firsts_data = FirstsData::new(token_set, transparent);
-            symbol.set_firsts_data(firsts_data);
         }
+        symbol.set_firsts_data(FirstsData::new(token_set, transparent));
     }
 
     fn closure(&self, mut closure_set: GrammarItemSet) -> GrammarItemSet {

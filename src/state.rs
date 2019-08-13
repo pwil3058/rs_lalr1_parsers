@@ -237,7 +237,7 @@ impl ParserState {
             if let Some(mut look_ahead_set) = self.grammar_items.borrow_mut().0.get_mut(key) {
                 let current_len = look_ahead_set.len();
                 *look_ahead_set = look_ahead_set.union(other_look_ahead_set).to_set();
-                additions += current_len - look_ahead_set.len();
+                additions += look_ahead_set.len() - current_len;
             } else {
                 panic!("key sets should be identical to get here")
             }
