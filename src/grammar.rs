@@ -6,8 +6,8 @@ use std::{
 
 use ordered_collections::{ordered_set::ord_set_iterators::ToSet, OrderedMap, OrderedSet};
 
-use lexan;
 use lalr1plus::{self, parser::Parser};
+use lexan;
 
 use crate::state::{GrammarItemKey, GrammarItemSet, ParserState, Production, ProductionTail};
 use crate::symbols::{AssociativePrecedence, FirstsData, SpecialSymbols, Symbol, SymbolTable};
@@ -170,7 +170,7 @@ impl GrammarSpecification {
                         } else {
                             closure_set.insert(prospective_key, firsts.clone());
                             additions_made = true;
-                         }
+                        }
                     }
                 }
             }
@@ -247,9 +247,14 @@ impl Grammar {
     }
 
     fn first_unprocessed_state(&self) -> Option<Rc<ParserState>> {
-        match self.parser_states.iter().filter(|x| !x.is_processed()).next() {
+        match self
+            .parser_states
+            .iter()
+            .filter(|x| !x.is_processed())
+            .next()
+        {
             Some(unprocessed_state) => Some(Rc::clone(unprocessed_state)),
-            None => None
+            None => None,
         }
     }
 

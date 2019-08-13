@@ -47,13 +47,14 @@ fn main() {
     let mut file = fs::File::open(file_name).unwrap();
     let mut input = String::new();
     file.read_to_string(&mut input).unwrap();
-    let mut grammar_specification = match grammar::GrammarSpecification::new(input, file_name.to_string()) {
-        Ok(spec) => spec,
-        Err(error) => {
-            writeln!(std::io::stderr(), "Parse failed: {:?}", error).unwrap();
-            std::process::exit(1);
-        }
-    };
+    let mut grammar_specification =
+        match grammar::GrammarSpecification::new(input, file_name.to_string()) {
+            Ok(spec) => spec,
+            Err(error) => {
+                writeln!(std::io::stderr(), "Parse failed: {:?}", error).unwrap();
+                std::process::exit(1);
+            }
+        };
 
     for symbol in grammar_specification.symbol_table.unused_symbols() {
         let location = symbol.defined_at().unwrap();

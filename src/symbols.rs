@@ -359,16 +359,20 @@ impl SymbolTable {
         st.special_symbols.insert(SpecialSymbols::Start, symbol);
 
         let token = st.new_token("AAEND", "", &start_location);
-        st.special_symbols.insert(SpecialSymbols::End, token.unwrap());
+        st.special_symbols
+            .insert(SpecialSymbols::End, token.unwrap());
 
         let symbol = st.define_non_terminal("AALEXICALERROR", &start_location);
-        st.special_symbols.insert(SpecialSymbols::LexicalError, symbol);
+        st.special_symbols
+            .insert(SpecialSymbols::LexicalError, symbol);
 
         let symbol = st.define_non_terminal("AASYNTAXERROR", &start_location);
-        st.special_symbols.insert(SpecialSymbols::SyntaxError, symbol);
+        st.special_symbols
+            .insert(SpecialSymbols::SyntaxError, symbol);
 
         let symbol = st.define_non_terminal("AASEMANTICERROR", &start_location);
-        st.special_symbols.insert(SpecialSymbols::SemanticError, symbol);
+        st.special_symbols
+            .insert(SpecialSymbols::SemanticError, symbol);
 
         assert!(NUM_SPECIAL_SYMBOLS == st.next_ident);
 
@@ -463,7 +467,10 @@ impl SymbolTable {
         if let Some(token) = self.tokens.insert(name.to_string(), Rc::clone(&token)) {
             Err(Error::AlreadyDefined(Rc::clone(&token)))
         } else if pattern.starts_with('"') {
-            if let Some(token) = self.literal_tokens.insert(pattern.to_string(), Rc::clone(&token)) {
+            if let Some(token) = self
+                .literal_tokens
+                .insert(pattern.to_string(), Rc::clone(&token))
+            {
                 Err(Error::AlreadyDefined(Rc::clone(&token)))
             } else {
                 Ok(token)
@@ -473,11 +480,7 @@ impl SymbolTable {
         }
     }
 
-    pub fn define_non_terminal(
-        &mut self,
-        name: &str,
-        location: &lexan::Location,
-    ) -> Rc<Symbol> {
+    pub fn define_non_terminal(&mut self, name: &str, location: &lexan::Location) -> Rc<Symbol> {
         if let Some(non_terminal) = self.non_terminals.get_mut(name) {
             non_terminal.set_defined_at(location);
             Rc::clone(non_terminal)
@@ -485,7 +488,8 @@ impl SymbolTable {
             let ident = self.next_ident;
             self.next_ident += 1;
             let non_terminal = Symbol::new_non_terminal_at(ident, name, location);
-            self.non_terminals.insert(name.to_string(), Rc::clone(&non_terminal));
+            self.non_terminals
+                .insert(name.to_string(), Rc::clone(&non_terminal));
             non_terminal
         }
     }
@@ -498,7 +502,8 @@ impl SymbolTable {
         let ident = self.next_ident;
         self.next_ident += 1;
         let non_terminal = Symbol::new_non_terminal_used_at(ident, name, location);
-        self.non_terminals.insert(name.to_string(), Rc::clone(&non_terminal));
+        self.non_terminals
+            .insert(name.to_string(), Rc::clone(&non_terminal));
         non_terminal
     }
 

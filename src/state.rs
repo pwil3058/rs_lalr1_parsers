@@ -165,7 +165,7 @@ impl GrammarItemSet {
 
     pub fn kernel_keys(&self) -> OrderedSet<Rc<GrammarItemKey>> {
         let mut keys = OrderedSet::new();
-        for key in self.0.keys().filter(|x| x.is_reducible()) {
+        for key in self.0.keys().filter(|x| x.is_kernel_item()) {
             keys.insert(Rc::clone(key));
         }
         keys
@@ -208,10 +208,14 @@ pub struct ParserState {
     processed_state: Cell<ProcessedState>,
 }
 
-
 impl fmt::Debug for ParserState {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "State#{}({:?}):", self.ident, self.grammar_items.borrow().keys())
+        write!(
+            f,
+            "State#{}({:?}):",
+            self.ident,
+            self.grammar_items.borrow().keys()
+        )
     }
 }
 
@@ -249,7 +253,7 @@ impl ParserState {
 
     pub fn merge_lookahead_sets(&self, item_set: &GrammarItemSet) {
         let mut additions = 0;
-        for (key, other_look_ahead_set) in item_set.0.iter().filter(|(k,_)| k.is_kernel_item()) {
+        for (key, other_look_ahead_set) in item_set.0.iter().filter(|(k, _)| k.is_kernel_item()) {
             if let Some(mut look_ahead_set) = self.grammar_items.borrow_mut().0.get_mut(key) {
                 let current_len = look_ahead_set.len();
                 *look_ahead_set = look_ahead_set.union(other_look_ahead_set).to_set();
