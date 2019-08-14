@@ -44,6 +44,7 @@ fn main() {
     let file_name = matches
         .value_of("input")
         .expect("\"input\" is a required argument");
+    let expected_number_of_conflicts = 0;
     let mut file = fs::File::open(file_name).unwrap();
     let mut input = String::new();
     file.read_to_string(&mut input).unwrap();
@@ -89,4 +90,13 @@ fn main() {
         Ok(grammar) => grammar,
         Err(_) => panic!("not yet implemented"),
     };
+
+    if grammar.total_unresolved_conflicts() != expected_number_of_conflicts {
+        writeln!(
+            std::io::stderr(),
+            "Unexpected conflicts ({}) aborting",
+            grammar.total_unresolved_conflicts()
+        )
+        .unwrap();
+    }
 }

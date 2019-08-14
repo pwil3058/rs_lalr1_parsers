@@ -27,7 +27,7 @@ impl fmt::Display for Error {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Associativity {
     NonAssoc,
     Left,
@@ -36,8 +36,8 @@ pub enum Associativity {
 
 #[derive(Debug, Clone, Copy)]
 pub struct AssociativePrecedence {
-    associativity: Associativity,
-    precedence: u32,
+    pub associativity: Associativity,
+    pub precedence: u32,
 }
 
 impl Default for AssociativePrecedence {
@@ -197,6 +197,10 @@ impl Symbol {
 
     pub fn used_at(&self) -> Vec<lexan::Location> {
         self.mutable_data.borrow().used_at.iter().cloned().collect()
+    }
+
+    pub fn precedence(&self) -> u32 {
+        self.mutable_data.borrow().associative_precedence.precedence
     }
 
     pub fn new_token_at(

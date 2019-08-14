@@ -6,11 +6,11 @@ use std::{
 };
 
 use ordered_collections::{
-    ordered_set::ord_set_iterators::{Selection, ToSet},
+    ordered_set::ord_set_iterators::{Selection, SkipAheadIterator, ToSet},
     OrderedMap, OrderedSet,
 };
 
-use crate::symbols::{AssociativePrecedence, Symbol};
+use crate::symbols::{AssociativePrecedence, Associativity, Symbol};
 
 #[derive(Debug, Clone, Default)]
 pub struct ProductionTail {
@@ -82,6 +82,30 @@ impl Production {
     pub fn right_hand_side_symbols(&self) -> impl Iterator<Item = &Rc<Symbol>> {
         self.tail.right_hand_side.iter()
     }
+
+    pub fn associativity(&self) -> Associativity {
+        self.tail.associative_precedence.associativity
+    }
+
+    pub fn precedence(&self) -> u32 {
+        self.tail.associative_precedence.precedence
+    }
+
+    pub fn predicate(&self) -> Option<&String> {
+        if let Some(ref string) = self.tail.predicate {
+            Some(string)
+        } else {
+            None
+        }
+    }
+
+    pub fn has_error_recovery_tail(&self) -> bool {
+        if let Some(symbol) = self.tail.right_hand_side.last() {
+            symbol.is_syntax_error()
+        } else {
+            false
+        }
+    }
 }
 
 #[derive(Debug, PartialOrd, Ord, PartialEq, Eq)]
@@ -132,6 +156,22 @@ impl GrammarItemKey {
     pub fn rhs_tail(&self) -> &[Rc<Symbol>] {
         &self.production.tail.right_hand_side[self.dot + 1..]
     }
+
+    pub fn associativity(&self) -> Associativity {
+        self.production.associativity()
+    }
+
+    pub fn precedence(&self) -> u32 {
+        self.production.precedence()
+    }
+
+    pub fn predicate(&self) -> Option<&String> {
+        self.production.predicate()
+    }
+
+    pub fn has_error_recovery_tail(&self) -> bool {
+        self.production.has_error_recovery_tail()
+    }
 }
 
 pub struct GrammarItemSet(OrderedMap<Rc<GrammarItemKey>, OrderedSet<Rc<Symbol>>>);
@@ -175,6 +215,10 @@ impl GrammarItemSet {
         self.0.keys().select(|x| !x.is_reducible()).to_set()
     }
 
+    pub fn reducible_keys(&self) -> OrderedSet<Rc<GrammarItemKey>> {
+        self.0.keys().select(|x| x.is_reducible()).to_set()
+    }
+
     pub fn keys(&self) -> OrderedSet<Rc<GrammarItemKey>> {
         self.0.keys().to_set()
     }
@@ -189,6 +233,31 @@ impl GrammarItemSet {
         look_ahead_set: OrderedSet<Rc<Symbol>>,
     ) -> Option<OrderedSet<Rc<Symbol>>> {
         self.0.insert(key, look_ahead_set)
+    }
+
+    pub fn look_ahead_intersection(
+        &self,
+        key1: &GrammarItemKey,
+        key2: &GrammarItemKey,
+    ) -> OrderedSet<Rc<Symbol>> {
+        self.0
+            .get(key1)
+            .unwrap()
+            .intersection(self.0.get(key2).unwrap())
+            .to_set()
+    }
+
+    pub fn remove_look_ahead_symbol(&mut self, key: &GrammarItemKey, symbol: &Rc<Symbol>) {
+        self.0.get_mut(key).unwrap().remove(symbol);
+    }
+
+    pub fn remove_look_ahead_symbols(
+        &mut self,
+        key: &GrammarItemKey,
+        symbols: &OrderedSet<Rc<Symbol>>,
+    ) {
+        let mut look_ahead_set = self.0.get_mut(key).unwrap();
+        *look_ahead_set = look_ahead_set.difference(symbols).to_set();
     }
 }
 
@@ -206,6 +275,20 @@ pub struct ParserState {
     goto_table: RefCell<OrderedMap<Rc<Symbol>, Rc<ParserState>>>,
     error_recovery_state: Cell<Option<Rc<ParserState>>>,
     processed_state: Cell<ProcessedState>,
+    shift_reduce_conflicts: RefCell<
+        Vec<(
+            Rc<Symbol>,
+            Rc<ParserState>,
+            Rc<GrammarItemKey>,
+            OrderedSet<Rc<Symbol>>,
+        )>,
+    >,
+    reduce_reduce_conflicts: RefCell<
+        Vec<(
+            (Rc<GrammarItemKey>, Rc<GrammarItemKey>),
+            OrderedSet<Rc<Symbol>>,
+        )>,
+    >,
 }
 
 impl fmt::Debug for ParserState {
@@ -230,6 +313,8 @@ impl ParserState {
             goto_table: RefCell::new(OrderedMap::new()),
             error_recovery_state: Cell::new(None),
             processed_state: Cell::new(ProcessedState::Unprocessed),
+            shift_reduce_conflicts: RefCell::new(vec![]),
+            reduce_reduce_conflicts: RefCell::new(vec![]),
         })
     }
 
@@ -254,7 +339,7 @@ impl ParserState {
     pub fn merge_lookahead_sets(&self, item_set: &GrammarItemSet) {
         let mut additions = 0;
         for (key, other_look_ahead_set) in item_set.0.iter().filter(|(k, _)| k.is_kernel_item()) {
-            if let Some(mut look_ahead_set) = self.grammar_items.borrow_mut().0.get_mut(key) {
+            if let Some(look_ahead_set) = self.grammar_items.borrow_mut().0.get_mut(key) {
                 let current_len = look_ahead_set.len();
                 *look_ahead_set = look_ahead_set.union(other_look_ahead_set).to_set();
                 additions += look_ahead_set.len() - current_len;
@@ -302,5 +387,85 @@ impl ParserState {
 
     pub fn generate_goto_kernel(&self, symbol: &Rc<Symbol>) -> GrammarItemSet {
         self.grammar_items.borrow().generate_goto_kernel(symbol)
+    }
+
+    pub fn resolve_shift_reduce_conflicts(&self) -> usize {
+        // do this in two stages to avoid borrow/access conflicts
+        let mut conflicts = vec![];
+        for (shift_symbol, goto_state) in self.shift_list.borrow().iter() {
+            for (item, look_ahead_set) in self.grammar_items.borrow().0.iter() {
+                if item.is_reducible() && look_ahead_set.contains(shift_symbol) {
+                    conflicts.push((
+                        Rc::clone(shift_symbol),
+                        Rc::clone(goto_state),
+                        Rc::clone(item),
+                        look_ahead_set.clone(),
+                    ))
+                }
+            }
+        }
+        let mut shift_reduce_conflicts = self.shift_reduce_conflicts.borrow_mut();
+        let mut shift_list = self.shift_list.borrow_mut();
+        let mut grammar_items = self.grammar_items.borrow_mut();
+        for (shift_symbol, goto_state, reducible_item, look_ahead_set) in conflicts.iter() {
+            if shift_symbol.precedence() < reducible_item.precedence() {
+                shift_list.remove(shift_symbol);
+            } else if shift_symbol.precedence() > reducible_item.precedence() {
+                grammar_items.0[Rc::clone(reducible_item)].remove(shift_symbol);
+            } else if reducible_item.associativity() == Associativity::Left {
+                shift_list.remove(shift_symbol);
+            } else if reducible_item.has_error_recovery_tail() {
+                grammar_items.0[Rc::clone(reducible_item)].remove(shift_symbol);
+            } else {
+                // Default: resolve in favour of shift but mark as unresolved
+                // to give the user the option of accepting this resolution
+                grammar_items.0[Rc::clone(reducible_item)].remove(shift_symbol);
+                shift_reduce_conflicts.push((
+                    Rc::clone(shift_symbol),
+                    Rc::clone(goto_state),
+                    Rc::clone(reducible_item),
+                    look_ahead_set.clone(),
+                ))
+            }
+        }
+        shift_reduce_conflicts.len()
+    }
+
+    pub fn resolve_reduce_reduce_conflicts(&self) -> usize {
+        let reducible_key_set = self.grammar_items.borrow().reducible_keys();
+        if reducible_key_set.len() < 2 {
+            return 0;
+        }
+
+        let mut reduce_reduce_conflicts = self.reduce_reduce_conflicts.borrow_mut();
+        let reducible_key_set_2 = reducible_key_set.clone();
+        for key_1 in reducible_key_set.iter() {
+            for key_2 in reducible_key_set_2.iter().advance_past(key_1) {
+                let intersection = self
+                    .grammar_items
+                    .borrow()
+                    .look_ahead_intersection(key_1, key_2);
+                if intersection.len() > 0 && key_1.predicate().is_none() {
+                    if key_1.has_error_recovery_tail() {
+                        self.grammar_items
+                            .borrow_mut()
+                            .remove_look_ahead_symbols(key_1, &intersection);
+                    } else if key_2.has_error_recovery_tail() {
+                        self.grammar_items
+                            .borrow_mut()
+                            .remove_look_ahead_symbols(key_2, &intersection);
+                    } else {
+                        // Default: resolve in favour of first declared production
+                        // but mark unresolved to give the user some options
+                        self.grammar_items
+                            .borrow_mut()
+                            .remove_look_ahead_symbols(key_2, &intersection);
+                        reduce_reduce_conflicts
+                            .push(((Rc::clone(key_1), Rc::clone(key_2)), intersection))
+                    }
+                }
+            }
+        }
+        reduce_reduce_conflicts.len()
     }
 }

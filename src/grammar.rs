@@ -181,7 +181,7 @@ impl GrammarSpecification {
 
 pub struct Grammar {
     specification: GrammarSpecification,
-    parser_states: OrderedSet<Rc<ParserState>>,
+    parser_states: Vec<Rc<ParserState>>,
     goto_table: OrderedMap<Rc<Symbol>, OrderedMap<ParserState, OrderedSet<ParserState>>>,
     empty_look_ahead_sets: Vec<u32>,
     unresolved_sr_conflicts: usize,
@@ -192,7 +192,7 @@ impl Grammar {
     pub fn new(specification: GrammarSpecification) -> Result<Self, Error> {
         let mut grammar = Self {
             specification,
-            parser_states: OrderedSet::new(),
+            parser_states: vec![],
             goto_table: OrderedMap::new(),
             empty_look_ahead_sets: vec![],
             unresolved_rr_conflicts: 0,
@@ -241,9 +241,16 @@ impl Grammar {
                 }
             }
         }
-        panic!("conflicts not resolved");
+        grammar.resolve_conflicts();
 
         Ok(grammar)
+    }
+
+    fn resolve_conflicts(&mut self) {
+        for parser_state in self.parser_states.iter_mut() {
+            self.unresolved_sr_conflicts += parser_state.resolve_shift_reduce_conflicts();
+            self.unresolved_rr_conflicts += parser_state.resolve_reduce_reduce_conflicts();
+        }
     }
 
     fn first_unprocessed_state(&self) -> Option<Rc<ParserState>> {
@@ -261,7 +268,7 @@ impl Grammar {
     fn new_parser_state(&mut self, grammar_items: GrammarItemSet) -> Rc<ParserState> {
         let ident = self.parser_states.len() as u32;
         let parser_state = ParserState::new(ident, grammar_items);
-        self.parser_states.insert(Rc::clone(&parser_state));
+        self.parser_states.push(Rc::clone(&parser_state));
         parser_state
     }
 
@@ -275,5 +282,9 @@ impl Grammar {
             }
         };
         None
+    }
+
+    pub fn total_unresolved_conflicts(&self) -> usize {
+        self.unresolved_rr_conflicts + self.unresolved_sr_conflicts
     }
 }
