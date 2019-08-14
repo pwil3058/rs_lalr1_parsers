@@ -1,6 +1,7 @@
 use std::{
     cell::{Cell, RefCell},
-    io::{stderr, Write},
+    io::{self, stderr, Write},
+    path::Path,
     rc::Rc,
 };
 
@@ -286,5 +287,11 @@ impl Grammar {
 
     pub fn total_unresolved_conflicts(&self) -> usize {
         self.unresolved_rr_conflicts + self.unresolved_sr_conflicts
+    }
+
+    pub fn write_parser_code(&self, file_path: &Path) -> io::Result<()> {
+        let mut file = std::fs::File::create(file_path)?;
+        file.write(b"nothing of any consequence!\n");
+        Ok(())
     }
 }
