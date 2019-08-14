@@ -235,6 +235,10 @@ impl Symbol {
         &self.name
     }
 
+    pub fn pattern(&self) -> &String {
+        &self.pattern
+    }
+
     pub fn new_non_terminal_at(ident: u32, name: &str, location: &lexan::Location) -> Rc<Symbol> {
         let mutable_data = RefCell::new(SymbolMutableData {
             associative_precedence: AssociativePrecedence::default(),
@@ -403,11 +407,9 @@ impl SymbolTable {
         self.non_terminals.values()
     }
 
-    pub fn tokens(&self) -> OrderedSet<&Rc<Symbol>> {
-        let mut tokens = OrderedSet::<&Rc<Symbol>>::new();
-        for token in self.tokens.values() {
-            tokens.insert(token);
-        }
+    pub fn tokens_sorted(&self) -> Vec<&Rc<Symbol>> {
+        let mut tokens: Vec<&Rc<Symbol>> = self.tokens.values().collect();
+        tokens.sort();
         tokens
     }
 

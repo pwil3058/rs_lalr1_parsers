@@ -296,12 +296,29 @@ impl Grammar {
     }
 
     fn write_symbol_enum_text<W: Write>(&self, wtr: &mut W) -> io::Result<()> {
+        let tokens = self.specification.symbol_table.tokens_sorted();
         wtr.write(b"#[derive(Debug, Clone, Copy, PartialOrd, Ord, PartialEq, Eq)]\n")?;
         wtr.write(b"pub enum AATerminal {\n")?;
-        for token in self.specification.symbol_table.tokens().iter() {
+        for token in tokens.iter() {
             wtr.write_fmt(format_args!("    {},\n", token.name()));
         }
         wtr.write(b"}\n\n")?;
+        wtr.write(b"impl fmt::Display for Terminal {\n");
+        wtr.write(b"    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {\n");
+        wtr.write(b"        match self {\n");
+        for token in tokens.iter() {
+            wtr.write(b"        AATerminal::");
+            let name = token.name();
+            let pattern = token.pattern();
+            if pattern.starts_with('"') {
+                wtr.write_fmt(format_args!("{} => write(f, r###\"{}\"###),\n", name, pattern));
+            } else {
+                wtr.write_fmt(format_args!("{} => write(f, r###\"{}\"###),\n", name, name));
+            }
+        }
+        wtr.write(b"        }\n");
+        wtr.write(b"    }\n");
+        wtr.write(b"}\n");
         Ok(())
     }
 }
