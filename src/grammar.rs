@@ -303,17 +303,17 @@ impl Grammar {
             wtr.write_fmt(format_args!("    {},\n", token.name()));
         }
         wtr.write(b"}\n\n")?;
-        wtr.write(b"impl fmt::Display for Terminal {\n");
-        wtr.write(b"    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {\n");
+        wtr.write(b"impl std::fmt::Display for AATerminal {\n");
+        wtr.write(b"    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {\n");
         wtr.write(b"        match self {\n");
         for token in tokens.iter() {
             wtr.write(b"        AATerminal::");
             let name = token.name();
             let pattern = token.pattern();
             if pattern.starts_with('"') {
-                wtr.write_fmt(format_args!("{} => write(f, r###\"{}\"###),\n", name, pattern));
+                wtr.write_fmt(format_args!("{} => write!(f, r###\"{}\"###),\n", name, pattern));
             } else {
-                wtr.write_fmt(format_args!("{} => write(f, r###\"{}\"###),\n", name, name));
+                wtr.write_fmt(format_args!("{} => write!(f, r###\"{}\"###),\n", name, name));
             }
         }
         wtr.write(b"        }\n");
