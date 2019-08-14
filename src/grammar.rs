@@ -291,7 +291,17 @@ impl Grammar {
 
     pub fn write_parser_code(&self, file_path: &Path) -> io::Result<()> {
         let mut file = std::fs::File::create(file_path)?;
-        file.write(b"nothing of any consequence!\n");
+        self.write_symbol_enum_text(&mut file)?;
+        Ok(())
+    }
+
+    fn write_symbol_enum_text<W: Write>(&self, wtr: &mut W) -> io::Result<()> {
+        wtr.write(b"#[derive(Debug, Clone, Copy, PartialOrd, Ord, PartialEq, Eq)]\n")?;
+        wtr.write(b"pub enum AATerminal {\n")?;
+        for token in self.specification.symbol_table.tokens().iter() {
+            wtr.write_fmt(format_args!("    {},\n", token.name()));
+        }
+        wtr.write(b"}\n\n")?;
         Ok(())
     }
 }

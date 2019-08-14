@@ -403,6 +403,14 @@ impl SymbolTable {
         self.non_terminals.values()
     }
 
+    pub fn tokens(&self) -> OrderedSet<&Rc<Symbol>> {
+        let mut tokens = OrderedSet::<&Rc<Symbol>>::new();
+        for token in self.tokens.values() {
+            tokens.insert(token);
+        }
+        tokens
+    }
+
     pub fn special_symbol(&self, t: &SpecialSymbols) -> Rc<Symbol> {
         Rc::clone(self.special_symbols.get(t).unwrap())
     }
@@ -453,7 +461,7 @@ impl SymbolTable {
     pub fn new_tag(&mut self, name: &str, location: &lexan::Location) -> Result<(), Error> {
         let tag = Symbol::new_tag_at(self.next_ident, name, location);
         self.next_ident += 1;
-        if let Some(tag) = self.tokens.insert(name.to_string(), tag) {
+        if let Some(tag) = self.tags.insert(name.to_string(), tag) {
             Err(Error::AlreadyDefined(Rc::clone(&tag)))
         } else {
             Ok(())
