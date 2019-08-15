@@ -292,6 +292,7 @@ impl Grammar {
     pub fn write_parser_code(&self, file_path: &Path) -> io::Result<()> {
         let mut file = std::fs::File::create(file_path)?;
         self.write_symbol_enum_text(&mut file)?;
+        self.write_lexical_analyzer_text(&mut file)?;
         Ok(())
     }
 
@@ -300,25 +301,70 @@ impl Grammar {
         wtr.write(b"#[derive(Debug, Clone, Copy, PartialOrd, Ord, PartialEq, Eq)]\n")?;
         wtr.write(b"pub enum AATerminal {\n")?;
         for token in tokens.iter() {
-            wtr.write_fmt(format_args!("    {},\n", token.name()));
+            wtr.write_fmt(format_args!("    {},\n", token.name()))?;
         }
         wtr.write(b"}\n\n")?;
-        wtr.write(b"impl std::fmt::Display for AATerminal {\n");
-        wtr.write(b"    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {\n");
-        wtr.write(b"        match self {\n");
+        wtr.write(b"impl std::fmt::Display for AATerminal {\n")?;
+        wtr.write(b"    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {\n")?;
+        wtr.write(b"        match self {\n")?;
         for token in tokens.iter() {
-            wtr.write(b"        AATerminal::");
+            wtr.write(b"        AATerminal::")?;
             let name = token.name();
             let pattern = token.pattern();
             if pattern.starts_with('"') {
-                wtr.write_fmt(format_args!("{} => write!(f, r###\"{}\"###),\n", name, pattern));
+                wtr.write_fmt(format_args!(
+                    "{} => write!(f, r###\"{}\"###),\n",
+                    name, pattern
+                ))?;
             } else {
-                wtr.write_fmt(format_args!("{} => write!(f, r###\"{}\"###),\n", name, name));
+                wtr.write_fmt(format_args!(
+                    "{} => write!(f, r###\"{}\"###),\n",
+                    name, name
+                ))?;
             }
         }
-        wtr.write(b"        }\n");
-        wtr.write(b"    }\n");
-        wtr.write(b"}\n");
+        wtr.write(b"        }\n")?;
+        wtr.write(b"    }\n")?;
+        wtr.write(b"}\n\n")?;
+        Ok(())
+    }
+
+    fn write_lexical_analyzer_text<W: Write>(&self, wtr: &mut W) -> io::Result<()> {
+        let tokens = self.specification.symbol_table.tokens_sorted();
+        wtr.write(b"lazy_static! {\n")?;
+        wtr.write(b"    static ref AALEXAN: lexan::LexicalAnalyzer<AATerminal> = {\n")?;
+        wtr.write(b"        use AATerminal::*;\n")?;
+        wtr.write(b"        lexan::LexicalAnalyzer::new(\n")?;
+        wtr.write(b"            &[\n")?;
+        for token in tokens.iter().filter(|x| x.pattern().starts_with('"')) {
+            wtr.write(b"                ")?;
+            wtr.write_fmt(format_args!(
+                "({}, r###{}###),\n",
+                token.name(),
+                token.pattern()
+            ))?;
+        }
+        wtr.write(b"            ],\n")?;
+        wtr.write(b"            &[\n")?;
+        for token in tokens.iter().filter(|x| x.pattern().starts_with('(')) {
+            wtr.write(b"                ")?;
+            wtr.write_fmt(format_args!(
+                "({}, r###\"{}\"###),\n",
+                token.name(),
+                token.pattern()
+            ))?;
+        }
+        wtr.write(b"            ],\n")?;
+        wtr.write(b"            &[\n")?;
+        for skip_rule in self.specification.symbol_table.skip_rules() {
+            wtr.write(b"                ")?;
+            wtr.write_fmt(format_args!("r###\"{}\"###,\n", skip_rule))?;
+        }
+        wtr.write(b"            ],\n")?;
+        wtr.write(b"            AAEND,\n")?;
+        wtr.write(b"        )\n")?;
+        wtr.write(b"    };\n")?;
+        wtr.write(b"}\n\n")?;
         Ok(())
     }
 }

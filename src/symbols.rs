@@ -413,6 +413,10 @@ impl SymbolTable {
         tokens
     }
 
+    pub fn skip_rules(&self) -> impl Iterator<Item = &String> {
+        self.skip_rules.iter()
+    }
+
     pub fn special_symbol(&self, t: &SpecialSymbols) -> Rc<Symbol> {
         Rc::clone(self.special_symbols.get(t).unwrap())
     }

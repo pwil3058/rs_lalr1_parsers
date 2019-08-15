@@ -129,13 +129,13 @@ fn main() {
     }
 
     if let Err(err) = grammar.write_parser_code(&output_path) {
-            writeln!(
-                std::io::stderr(),
-                "{}: problems writing file: {:?}.",
-                output_path.to_string_lossy(),
-                err
-            )
-            .unwrap();
-            std::process::exit(6);
+        writeln!(
+            std::io::stderr(),
+            "{}: problems writing file: {:?}.",
+            output_path.to_string_lossy(),
+            err
+        )
+        .unwrap();
+        std::process::exit(6);
     }
 }
