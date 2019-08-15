@@ -413,6 +413,12 @@ impl SymbolTable {
         tokens
     }
 
+    pub fn non_terminal_symbols_sorted(&self) -> Vec<&Rc<Symbol>> {
+        let mut non_terminal_symbols: Vec<&Rc<Symbol>> = self.non_terminals.values().collect();
+        non_terminal_symbols.sort();
+        non_terminal_symbols
+    }
+
     pub fn skip_rules(&self) -> impl Iterator<Item = &String> {
         self.skip_rules.iter()
     }

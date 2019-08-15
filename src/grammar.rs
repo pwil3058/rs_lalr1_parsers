@@ -326,6 +326,24 @@ impl Grammar {
         wtr.write(b"        }\n")?;
         wtr.write(b"    }\n")?;
         wtr.write(b"}\n\n")?;
+        wtr.write(b"#[derive(Debug, Clone, Copy, PartialOrd, Ord, PartialEq, Eq)]\n")?;
+        wtr.write(b"pub enum AANonTerminal {\n")?;
+        let non_terminal_symbols = self.specification.symbol_table.non_terminal_symbols_sorted();
+        for symbol in non_terminal_symbols.iter() {
+            wtr.write_fmt(format_args!("    {},\n", symbol.name()))?;
+        }
+        wtr.write(b"}\n\n")?;
+        wtr.write(b"impl std::fmt::Display for AANonTerminal {\n")?;
+        wtr.write(b"    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {\n")?;
+        wtr.write(b"        match self {\n")?;
+        for symbol in non_terminal_symbols.iter() {
+            wtr.write(b"        AANonTerminal::")?;
+            let name = symbol.name();
+            wtr.write_fmt(format_args!("{} => write!(f, r\"{}\"),\n", name, name))?;
+        }
+        wtr.write(b"        }\n")?;
+        wtr.write(b"    }\n")?;
+        wtr.write(b"}\n\n")?;
         Ok(())
     }
 
