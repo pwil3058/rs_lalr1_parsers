@@ -170,7 +170,7 @@ mod tests {
             }
         }
 
-        fn error_go_state(state: u32) -> u32 {
+        fn error_goto_state(state: u32) -> u32 {
             match state {
                 0 | 4 => 3,
                 _ => panic!("No error go to state for {}", state),

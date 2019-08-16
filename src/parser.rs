@@ -149,7 +149,7 @@ where
 
     fn viable_error_recovery_states(tag: &T) -> Vec<u32>;
 
-    fn error_go_state(state: u32) -> u32;
+    fn error_goto_state(state: u32) -> u32;
 
     fn parse_text(&mut self, text: String, label: String) -> Result<(), Error<T>> {
         let mut tokens = self.lexical_analyzer().token_stream(text, label);
@@ -207,7 +207,7 @@ where
                             }
                             if let Some(distance) = distance {
                                 parse_stack.pop_n(distance);
-                                let next_state = Self::error_go_state(parse_stack.current_state());
+                                let next_state = Self::error_goto_state(parse_stack.current_state());
                                 parse_stack.push_error(next_state, error);
                             } else {
                                 return result;
