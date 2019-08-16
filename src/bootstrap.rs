@@ -171,7 +171,7 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData<AATerminal>>
         vec![]
     }
 
-    fn error_go_state(state: u32) -> u32 {
+    fn error_goto_state(state: u32) -> u32 {
         panic!("No error go to state for {}", state)
     }
 
