@@ -172,6 +172,10 @@ impl GrammarItemKey {
     pub fn has_error_recovery_tail(&self) -> bool {
         self.production.has_error_recovery_tail()
     }
+
+    pub fn has_reducible_error_recovery_tail(&self) -> bool {
+        self.is_reducible() && self.production.has_error_recovery_tail()
+    }
 }
 
 pub struct GrammarItemSet(OrderedMap<Rc<GrammarItemKey>, OrderedSet<Rc<Symbol>>>);
@@ -256,8 +260,21 @@ impl GrammarItemSet {
         key: &GrammarItemKey,
         symbols: &OrderedSet<Rc<Symbol>>,
     ) {
-        let mut look_ahead_set = self.0.get_mut(key).unwrap();
+        let look_ahead_set = self.0.get_mut(key).unwrap();
         *look_ahead_set = look_ahead_set.difference(symbols).to_set();
+    }
+
+    pub fn error_recovery_look_ahead_set_contains(&self, token: &Rc<Symbol>) -> bool {
+        for (item_key, look_ahead_set) in self
+            .0
+            .iter()
+            .filter(|x| x.0.has_reducible_error_recovery_tail())
+        {
+            if look_ahead_set.contains(token) {
+                return true;
+            }
+        }
+        false
     }
 }
 
@@ -273,7 +290,7 @@ pub struct ParserState {
     grammar_items: RefCell<GrammarItemSet>,
     shift_list: RefCell<OrderedMap<Rc<Symbol>, Rc<ParserState>>>,
     goto_table: RefCell<OrderedMap<Rc<Symbol>, Rc<ParserState>>>,
-    error_recovery_state: Cell<Option<Rc<ParserState>>>,
+    error_recovery_state: RefCell<Option<Rc<ParserState>>>,
     processed_state: Cell<ProcessedState>,
     shift_reduce_conflicts: RefCell<
         Vec<(
@@ -311,7 +328,7 @@ impl ParserState {
             grammar_items: RefCell::new(grammar_items),
             shift_list: RefCell::new(OrderedMap::new()),
             goto_table: RefCell::new(OrderedMap::new()),
-            error_recovery_state: Cell::new(None),
+            error_recovery_state: RefCell::new(None),
             processed_state: Cell::new(ProcessedState::Unprocessed),
             shift_reduce_conflicts: RefCell::new(vec![]),
             reduce_reduce_conflicts: RefCell::new(vec![]),
@@ -361,7 +378,16 @@ impl ParserState {
     }
 
     pub fn set_error_recovery_state(&self, state: &Rc<ParserState>) {
-        self.error_recovery_state.set(Some(Rc::clone(state)));
+        //self.error_recovery_state.set(Some(Rc::clone(state)));
+        *self.error_recovery_state.borrow_mut() = Some(Rc::clone(state));
+    }
+
+    pub fn error_goto_state_ident(&self) -> Option<u32> {
+        if let Some(error_recovery_state) = self.error_recovery_state.borrow().clone() {
+            Some(error_recovery_state.ident)
+        } else {
+            None
+        }
     }
 
     pub fn has_empty_look_ahead_set(&self) -> bool {
@@ -467,5 +493,18 @@ impl ParserState {
             }
         }
         reduce_reduce_conflicts.len()
+    }
+
+    pub fn is_recovery_state_for_token(&self, token: &Rc<Symbol>) -> bool {
+        if let Some(recovery_state) = self.error_recovery_state.borrow().clone() {
+            if recovery_state
+                .grammar_items
+                .borrow()
+                .error_recovery_look_ahead_set_contains(token)
+            {
+                return true;
+            }
+        };
+        false
     }
 }

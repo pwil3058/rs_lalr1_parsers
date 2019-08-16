@@ -72,6 +72,12 @@ impl GrammarSpecification {
         self.preamble = preamble.to_string();
     }
 
+    pub fn write_preamble_text<W: Write>(&self, wtr: &mut W) -> io::Result<()> {
+        wtr.write(self.preamble.as_bytes())?;
+        wtr.write(b"\n")?;
+        Ok(())
+    }
+
     pub fn new_production(&mut self, left_hand_side: Rc<Symbol>, tail: ProductionTail) {
         if self.productions.len() == 0 {
             let start_symbol = self.symbol_table.special_symbol(&SpecialSymbols::Start);
@@ -291,12 +297,14 @@ impl Grammar {
 
     pub fn write_parser_code(&self, file_path: &Path) -> io::Result<()> {
         let mut file = std::fs::File::create(file_path)?;
-        self.write_symbol_enum_text(&mut file)?;
-        self.write_lexical_analyzer_text(&mut file)?;
+        self.specification.write_preamble_text(&mut file)?;
+        self.write_symbol_enum_code(&mut file)?;
+        self.write_lexical_analyzer_code(&mut file)?;
+        self.write_parser_implementation_code(&mut file)?;
         Ok(())
     }
 
-    fn write_symbol_enum_text<W: Write>(&self, wtr: &mut W) -> io::Result<()> {
+    fn write_symbol_enum_code<W: Write>(&self, wtr: &mut W) -> io::Result<()> {
         let tokens = self.specification.symbol_table.tokens_sorted();
         wtr.write(b"#[derive(Debug, Clone, Copy, PartialOrd, Ord, PartialEq, Eq)]\n")?;
         wtr.write(b"pub enum AATerminal {\n")?;
@@ -328,7 +336,10 @@ impl Grammar {
         wtr.write(b"}\n\n")?;
         wtr.write(b"#[derive(Debug, Clone, Copy, PartialOrd, Ord, PartialEq, Eq)]\n")?;
         wtr.write(b"pub enum AANonTerminal {\n")?;
-        let non_terminal_symbols = self.specification.symbol_table.non_terminal_symbols_sorted();
+        let non_terminal_symbols = self
+            .specification
+            .symbol_table
+            .non_terminal_symbols_sorted();
         for symbol in non_terminal_symbols.iter() {
             wtr.write_fmt(format_args!("    {},\n", symbol.name()))?;
         }
@@ -347,7 +358,7 @@ impl Grammar {
         Ok(())
     }
 
-    fn write_lexical_analyzer_text<W: Write>(&self, wtr: &mut W) -> io::Result<()> {
+    fn write_lexical_analyzer_code<W: Write>(&self, wtr: &mut W) -> io::Result<()> {
         let tokens = self.specification.symbol_table.tokens_sorted();
         wtr.write(b"lazy_static! {\n")?;
         wtr.write(b"    static ref AALEXAN: lexan::LexicalAnalyzer<AATerminal> = {\n")?;
@@ -383,6 +394,94 @@ impl Grammar {
         wtr.write(b"        )\n")?;
         wtr.write(b"    };\n")?;
         wtr.write(b"}\n\n")?;
+        Ok(())
+    }
+
+    fn write_parser_implementation_code<W: Write>(&self, wtr: &mut W) -> io::Result<()> {
+        let attr = "AttributeData"; // TODO: make this configurable
+        let parser = "Calc"; // TODO: make this configurable
+        let text = format!(
+            "impl lalr1plus::Parser<AATerminal, AANonTerminal, {}> for {} {{\n",
+            attr, parser
+        );
+        wtr.write(text.as_bytes())?;
+        wtr.write(b"    fn lexical_analyzer(&self) -> &lexan::LexicalAnalyzer<AATerminal> {\n")?;
+        wtr.write(b"        &AALEXAN\n")?;
+        wtr.write(b"    }\n\n")?;
+        self.write_error_recovery_code(wtr)?;
+        wtr.write(b"}\n")?;
+        Ok(())
+    }
+
+    fn error_recovery_states_for_token(&self, token: &Rc<Symbol>) -> Vec<u32> {
+        let mut states = vec![];
+        for parser_state in self.parser_states.iter() {
+            if parser_state.is_recovery_state_for_token(token) {
+                states.push(parser_state.ident)
+            }
+        }
+        states
+    }
+
+    fn format_u32_vec(vec: &[u32]) -> String {
+        let mut string = "vec![".to_string();
+        for (index, number) in vec.iter().enumerate() {
+            if index == 0 {
+                string += &format!("{}", number);
+            } else {
+                string += &format!(", {}", number);
+            }
+        }
+        string += "]";
+        string
+    }
+
+    fn write_error_recovery_code<W: Write>(&self, wtr: &mut W) -> io::Result<()> {
+        wtr.write(b"    fn viable_error_recovery_states(token: &AATerminal) -> Vec<u32> {\n")?;
+        wtr.write(b"        use AATerminal::*;\n")?;
+        wtr.write(b"        match token {\n")?;
+        let mut default_required = false;
+        for token in self.specification.symbol_table.tokens_sorted().iter() {
+            let set = self.error_recovery_states_for_token(token);
+            if set.len() > 0 {
+                let set_str = Self::format_u32_vec(&set);
+                wtr.write_fmt(format_args!("            {} => {},\n", token.name(), set_str))?;
+            } else {
+                default_required = true;
+            }
+        }
+        if default_required {
+            wtr.write(b"            _ => vec![],\n")?;
+        }
+        wtr.write(b"        }\n")?;
+        wtr.write(b"    }\n\n")?;
+        wtr.write(b"    fn error_goto_state(state: u32) -> u32 {\n")?;
+        wtr.write(b"        match state {\n")?;
+        for parser_state in self.parser_states.iter() {
+            if let Some(goto_state_id) = parser_state.error_goto_state_ident() {
+                wtr.write_fmt(format_args!("            {:1} => {:1},\n", parser_state.ident, goto_state_id))?;
+            }
+        }
+        wtr.write(b"            _ => panic!(\"No error go to state for {}\", state),\n")?;
+        wtr.write(b"        }\n")?;
+        wtr.write(b"    }\n\n")?;
+        Ok(())
+    }
+
+    fn write_next_action_code<W: Write>(&self, wtr: &mut W) -> io::Result<()> {
+        wtr.write(b"    fn next_action(\n")?;
+        wtr.write(b"        &self,\n")?;
+        wtr.write(b"        state: u32,\n")?;
+        wtr.write(b"        attributes: &parser::ParseStack<Terminal, NonTerminal, AttributeData>,\n")?;
+        wtr.write(b"        token: &lexan::Token<Terminal>,\n")?;
+        wtr.write(b"    ) -> parser::Action<Terminal> {\n")?;
+        wtr.write(b"        use parser::Action;\n")?;
+        wtr.write(b"        use Terminal::*;\n")?;
+        wtr.write(b"        let tag = *token.tag();\n")?;
+        wtr.write(b"        return match state {\n")?;
+        wtr.write(b"            _ => panic!(\"illegal state: {}\", state),{\n")?;
+        wtr.write(b"        }\n")?;
+        wtr.write(b"    }\n\n")?;
         Ok(())
     }
 }
