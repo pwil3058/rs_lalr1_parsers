@@ -409,6 +409,7 @@ impl Grammar {
         wtr.write(b"        &AALEXAN\n")?;
         wtr.write(b"    }\n\n")?;
         self.write_error_recovery_code(wtr)?;
+        self.write_next_action_code(wtr)?;
         wtr.write(b"}\n")?;
         Ok(())
     }
@@ -472,14 +473,14 @@ impl Grammar {
         wtr.write(b"    fn next_action(\n")?;
         wtr.write(b"        &self,\n")?;
         wtr.write(b"        state: u32,\n")?;
-        wtr.write(b"        attributes: &parser::ParseStack<Terminal, NonTerminal, AttributeData>,\n")?;
-        wtr.write(b"        token: &lexan::Token<Terminal>,\n")?;
-        wtr.write(b"    ) -> parser::Action<Terminal> {\n")?;
-        wtr.write(b"        use parser::Action;\n")?;
-        wtr.write(b"        use Terminal::*;\n")?;
+        wtr.write(b"        attributes: &lalr1plus::ParseStack<AATerminal, AANonTerminal, AttributeData>,\n")?;
+        wtr.write(b"        token: &lexan::Token<AATerminal>,\n")?;
+        wtr.write(b"    ) -> lalr1plus::Action<AATerminal> {\n")?;
+        wtr.write(b"        use lalr1plus::Action;\n")?;
+        wtr.write(b"        use AATerminal::*;\n")?;
         wtr.write(b"        let tag = *token.tag();\n")?;
         wtr.write(b"        return match state {\n")?;
-        wtr.write(b"            _ => panic!(\"illegal state: {}\", state),{\n")?;
+        wtr.write(b"            _ => panic!(\"illegal state: {}\", state),\n")?;
         wtr.write(b"        }\n")?;
         wtr.write(b"    }\n\n")?;
         Ok(())
