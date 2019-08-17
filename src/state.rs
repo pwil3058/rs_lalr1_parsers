@@ -180,6 +180,12 @@ impl GrammarItemKey {
 
 pub struct GrammarItemSet(OrderedMap<Rc<GrammarItemKey>, OrderedSet<Rc<Symbol>>>);
 
+#[derive(Debug)]
+struct Reduction {
+    productions: OrderedSet<Rc<Production>>,
+    look_ahead_set: OrderedSet<Rc<Symbol>>,
+}
+
 impl GrammarItemSet {
     pub fn new(map: OrderedMap<Rc<GrammarItemKey>, OrderedSet<Rc<Symbol>>>) -> Self {
         GrammarItemSet(map)
@@ -275,6 +281,20 @@ impl GrammarItemSet {
             }
         }
         false
+    }
+
+    fn reducible_look_ahead_set(&self) -> OrderedSet<Rc<Symbol>> {
+        let mut set = OrderedSet::new();
+        for (_, look_ahead_set) in self.0.iter().filter(|x| x.0.is_reducible()) {
+            set = set.union(look_ahead_set).to_set();
+        }
+        set
+    }
+
+    fn reductions(&self) -> Vec<Reduction> {
+        let reductions = vec![];
+        let expected_tokens = self.reducible_look_ahead_set();
+        reductions
     }
 }
 
@@ -378,7 +398,6 @@ impl ParserState {
     }
 
     pub fn set_error_recovery_state(&self, state: &Rc<ParserState>) {
-        //self.error_recovery_state.set(Some(Rc::clone(state)));
         *self.error_recovery_state.borrow_mut() = Some(Rc::clone(state));
     }
 
@@ -458,6 +477,7 @@ impl ParserState {
     }
 
     pub fn resolve_reduce_reduce_conflicts(&self) -> usize {
+        // TODO: move reduce/reduce conflict resolution inside GrammarItemSet
         let reducible_key_set = self.grammar_items.borrow().reducible_keys();
         if reducible_key_set.len() < 2 {
             return 0;

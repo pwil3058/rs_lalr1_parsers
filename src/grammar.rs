@@ -446,7 +446,11 @@ impl Grammar {
             let set = self.error_recovery_states_for_token(token);
             if set.len() > 0 {
                 let set_str = Self::format_u32_vec(&set);
-                wtr.write_fmt(format_args!("            {} => {},\n", token.name(), set_str))?;
+                wtr.write_fmt(format_args!(
+                    "            {} => {},\n",
+                    token.name(),
+                    set_str
+                ))?;
             } else {
                 default_required = true;
             }
@@ -460,7 +464,10 @@ impl Grammar {
         wtr.write(b"        match state {\n")?;
         for parser_state in self.parser_states.iter() {
             if let Some(goto_state_id) = parser_state.error_goto_state_ident() {
-                wtr.write_fmt(format_args!("            {:1} => {:1},\n", parser_state.ident, goto_state_id))?;
+                wtr.write_fmt(format_args!(
+                    "            {:1} => {:1},\n",
+                    parser_state.ident, goto_state_id
+                ))?;
             }
         }
         wtr.write(b"            _ => panic!(\"No error go to state for {}\", state),\n")?;

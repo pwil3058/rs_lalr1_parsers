@@ -382,7 +382,7 @@ impl SymbolTable {
         st.special_symbols
             .insert(SpecialSymbols::SemanticError, symbol);
 
-        assert!(NUM_SPECIAL_SYMBOLS == st.next_ident);
+        assert_eq!(NUM_SPECIAL_SYMBOLS, st.next_ident);
 
         st
     }
