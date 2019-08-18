@@ -181,9 +181,9 @@ impl GrammarItemKey {
 pub struct GrammarItemSet(OrderedMap<Rc<GrammarItemKey>, OrderedSet<Rc<Symbol>>>);
 
 #[derive(Debug)]
-struct Reduction {
-    productions: OrderedSet<Rc<Production>>,
-    look_ahead_set: OrderedSet<Rc<Symbol>>,
+struct Reductions {
+    reductions: OrderedMap<OrderedSet<Rc<Production>>, OrderedSet<Rc<Symbol>>>,
+    expected_tokens: OrderedSet<Rc<Symbol>>,
 }
 
 impl GrammarItemSet {
@@ -291,10 +291,26 @@ impl GrammarItemSet {
         set
     }
 
-    fn reductions(&self) -> Vec<Reduction> {
-        let reductions = vec![];
+    fn reductions(&self) -> Reductions {
         let expected_tokens = self.reducible_look_ahead_set();
-        reductions
+        let mut reductions: OrderedMap<OrderedSet<Rc<Production>>, OrderedSet<Rc<Symbol>>> =
+            OrderedMap::new();
+        for token in expected_tokens.iter() {
+            let mut productions: OrderedSet<Rc<Production>> = OrderedSet::new();
+            for (item_key, look_ahead_set) in self.0.iter().filter(|x| x.0.is_reducible()) {
+                if look_ahead_set.contains(token) {
+                    productions.insert(Rc::clone(&item_key.production));
+                }
+            }
+            let look_ahead_set = reductions
+                .entry(productions)
+                .or_insert(OrderedSet::<Rc<Symbol>>::new());
+            look_ahead_set.insert(Rc::clone(token));
+        }
+        Reductions {
+            reductions,
+            expected_tokens,
+        }
     }
 }
 
