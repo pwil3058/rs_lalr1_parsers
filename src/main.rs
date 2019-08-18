@@ -53,13 +53,20 @@ fn with_changed_extension(path: &Path, new_extension: &str) -> PathBuf {
 }
 fn main() {
     let matches = clap::App::new("Augmented Lexical Analyzer and Parser Generator")
+        .arg(
+            clap::Arg::with_name("force")
+                .short("f")
+                .long("force")
+                .takes_value(false),
+        )
         .arg(clap::Arg::with_name("input").required(true))
         .get_matches();
+    let force = matches.is_present("force");
     let file_name = matches
         .value_of("input")
         .expect("\"input\" is a required argument");
     let output_path = with_changed_extension(Path::new(file_name), "rs");
-    if output_path.exists() {
+    if output_path.exists() && !force {
         writeln!(
             std::io::stderr(),
             "{}: output file already exists",
