@@ -326,6 +326,31 @@ impl Symbol {
     }
 }
 
+pub fn format_as_vec(symbol_set: &OrderedSet<Rc<Symbol>>) -> String {
+    let mut string = "vec![".to_string();
+    for (index, symbol) in symbol_set.iter().enumerate() {
+        if index == 0 {
+            string += &format!("{}", symbol.name());
+        } else {
+            string += &format!(", {}", symbol.name());
+        }
+    }
+    string += "]";
+    string
+}
+
+pub fn format_as_or_list(symbol_set: &OrderedSet<Rc<Symbol>>) -> String {
+    let mut string = "".to_string();
+    for (index, symbol) in symbol_set.iter().enumerate() {
+        if index == 0 {
+            string += &format!("{}", symbol.name());
+        } else {
+            string += &format!(" | {}", symbol.name());
+        }
+    }
+    string
+}
+
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub enum SpecialSymbols {
     Start,
