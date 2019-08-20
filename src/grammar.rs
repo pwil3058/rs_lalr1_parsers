@@ -480,13 +480,16 @@ impl Grammar {
         wtr.write(b"    fn next_action(\n")?;
         wtr.write(b"        &self,\n")?;
         wtr.write(b"        state: u32,\n")?;
-        wtr.write(b"        attributes: &lalr1plus::ParseStack<AATerminal, AANonTerminal, AttributeData>,\n")?;
+        wtr.write(b"        aa_attributes: &lalr1plus::ParseStack<AATerminal, AANonTerminal, AttributeData>,\n")?;
         wtr.write(b"        token: &lexan::Token<AATerminal>,\n")?;
         wtr.write(b"    ) -> lalr1plus::Action<AATerminal> {\n")?;
         wtr.write(b"        use lalr1plus::Action;\n")?;
         wtr.write(b"        use AATerminal::*;\n")?;
-        wtr.write(b"        let tag = *token.tag();\n")?;
+        wtr.write(b"        let aa_tag = *token.tag();\n")?;
         wtr.write(b"        return match state {\n")?;
+        for parser_state in self.parser_states.iter() {
+            parser_state.write_next_action_code(wtr, "            ")?;
+        }
         wtr.write(b"            _ => panic!(\"illegal state: {}\", state),\n")?;
         wtr.write(b"        }\n")?;
         wtr.write(b"    }\n\n")?;

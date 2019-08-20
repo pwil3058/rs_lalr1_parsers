@@ -3,14 +3,17 @@ use std::{
     fmt,
     io::{stderr, Write},
     rc::Rc,
+    str::FromStr,
 };
 
 use ordered_collections::{
-    ordered_set::ord_set_iterators::{Selection, SkipAheadIterator, ToSet},
+    ordered_set::ord_set_iterators::{IterSetOperations, Selection, SkipAheadIterator, ToSet},
     OrderedMap, OrderedSet,
 };
 
-use crate::symbols::{AssociativePrecedence, Associativity, Symbol};
+use crate::symbols::{
+    format_as_or_list, format_as_vec, AssociativePrecedence, Associativity, Symbol,
+};
 
 #[derive(Debug, Clone, Default)]
 pub struct ProductionTail {
@@ -51,6 +54,11 @@ pub struct Production {
 }
 
 impl_ident_cmp!(Production);
+
+lazy_static! {
+    static ref RHS_CRE: regex::Regex = regex::Regex::new(r"\$(\d+)").unwrap();
+    static ref NEXT_TOKEN_CRE: regex::Regex = regex::Regex::new(r"\$#").unwrap();
+}
 
 fn rhs_associated_precedence(symbols: &[Rc<Symbol>]) -> Option<AssociativePrecedence> {
     for symbol in symbols.iter() {
@@ -99,12 +107,46 @@ impl Production {
         }
     }
 
+    pub fn expanded_predicate(&self) -> Option<String> {
+        if let Some(predicate) = &self.tail.predicate {
+            let rhs_len = self.tail.right_hand_side.len();
+            let rep = format!("aa_attributes.rhs_n({}, $1)", rhs_len);
+            let string = RHS_CRE
+                .replace_all(&predicate, |caps: &regex::Captures| {
+                    format!(
+                        "aa_attributes.at_len_minus_n({})",
+                        rhs_len + 1 - usize::from_str(&caps[1]).unwrap()
+                    )
+                })
+                .to_string();
+            let string = NEXT_TOKEN_CRE.replace_all(&string, "aa_tag").to_string();
+            Some(string)
+        } else {
+            None
+        }
+    }
+
     pub fn has_error_recovery_tail(&self) -> bool {
         if let Some(symbol) = self.tail.right_hand_side.last() {
             symbol.is_syntax_error()
         } else {
             false
         }
+    }
+
+    pub fn as_comment_string(&self) -> String {
+        let mut string = format!("{}:", self.left_hand_side.name());
+        if self.tail.right_hand_side.len() == 0 {
+            string += " <empty>";
+        } else {
+            for symbol in self.tail.right_hand_side.iter() {
+                string += &format!(" {}", symbol.name());
+            }
+        };
+        if let Some(predicate) = &self.tail.predicate {
+            string += &format!(" ?({}?)", predicate);
+        };
+        string
     }
 }
 
@@ -542,5 +584,101 @@ impl ParserState {
             }
         };
         false
+    }
+
+    pub fn write_next_action_code<W: Write>(
+        &self,
+        wtr: &mut W,
+        indent: &str,
+    ) -> std::io::Result<()> {
+        let reductions = self.grammar_items.borrow().reductions();
+        let expected_tokens = self
+            .shift_list
+            .borrow()
+            .keys()
+            .union(reductions.expected_tokens.iter())
+            .to_set();
+        wtr.write_fmt(format_args!(
+            "{}{} => match aa_tag {{\n",
+            indent, self.ident
+        ))?;
+        for (token, state) in self.shift_list.borrow().iter() {
+            wtr.write_fmt(format_args!(
+                "{}    {} => Action::Shift({}),\n",
+                indent,
+                token.name(),
+                state.ident
+            ))?;
+        }
+        for (productions, look_ahead_set) in reductions.reductions.iter() {
+            if productions.len() == 1 {
+                let production = productions.first().expect("len() == 1");
+                debug_assert!(production.predicate().is_none());
+                wtr.write_fmt(format_args!(
+                    "{}    // {}\n",
+                    indent,
+                    production.as_comment_string()
+                ))?;
+                if production.ident == 0 {
+                    wtr.write_fmt(format_args!(
+                        "{}    {} => Action::Accept,\n",
+                        indent,
+                        format_as_or_list(&look_ahead_set),
+                    ))?;
+                } else {
+                    wtr.write_fmt(format_args!(
+                        "{}    {} => Action::Reduce({}),\n",
+                        indent,
+                        format_as_or_list(&look_ahead_set),
+                        production.ident,
+                    ))?;
+                }
+            } else {
+                wtr.write_fmt(format_args!(
+                    "{}    {} => {{\n",
+                    indent,
+                    format_as_or_list(&look_ahead_set)
+                ))?;
+                for (i, production) in productions.iter().enumerate() {
+                    if i == 0 {
+                        wtr.write_fmt(format_args!(
+                            "{}        if {} {{\n",
+                            indent,
+                            production.expanded_predicate().expect("more than one")
+                        ))?;
+                    } else if let Some(predicate) = production.predicate() {
+                        wtr.write_fmt(format_args!(
+                            "{}        }} else if {} {{\n",
+                            indent,
+                            production.expanded_predicate().expect("more than one")
+                        ))?;
+                    } else {
+                        wtr.write_fmt(format_args!("{}        }} else {{\n", indent,))?;
+                    }
+                    wtr.write_fmt(format_args!(
+                        "{}            // {}\n",
+                        indent,
+                        production.as_comment_string()
+                    ))?;
+                    if production.ident == 0 {
+                        wtr.write_fmt(format_args!("{}            Action::Accept\n", indent,))?;
+                    } else {
+                        wtr.write_fmt(format_args!(
+                            "{}            Action::Reduce({})\n",
+                            indent, production.ident,
+                        ))?;
+                    }
+                }
+                wtr.write_fmt(format_args!("{}        }}\n", indent))?;
+                wtr.write_fmt(format_args!("{}    }}\n", indent))?;
+            }
+        }
+        wtr.write_fmt(format_args!(
+            "{}    _ => Action::SyntaxError({}),\n",
+            indent,
+            format_as_vec(&expected_tokens)
+        ))?;
+        wtr.write_fmt(format_args!("{}}},\n", indent))?;
+        Ok(())
     }
 }

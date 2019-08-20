@@ -62,34 +62,34 @@ struct Calc {
 %left   EOL
 
 %%
-Line: SetUp Expr ?(errors > 0?) !{report_errors();!}
-    | SetUp Expr !{writeln($2.value);!}
-    | SetUp ID "=" Expr ?(errors == 0?) !{variables[$2.id] = $4.value;!}
-    | SetUp ID "=" Expr !{report_errors();!}
+Line: SetUp Expr ?(self.errors > 0?) !{self.report_errors();!}
+    | SetUp Expr !{println!("{}", $2.value);!}
+    | SetUp ID "=" Expr ?(self.errors == 0?) !{self.variables[$2.id] = $4.value;!}
+    | SetUp ID "=" Expr !{self.report_errors();!}
     | Line EOL Line
     | Line EOL
-    | %error !{errors |= Errors.syntaxError;!}
+    | %error !{self.errors |= SYNTAX_ERROR;!}
     .
 
 SetUp: !{errors = 0;!}.
 
-Expr: Expr "+" Expr ?($1.value == 0?) !{$$.value = $3.value;!}
-    | Expr "+" Expr ?($3.value == 0?) !{$$.value = $1.value;!}
+Expr: Expr "+" Expr ?($1.value == 0.0?) !{$$.value = $3.value;!}
+    | Expr "+" Expr ?($3.value == 0.0?) !{$$.value = $1.value;!}
     | Expr "+" Expr !{$$.value = $1.value + $3.value;!}
-    | Expr "-" Expr ?($1.value == 0?) !{$$.value = -$3.value;!}
-    | Expr "-" Expr ?($3.value == 0?) !{$$.value = $1.value;!}
+    | Expr "-" Expr ?($1.value == 0.0?) !{$$.value = -$3.value;!}
+    | Expr "-" Expr ?($3.value == 0.0?) !{$$.value = $1.value;!}
     | Expr "-" Expr !{$$.value = $1.value - $3.value;!}
-    | Expr "*" Expr ?($1.value == 0 || $3.value == 0?) !{$$.value = -$3.value;!}
-    | Expr "*" Expr ?($1.value == 1?) !{$$.value = $3.value;!}
-    | Expr "*" Expr ?($3.value == 1?) !{$$.value = $1.value;!}
+    | Expr "*" Expr ?($1.value == 0.0 || $3.value == 0.0?) !{$$.value = -$3.value;!}
+    | Expr "*" Expr ?($1.value == 1.0?) !{$$.value = $3.value;!}
+    | Expr "*" Expr ?($3.value == 1.0?) !{$$.value = $1.value;!}
     | Expr "*" Expr !{$$.value = $1.value * $3.value;!}
-    | Expr "/" Expr ?($3.value == 1?) !{$$.value = $1.value;!}
-    | Expr "/" Expr ?($3.value == 0?) !{errors |= Errors.divideByZero;!}
-    | Expr "/" Expr ?($1.value == 0?) !{$$.value = 0;!}
+    | Expr "/" Expr ?($3.value == 1.0?) !{$$.value = $1.value;!}
+    | Expr "/" Expr ?($3.value == 0.0?) !{errors |= DIVIDE_BY_ZERO;!}
+    | Expr "/" Expr ?($1.value == 0.0?) !{$$.value = 0.0;!}
     | Expr "/" Expr !{$$.value = $1.value / $3.value;!}
     | "(" Expr ")" !{$$.value = $2.value;!}
     | "-" Expr %prec UMINUS !{$$.value = -$2.value;!}
     | NUMBER !{$$.value = $1.value;!}
-    | ID ?($1.id in variables?) !{$$.value = variables[$1.id];!}
-    | ID !{errors |= Errors.undefinedVariables; $$.value = 0;!}
+    | ID ?(self.variables.contains_key(&$1.id)?) !{$$.value = variables[$1.id];!}
+    | ID !{self.errors |= UNDEFINED_VARIABLE; $$.value = 0.0;!}
     .

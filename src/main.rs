@@ -1,6 +1,7 @@
 #[macro_use]
 extern crate lazy_static;
 extern crate clap;
+extern crate regex;
 
 #[macro_export]
 macro_rules! impl_ident_cmp {
