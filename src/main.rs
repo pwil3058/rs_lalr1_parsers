@@ -52,6 +52,7 @@ fn with_changed_extension(path: &Path, new_extension: &str) -> PathBuf {
     new_path.set_extension(new_extension);
     new_path
 }
+
 fn main() {
     let matches = clap::App::new("Augmented Lexical Analyzer and Parser Generator")
         .arg(
@@ -76,7 +77,7 @@ fn main() {
         .unwrap();
         std::process::exit(1);
     }
-    let expected_number_of_conflicts = 0;
+    let expected_number_of_conflicts = 1;
     let mut file = fs::File::open(file_name).unwrap();
     let mut input = String::new();
     file.read_to_string(&mut input).unwrap();
@@ -146,4 +147,7 @@ fn main() {
         .unwrap();
         std::process::exit(6);
     }
+
+    let description_file = with_changed_extension(Path::new(file_name), "states");
+    grammar.write_description(&description_file);
 }

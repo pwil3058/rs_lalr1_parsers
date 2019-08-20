@@ -495,4 +495,13 @@ impl Grammar {
         wtr.write(b"    }\n\n")?;
         Ok(())
     }
+
+    pub fn write_description(&self, file_path: &Path) -> io::Result<()> {
+        let mut file = std::fs::File::create(file_path)?;
+        for parser_state in self.parser_states.iter() {
+            file.write(parser_state.description().as_bytes())?;
+        }
+        Ok(())
+    }
+
 }

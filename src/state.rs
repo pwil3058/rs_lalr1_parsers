@@ -140,7 +140,7 @@ impl Production {
             string += " <empty>";
         } else {
             for symbol in self.tail.right_hand_side.iter() {
-                string += &format!(" {}", symbol.name());
+                string += &format!(" {}", symbol);
             }
         };
         if let Some(predicate) = &self.tail.predicate {
@@ -164,10 +164,13 @@ impl std::fmt::Display for GrammarItemKey {
         } else {
             for (index, symbol) in self.production.tail.right_hand_side.iter().enumerate() {
                 if index == self.dot {
-                    string += &format!(" . {}", symbol.name());
+                    string += &format!(" . {}", symbol);
                 } else {
-                    string += &format!(" {}", symbol.name());
+                    string += &format!(" {}", symbol);
                 }
+            }
+            if self.dot >= self.production.tail.right_hand_side.len() {
+                string += " . ";
             }
         };
         if let Some(predicate) = &self.production.tail.predicate {
@@ -217,7 +220,7 @@ impl GrammarItemKey {
     }
 
     pub fn rhs_tail(&self) -> &[Rc<Symbol>] {
-        &self.production.tail.right_hand_side[self.dot + 1..]
+        &self.production.tail.right_hand_side[self.dot..]
     }
 
     pub fn associativity(&self) -> Associativity {
@@ -704,7 +707,10 @@ impl ParserState {
     }
 
     pub fn description(&self) -> String {
-        let string = format!("State<{}>:\n  Grammar Items:\n", self.ident);
+        let mut string = format!("State<{}>:\n  Grammar Items:\n", self.ident);
+        for (key, look_ahead_set) in self.grammar_items.borrow().0.iter() {
+            string += &format!("    {}: {}\n", key, look_ahead_set);
+        }
         string
     }
 }

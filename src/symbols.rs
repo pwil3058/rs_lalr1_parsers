@@ -70,6 +70,12 @@ impl FirstsData {
     }
 }
 
+impl fmt::Display for FirstsData {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}:({})", self.token_set, self.transparent)
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct SymbolMutableData {
     associative_precedence: AssociativePrecedence,
@@ -133,6 +139,22 @@ impl fmt::Debug for Symbol {
         write!(f, "Symbol({}):", self.name)
     }
 }
+
+impl fmt::Display for Symbol {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self.symbol_type {
+            SymbolType::Token=> {
+                if self.pattern.starts_with('"') {
+                    write!(f, "{}", self.pattern)
+                } else {
+                    write!(f, "{}", self.name)
+                }
+            }
+            _  => write!(f, "{}", self.name),
+        }
+    }
+}
+
 
 impl_ident_cmp!(Symbol);
 
