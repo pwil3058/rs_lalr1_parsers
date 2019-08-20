@@ -55,6 +55,11 @@ where
         &self.attributes[len - n]
     }
 
+    pub fn at_len_minus_n<'a>(&'a self, n: usize) -> &'a A {
+        let len = self.attributes.len();
+        &self.attributes[len - n]
+    }
+
     fn pop_n(&mut self, n: usize) -> Vec<A> {
         let len = self.states.len();
         self.states.truncate(len - n);
