@@ -150,6 +150,23 @@ impl Production {
     }
 }
 
+impl std::fmt::Display for Production {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let mut string = format!("{}:", self.left_hand_side);
+        if self.tail.right_hand_side.len() == 0 {
+            string += " <empty>";
+        } else {
+            for symbol in self.tail.right_hand_side.iter() {
+                string += &format!(" {}", symbol);
+            }
+        };
+        if let Some(predicate) = &self.tail.predicate {
+            string += &format!(" ?({}?)", predicate);
+        };
+        write!(f, "{}", string)
+    }
+}
+
 #[derive(Debug, PartialOrd, Ord, PartialEq, Eq)]
 pub struct GrammarItemKey {
     production: Rc<Production>,
@@ -610,6 +627,15 @@ impl ParserState {
         false
     }
 
+    fn look_ahead_set(&self) -> OrderedSet<Rc<Symbol>> {
+        self.grammar_items
+            .borrow()
+            .reducible_look_ahead_set()
+            .iter()
+            .union(self.shift_list.borrow().keys())
+            .to_set()
+    }
+
     pub fn write_next_action_code<W: Write>(
         &self,
         wtr: &mut W,
@@ -710,6 +736,73 @@ impl ParserState {
         let mut string = format!("State<{}>:\n  Grammar Items:\n", self.ident);
         for (key, look_ahead_set) in self.grammar_items.borrow().0.iter() {
             string += &format!("    {}: {}\n", key, look_ahead_set);
+        }
+        string += "  Parser Action Table:\n";
+        let look_ahead_set = self.look_ahead_set();
+        if look_ahead_set.len() == 0 {
+            string += "    <empty>\n";
+        } else {
+            let reducible_keys = self.grammar_items.borrow().reducible_keys();
+            for token in look_ahead_set.iter() {
+                if let Some(state) = self.shift_list.borrow().get(token) {
+                    string += &format!("    {}: shift: -> State<{}>\n", token, state.ident);
+                } else {
+                    for (key, lahs) in self
+                        .grammar_items
+                        .borrow()
+                        .0
+                        .iter()
+                        .filter(|x| x.0.is_reducible())
+                    {
+                        if lahs.contains(token) {
+                            string += &format!("    {}: reduce: {}\n", token, key.production);
+                        }
+                    }
+                }
+            }
+        }
+        string += "  Go To Table:\n";
+        if self.goto_table.borrow().len() == 0 {
+            string += "    <empty>\n";
+        } else {
+            for (symbol, state) in self.goto_table.borrow().iter() {
+                string += &format!("    {} -> State<{}>\n", symbol, state.ident);
+            }
+        }
+        if let Some(ref state) = self.error_recovery_state.borrow().clone() {
+            string += &format!("  Error Recovery State: State<{}>\n", state.ident);
+            string += &format!("    Look Ahead: {}\n", state.look_ahead_set());
+        } else {
+            string += "  Error Recovery State: <none>\n";
+        }
+        if self.shift_reduce_conflicts.borrow().len() > 0 {
+            string += "  Shift/Reduce Conflicts:\n";
+            for (shift_symbol, goto_state, reducible_item, look_ahead_set) in
+                self.shift_reduce_conflicts.borrow().iter()
+            {
+                string += &format!("    {}:\n", shift_symbol);
+                string += &format!("      shift -> State<{}>\n", goto_state.ident);
+                string += &format!(
+                    "      reduce {}: {}",
+                    reducible_item.production, look_ahead_set
+                );
+            }
+        }
+        if self.reduce_reduce_conflicts.borrow().len() > 0 {
+            string += "  Reduce/Reduce Conflicts:\n";
+            for (items, intersection) in self.reduce_reduce_conflicts.borrow().iter() {
+                string += &format!("    {}\n", intersection);
+                string += &format!(
+                    "      reduce {} : {}\n",
+                    items.0,
+                    self.grammar_items.borrow().0[Rc::clone(&items.0)]
+                );
+                string += &format!(
+                    "      reduce {} : {}\n",
+                    items.1,
+                    self.grammar_items.borrow().0[Rc::clone(&items.1)]
+                );
+            }
         }
         string
     }
