@@ -156,6 +156,27 @@ pub struct GrammarItemKey {
     dot: usize,
 }
 
+impl std::fmt::Display for GrammarItemKey {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let mut string = format!("{}:", self.production.left_hand_side.name());
+        if self.production.tail.right_hand_side.len() == 0 {
+            string += " . <empty>";
+        } else {
+            for (index, symbol) in self.production.tail.right_hand_side.iter().enumerate() {
+                if index == self.dot {
+                    string += &format!(" . {}", symbol.name());
+                } else {
+                    string += &format!(" {}", symbol.name());
+                }
+            }
+        };
+        if let Some(predicate) = &self.production.tail.predicate {
+            string += &format!(" ?({}?)", predicate);
+        };
+        write!(f, "{}", string)
+    }
+}
+
 impl GrammarItemKey {
     pub fn new(production: Rc<Production>) -> Rc<Self> {
         Rc::new(Self { production, dot: 0 })
@@ -680,5 +701,10 @@ impl ParserState {
         ))?;
         wtr.write_fmt(format_args!("{}}},\n", indent))?;
         Ok(())
+    }
+
+    pub fn description(&self) -> String {
+        let string = format!("State<{}>:\n  Grammar Items:\n", self.ident);
+        string
     }
 }
