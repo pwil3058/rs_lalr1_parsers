@@ -48,7 +48,7 @@ impl ProductionTail {
 
 #[derive(Debug, Clone)]
 pub struct Production {
-    ident: u32,
+    pub ident: u32,
     left_hand_side: Rc<Symbol>,
     tail: ProductionTail,
 }
@@ -85,6 +85,10 @@ impl Production {
 
     pub fn left_hand_side(&self) -> &Rc<Symbol> {
         &self.left_hand_side
+    }
+
+    pub fn right_hand_side_len(&self) -> usize {
+        self.tail.right_hand_side.len()
     }
 
     pub fn right_hand_side_symbols(&self) -> impl Iterator<Item = &Rc<Symbol>> {

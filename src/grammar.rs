@@ -184,6 +184,23 @@ impl GrammarSpecification {
         }
         closure_set
     }
+
+    pub fn write_production_data_code<W: Write>(&self, wtr: &mut W) -> io::Result<()> {
+        wtr.write(b"    fn production_data(production_id: u32) -> (AANonTerminal, usize) {\n")?;
+        wtr.write(b"        match production_id {\n")?;
+        for production in self.productions.iter() {
+            wtr.write_fmt(format_args!(
+                "            {} => (AANonTerminal::{}, {}),\n",
+                production.ident,
+                production.left_hand_side(),
+                production.right_hand_side_len(),
+            ))?;
+        }
+        wtr.write(b"            _ => panic!(\"malformed production data table\"),\n")?;
+        wtr.write(b"        }\n")?;
+        wtr.write(b"    }\n\n")?;
+        Ok(())
+    }
 }
 
 pub struct Grammar {
@@ -408,6 +425,7 @@ impl Grammar {
         wtr.write(b"    fn lexical_analyzer(&self) -> &lexan::LexicalAnalyzer<AATerminal> {\n")?;
         wtr.write(b"        &AALEXAN\n")?;
         wtr.write(b"    }\n\n")?;
+        self.specification.write_production_data_code(wtr)?;
         self.write_error_recovery_code(wtr)?;
         self.write_next_action_code(wtr)?;
         wtr.write(b"}\n")?;
@@ -503,5 +521,4 @@ impl Grammar {
         }
         Ok(())
     }
-
 }
