@@ -426,6 +426,7 @@ impl Grammar {
         wtr.write(b"        &AALEXAN\n")?;
         wtr.write(b"    }\n\n")?;
         self.specification.write_production_data_code(wtr)?;
+        self.write_goto_table_code(wtr)?;
         self.write_error_recovery_code(wtr)?;
         self.write_next_action_code(wtr)?;
         wtr.write(b"}\n")?;
@@ -509,6 +510,20 @@ impl Grammar {
             parser_state.write_next_action_code(wtr, "            ")?;
         }
         wtr.write(b"            _ => panic!(\"illegal state: {}\", state),\n")?;
+        wtr.write(b"        }\n")?;
+        wtr.write(b"    }\n\n")?;
+        Ok(())
+    }
+
+    fn write_goto_table_code<W: Write>(&self, wtr: &mut W) -> io::Result<()> {
+        wtr.write(b"    fn goto_state(lhs: &AANonTerminal, current_state: u32) -> u32 {\n")?;
+        wtr.write(b"        return match current_state {\n")?;
+        for parser_state in self.parser_states.iter() {
+            parser_state.write_goto_table_code(wtr, "            ")?;
+        }
+        wtr.write(
+            b"            _ => panic!(\"Malformed goto table: ({}, {})\", lhs, current_state),\n",
+        )?;
         wtr.write(b"        }\n")?;
         wtr.write(b"    }\n\n")?;
         Ok(())

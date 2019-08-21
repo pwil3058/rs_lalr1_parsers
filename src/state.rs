@@ -736,6 +736,28 @@ impl ParserState {
         Ok(())
     }
 
+    pub fn write_goto_table_code<W: Write>(
+        &self,
+        wtr: &mut W,
+        indent: &str,
+    ) -> std::io::Result<()> {
+        if self.goto_table.borrow().len() > 0 {
+            wtr.write_fmt(format_args!("{}{} => match lhs {{\n", indent, self.ident))?;
+            for (symbol, state) in self.goto_table.borrow().iter() {
+                wtr.write_fmt(format_args!(
+                    "{}    {} => {},\n",
+                    indent, symbol, state.ident
+                ))?;
+            }
+            wtr.write_fmt(format_args!(
+                "{}    _ => panic!(\"Malformed goto table: ({{}}, {{}})\", lhs, current_state),\n",
+                indent
+            ))?;
+            wtr.write_fmt(format_args!("{}}},\n", indent))?;
+        };
+        Ok(())
+    }
+
     pub fn description(&self) -> String {
         let mut string = format!("State<{}>:\n  Grammar Items:\n", self.ident);
         for (key, look_ahead_set) in self.grammar_items.borrow().0.iter() {
