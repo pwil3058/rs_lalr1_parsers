@@ -130,6 +130,19 @@ impl Production {
         }
     }
 
+    pub fn expanded_action(&self) -> Option<String> {
+        if let Some(action) = &self.tail.action {
+            let string = RHS_CRE
+                .replace_all(&action.replace("$$", "aa_lhs"), |caps: &regex::Captures| {
+                    format!("aa_rhs[{}]", usize::from_str(&caps[1]).unwrap() - 1)
+                })
+                .to_string();
+            Some(string)
+        } else {
+            None
+        }
+    }
+
     pub fn has_error_recovery_tail(&self) -> bool {
         if let Some(symbol) = self.tail.right_hand_side.last() {
             symbol.is_syntax_error()
@@ -745,7 +758,7 @@ impl ParserState {
             wtr.write_fmt(format_args!("{}{} => match lhs {{\n", indent, self.ident))?;
             for (symbol, state) in self.goto_table.borrow().iter() {
                 wtr.write_fmt(format_args!(
-                    "{}    {} => {},\n",
+                    "{}    AANonTerminal::{} => {},\n",
                     indent, symbol, state.ident
                 ))?;
             }

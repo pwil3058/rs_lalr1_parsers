@@ -201,6 +201,34 @@ impl GrammarSpecification {
         wtr.write(b"    }\n\n")?;
         Ok(())
     }
+
+    pub fn write_semantic_action_code<W: Write>(&self, wtr: &mut W) -> io::Result<()> {
+        wtr.write(b"    fn do_semantic_action(\n")?;
+        wtr.write(b"        &mut self,\n")?;
+        wtr.write(b"        aa_production_id: u32,\n")?;
+        wtr.write(b"        aa_rhs: Vec<AttributeData>,\n")?;
+        wtr.write(b"        aa_token_stream: &mut lexan::TokenStream<AATerminal>,\n")?;
+        wtr.write(b"    ) -> AttributeData {\n")?;
+        wtr.write(b"        let mut aa_lhs = if let Some(a) = aa_rhs.first() {\n")?;
+        wtr.write(b"            a.clone()\n")?;
+        wtr.write(b"        } else {\n")?;
+        wtr.write(b"            AttributeData::default()\n")?;
+        wtr.write(b"        };\n")?;
+        wtr.write(b"        match aa_production_id {\n")?;
+        for production in self.productions.iter() {
+            if let Some(action_code) = production.expanded_action() {
+                wtr.write_fmt(format_args!("            {} => {{\n", production.ident))?;
+                wtr.write_fmt(format_args!("                // {}\n", production))?;
+                wtr.write_fmt(format_args!("                {}\n", action_code))?;
+                wtr.write(b"            }\n")?;
+            }
+        }
+        wtr.write(b"            _ => (),\n")?;
+        wtr.write(b"        };\n")?;
+        wtr.write(b"        aa_lhs\n")?;
+        wtr.write(b"    }\n\n")?;
+        Ok(())
+    }
 }
 
 pub struct Grammar {
@@ -426,6 +454,7 @@ impl Grammar {
         wtr.write(b"        &AALEXAN\n")?;
         wtr.write(b"    }\n\n")?;
         self.specification.write_production_data_code(wtr)?;
+        self.specification.write_semantic_action_code(wtr)?;
         self.write_goto_table_code(wtr)?;
         self.write_error_recovery_code(wtr)?;
         self.write_next_action_code(wtr)?;

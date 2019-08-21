@@ -41,6 +41,23 @@ struct Calc {
     errors: u32,
     variables: HashMap<String, f64>,
 }
+
+impl Calc {
+    fn report_errors(&self) {
+        if self.errors & UNDEFINED_VARIABLE != 0 {
+            println!("Undefined variable(s).")
+        };
+        if self.errors & DIVIDE_BY_ZERO != 0 {
+            println!("Divide by zero.")
+        };
+        if self.errors & SYNTAX_ERROR != 0 {
+            println!("Syntax error.")
+        };
+        if self.errors & LEXICAL_ERROR != 0 {
+            println!("Lexical error.")
+        };
+    }
+}
 %}
 
 %token          EOL     (\n)
@@ -64,14 +81,14 @@ struct Calc {
 %%
 Line: SetUp Expr ?(self.errors > 0?) !{self.report_errors();!}
     | SetUp Expr !{println!("{}", $2.value);!}
-    | SetUp ID "=" Expr ?(self.errors == 0?) !{self.variables[$2.id] = $4.value;!}
+    | SetUp ID "=" Expr ?(self.errors == 0?) !{self.variables.insert($2.id.clone(), $4.value);!}
     | SetUp ID "=" Expr !{self.report_errors();!}
     | Line EOL Line
     | Line EOL
     | %error !{self.errors |= SYNTAX_ERROR;!}
     .
 
-SetUp: !{errors = 0;!}.
+SetUp: !{self.errors = 0;!}.
 
 Expr: Expr "+" Expr ?($1.value == 0.0?) !{$$.value = $3.value;!}
     | Expr "+" Expr ?($3.value == 0.0?) !{$$.value = $1.value;!}
@@ -84,12 +101,12 @@ Expr: Expr "+" Expr ?($1.value == 0.0?) !{$$.value = $3.value;!}
     | Expr "*" Expr ?($3.value == 1.0?) !{$$.value = $1.value;!}
     | Expr "*" Expr !{$$.value = $1.value * $3.value;!}
     | Expr "/" Expr ?($3.value == 1.0?) !{$$.value = $1.value;!}
-    | Expr "/" Expr ?($3.value == 0.0?) !{errors |= DIVIDE_BY_ZERO;!}
+    | Expr "/" Expr ?($3.value == 0.0?) !{self.errors |= DIVIDE_BY_ZERO;!}
     | Expr "/" Expr ?($1.value == 0.0?) !{$$.value = 0.0;!}
     | Expr "/" Expr !{$$.value = $1.value / $3.value;!}
     | "(" Expr ")" !{$$.value = $2.value;!}
     | "-" Expr %prec UMINUS !{$$.value = -$2.value;!}
     | NUMBER !{$$.value = $1.value;!}
-    | ID ?(self.variables.contains_key(&$1.id)?) !{$$.value = variables[$1.id];!}
+    | ID ?(self.variables.contains_key(&$1.id)?) !{$$.value = self.variables[&$1.id];!}
     | ID !{self.errors |= UNDEFINED_VARIABLE; $$.value = 0.0;!}
     .
