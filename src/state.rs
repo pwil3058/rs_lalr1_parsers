@@ -1,7 +1,7 @@
 use std::{
     cell::{Cell, RefCell},
     fmt,
-    io::{stderr, Write},
+    io::Write,
     rc::Rc,
     str::FromStr,
 };
@@ -11,7 +11,6 @@ use ordered_collections::{
     OrderedMap, OrderedSet,
 };
 
-use crate::grammar::Grammar;
 use crate::symbols::{
     format_as_or_list, format_as_vec, AssociativePrecedence, Associativity, Symbol,
 };
@@ -115,7 +114,6 @@ impl Production {
     pub fn expanded_predicate(&self) -> Option<String> {
         if let Some(predicate) = &self.tail.predicate {
             let rhs_len = self.tail.right_hand_side.len();
-            let rep = format!("aa_attributes.rhs_n({}, $1)", rhs_len);
             let string = RHS_CRE
                 .replace_all(&predicate, |caps: &regex::Captures| {
                     format!(
@@ -303,10 +301,6 @@ impl GrammarItemSet {
         GrammarItemSet(map)
     }
 
-    pub fn len(&self) -> usize {
-        self.0.len()
-    }
-
     pub fn closables(&self) -> Vec<(Rc<GrammarItemKey>, OrderedSet<Rc<Symbol>>)> {
         let mut closables = vec![];
         for (key, set) in self.0.iter().filter(|x| x.0.is_closable()) {
@@ -369,10 +363,6 @@ impl GrammarItemSet {
             .to_set()
     }
 
-    pub fn remove_look_ahead_symbol(&mut self, key: &GrammarItemKey, symbol: &Rc<Symbol>) {
-        self.0.get_mut(key).unwrap().remove(symbol);
-    }
-
     pub fn remove_look_ahead_symbols(
         &mut self,
         key: &GrammarItemKey,
@@ -383,7 +373,7 @@ impl GrammarItemSet {
     }
 
     pub fn error_recovery_look_ahead_set_contains(&self, token: &Rc<Symbol>) -> bool {
-        for (item_key, look_ahead_set) in self
+        for (_, look_ahead_set) in self
             .0
             .iter()
             .filter(|x| x.0.has_reducible_error_recovery_tail())
@@ -535,19 +525,6 @@ impl ParserState {
         } else {
             None
         }
-    }
-
-    pub fn has_empty_look_ahead_set(&self) -> bool {
-        if self.shift_list.borrow().len() > 0 {
-            return false;
-        } else {
-            for (key, look_ahead_set) in self.grammar_items.borrow().0.iter() {
-                if key.is_reducible() && look_ahead_set.len() > 0 {
-                    return false;
-                }
-            }
-        };
-        true
     }
 
     pub fn kernel_keys(&self) -> OrderedSet<Rc<GrammarItemKey>> {
@@ -725,7 +702,7 @@ impl ParserState {
                             indent,
                             production.expanded_predicate().expect("more than one")
                         ))?;
-                    } else if let Some(predicate) = production.predicate() {
+                    } else if production.predicate().is_some() {
                         wtr.write_fmt(format_args!(
                             "{}        }} else if {} {{\n",
                             indent,
@@ -793,7 +770,6 @@ impl ParserState {
         if look_ahead_set.len() == 0 {
             string += "    <empty>\n";
         } else {
-            let reducible_keys = self.grammar_items.borrow().reducible_keys();
             for token in look_ahead_set.iter() {
                 if let Some(state) = self.shift_list.borrow().get(token) {
                     string += &format!("    {}: shift: -> State<{}>\n", token, state.ident);

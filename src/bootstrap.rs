@@ -1079,8 +1079,7 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData<AATerminal>>
             }
             12 => {
                 // new_token_name: IDENT ?( !is_allowable_name($1.matched_text()) ?)
-                let name = aa_rhs[1 - 1].matched_text().unwrap();
-                let location = aa_rhs[1 - 1].location().unwrap();
+                let (name, location) = aa_rhs[1 - 1].text_and_location().unwrap();
                 self.warning(
                     location,
                     &format!("token name \"{}\" may clash with generated code", name),
@@ -1173,12 +1172,8 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData<AATerminal>>
                 let name = aa_rhs[1 - 1].matched_text().unwrap();
                 let location = aa_rhs[1 - 1].location().unwrap();
                 match self.symbol_table.new_tag(name, location) {
-                    Ok(symbol) => {
-                        aa_lhs = AttributeData::Symbol(Some(symbol))
-                    }
-                    Err(err) => {
-                        self.error(location, &err.to_string())
-                    }
+                    Ok(symbol) => aa_lhs = AttributeData::Symbol(Some(symbol)),
+                    Err(err) => self.error(location, &err.to_string()),
                 }
             }
             32 => {

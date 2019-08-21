@@ -1,5 +1,4 @@
 use std::{
-    cell::{Cell, RefCell},
     io::{self, stderr, Write},
     path::Path,
     rc::Rc,
@@ -11,7 +10,7 @@ use lalr1plus::{self, parser::Parser};
 use lexan;
 
 use crate::state::{GrammarItemKey, GrammarItemSet, ParserState, Production, ProductionTail};
-use crate::symbols::{AssociativePrecedence, FirstsData, SpecialSymbols, Symbol, SymbolTable};
+use crate::symbols::{FirstsData, SpecialSymbols, Symbol, SymbolTable};
 
 use crate::bootstrap::*;
 
@@ -234,8 +233,6 @@ impl GrammarSpecification {
 pub struct Grammar {
     specification: GrammarSpecification,
     parser_states: Vec<Rc<ParserState>>,
-    goto_table: OrderedMap<Rc<Symbol>, OrderedMap<ParserState, OrderedSet<ParserState>>>,
-    empty_look_ahead_sets: Vec<u32>,
     unresolved_sr_conflicts: usize,
     unresolved_rr_conflicts: usize,
 }
@@ -245,8 +242,6 @@ impl Grammar {
         let mut grammar = Self {
             specification,
             parser_states: vec![],
-            goto_table: OrderedMap::new(),
-            empty_look_ahead_sets: vec![],
             unresolved_rr_conflicts: 0,
             unresolved_sr_conflicts: 0,
         };
@@ -261,7 +256,7 @@ impl Grammar {
         let mut map: OrderedMap<Rc<GrammarItemKey>, OrderedSet<Rc<Symbol>>> = OrderedMap::new();
         map.insert(start_item_key, start_look_ahead_set);
         let start_kernel = grammar.specification.closure(GrammarItemSet::new(map));
-        let start_state = grammar.new_parser_state(start_kernel);
+        grammar.new_parser_state(start_kernel);
 
         while let Some(unprocessed_state) = grammar.first_unprocessed_state() {
             let first_time = unprocessed_state.is_unprocessed();

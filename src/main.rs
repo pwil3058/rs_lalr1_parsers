@@ -32,10 +32,7 @@ use std::{
     fs,
     io::prelude::*,
     path::{Path, PathBuf},
-    rc::Rc,
 };
-
-use lalr1plus::parser::*;
 
 mod attributes;
 mod bootstrap;
@@ -81,7 +78,7 @@ fn main() {
     let mut file = fs::File::open(file_name).unwrap();
     let mut input = String::new();
     file.read_to_string(&mut input).unwrap();
-    let mut grammar_specification =
+    let grammar_specification =
         match grammar::GrammarSpecification::new(input, file_name.to_string()) {
             Ok(spec) => spec,
             Err(error) => {
@@ -149,5 +146,14 @@ fn main() {
     }
 
     let description_file = with_changed_extension(Path::new(file_name), "states");
-    grammar.write_description(&description_file);
+    if let Err(err) = grammar.write_description(&description_file) {
+        writeln!(
+            std::io::stderr(),
+            "{}: problems writing file: {:?}.",
+            output_path.to_string_lossy(),
+            err
+        )
+        .unwrap();
+        std::process::exit(7);
+    };
 }

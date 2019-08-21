@@ -49,12 +49,6 @@ impl Default for AssociativePrecedence {
     }
 }
 
-impl AssociativePrecedence {
-    pub fn is_explicitly_set(&self) -> bool {
-        self.precedence != 0
-    }
-}
-
 #[derive(Debug, Clone)]
 pub struct FirstsData {
     pub token_set: OrderedSet<Rc<Symbol>>,
@@ -103,13 +97,6 @@ pub enum SymbolType {
 }
 
 impl SymbolType {
-    pub fn is_tag(&self) -> bool {
-        match self {
-            SymbolType::Tag => true,
-            _ => false,
-        }
-    }
-
     pub fn is_token(&self) -> bool {
         match self {
             SymbolType::Token => true,
@@ -143,124 +130,21 @@ impl fmt::Debug for Symbol {
 impl fmt::Display for Symbol {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self.symbol_type {
-            SymbolType::Token=> {
+            SymbolType::Token => {
                 if self.pattern.starts_with('"') {
                     write!(f, "{}", self.pattern)
                 } else {
                     write!(f, "{}", self.name)
                 }
             }
-            _  => write!(f, "{}", self.name),
+            _ => write!(f, "{}", self.name),
         }
     }
 }
 
-
 impl_ident_cmp!(Symbol);
 
 impl Symbol {
-    fn new(ident: u32, name: String, symbol_type: SymbolType, pattern: String) -> Rc<Self> {
-        Rc::new(Self {
-            ident,
-            name,
-            symbol_type,
-            pattern,
-            mutable_data: RefCell::new(SymbolMutableData::default()),
-        })
-    }
-
-    pub fn new_tag_at(ident: u32, name: &str, location: &lexan::Location) -> Rc<Symbol> {
-        let mutable_data = RefCell::new(SymbolMutableData {
-            associative_precedence: AssociativePrecedence::default(),
-            firsts_data: None,
-            defined_at: Some(location.clone()),
-            used_at: vec![],
-        });
-        Rc::new(Self {
-            ident,
-            name: name.to_string(),
-            pattern: String::new(),
-            symbol_type: SymbolType::Tag,
-            mutable_data,
-        })
-    }
-
-    pub fn is_start_symbol(&self) -> bool {
-        self.name == "AASTART"
-    }
-
-    pub fn is_syntax_error(&self) -> bool {
-        self.name == "AASYNTAXERROR"
-    }
-
-    fn is_special_symbol(&self) -> bool {
-        self.ident < NUM_SPECIAL_SYMBOLS
-    }
-
-    pub fn is_tag(&self) -> bool {
-        self.symbol_type.is_tag()
-    }
-
-    pub fn is_token(&self) -> bool {
-        self.symbol_type.is_token()
-    }
-
-    pub fn is_non_terminal(&self) -> bool {
-        self.symbol_type.is_non_terminal()
-    }
-
-    pub fn is_undefined(&self) -> bool {
-        self.mutable_data.borrow().defined_at.is_none() && !self.is_special_symbol()
-    }
-
-    pub fn is_unused(&self) -> bool {
-        self.mutable_data.borrow().used_at.len() == 0 && !self.is_special_symbol()
-    }
-
-    pub fn used_at(&self) -> Vec<lexan::Location> {
-        self.mutable_data.borrow().used_at.iter().cloned().collect()
-    }
-
-    pub fn precedence(&self) -> u32 {
-        self.mutable_data.borrow().associative_precedence.precedence
-    }
-
-    pub fn new_token_at(
-        ident: u32,
-        name: &str,
-        pattern: &str,
-        location: &lexan::Location,
-    ) -> Rc<Symbol> {
-        let mutable_data = RefCell::new(SymbolMutableData {
-            associative_precedence: AssociativePrecedence::default(),
-            firsts_data: None,
-            defined_at: Some(location.clone()),
-            used_at: vec![],
-        });
-        let token = Rc::new(Self {
-            ident,
-            name: name.to_string(),
-            pattern: pattern.to_string(),
-            symbol_type: SymbolType::Token,
-            mutable_data,
-        });
-        let mut token_set: OrderedSet<Rc<Symbol>> = OrderedSet::new();
-        token_set.insert(Rc::clone(&token));
-        token.set_firsts_data(FirstsData {
-            token_set,
-            transparent: false,
-        });
-        token
-    }
-
-    pub fn name(&self) -> &String {
-        &self.name
-    }
-
-    pub fn pattern(&self) -> &String {
-        &self.pattern
-    }
-
     pub fn new_non_terminal_at(ident: u32, name: &str, location: &lexan::Location) -> Rc<Symbol> {
         let mutable_data = RefCell::new(SymbolMutableData {
             associative_precedence: AssociativePrecedence::default(),
@@ -297,6 +181,94 @@ impl Symbol {
         })
     }
 
+    pub fn new_tag_at(ident: u32, name: &str, location: &lexan::Location) -> Rc<Symbol> {
+        let mutable_data = RefCell::new(SymbolMutableData {
+            associative_precedence: AssociativePrecedence::default(),
+            firsts_data: None,
+            defined_at: Some(location.clone()),
+            used_at: vec![],
+        });
+        Rc::new(Self {
+            ident,
+            name: name.to_string(),
+            pattern: String::new(),
+            symbol_type: SymbolType::Tag,
+            mutable_data,
+        })
+    }
+
+    pub fn new_token_at(
+        ident: u32,
+        name: &str,
+        pattern: &str,
+        location: &lexan::Location,
+    ) -> Rc<Symbol> {
+        let mutable_data = RefCell::new(SymbolMutableData {
+            associative_precedence: AssociativePrecedence::default(),
+            firsts_data: None,
+            defined_at: Some(location.clone()),
+            used_at: vec![],
+        });
+        let token = Rc::new(Self {
+            ident,
+            name: name.to_string(),
+            pattern: pattern.to_string(),
+            symbol_type: SymbolType::Token,
+            mutable_data,
+        });
+        let mut token_set: OrderedSet<Rc<Symbol>> = OrderedSet::new();
+        token_set.insert(Rc::clone(&token));
+        token.set_firsts_data(FirstsData {
+            token_set,
+            transparent: false,
+        });
+        token
+    }
+
+    pub fn is_start_symbol(&self) -> bool {
+        self.name == "AASTART"
+    }
+
+    pub fn is_syntax_error(&self) -> bool {
+        self.name == "AASYNTAXERROR"
+    }
+
+    fn is_special_symbol(&self) -> bool {
+        self.ident < NUM_SPECIAL_SYMBOLS
+    }
+
+    pub fn is_token(&self) -> bool {
+        self.symbol_type.is_token()
+    }
+
+    pub fn is_non_terminal(&self) -> bool {
+        self.symbol_type.is_non_terminal()
+    }
+
+    pub fn is_undefined(&self) -> bool {
+        self.mutable_data.borrow().defined_at.is_none() && !self.is_special_symbol()
+    }
+
+    pub fn is_unused(&self) -> bool {
+        self.mutable_data.borrow().used_at.len() == 0 && !self.is_special_symbol()
+    }
+
+    pub fn used_at(&self) -> Vec<lexan::Location> {
+        self.mutable_data.borrow().used_at.iter().cloned().collect()
+    }
+
+    pub fn precedence(&self) -> u32 {
+        self.mutable_data.borrow().associative_precedence.precedence
+    }
+
+    pub fn name(&self) -> &String {
+        &self.name
+    }
+
+    pub fn pattern(&self) -> &String {
+        &self.pattern
+    }
+
     pub fn defined_at(&self) -> Option<lexan::Location> {
         if let Some(location) = &self.mutable_data.borrow().defined_at {
             Some(location.clone())
@@ -310,13 +282,6 @@ impl Symbol {
             associativity,
             precedence,
         }
-    }
-
-    pub fn add_reference(&self, location: &lexan::Location) {
-        self.mutable_data
-            .borrow_mut()
-            .used_at
-            .push(location.clone())
     }
 
     pub fn associative_precedence(&self) -> AssociativePrecedence {
