@@ -173,7 +173,7 @@ impl GrammarSpecification {
                         if let Some(set) = closure_set.get_mut(&prospective_key) {
                             let len = set.len();
                             *set = set.union(&firsts).to_set();
-                            additions_made |= set.len() > len;
+                            additions_made = additions_made || set.len() > len;
                         } else {
                             closure_set.insert(prospective_key, firsts.clone());
                             additions_made = true;

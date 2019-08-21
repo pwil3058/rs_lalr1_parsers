@@ -11,6 +11,7 @@ use ordered_collections::{
     OrderedMap, OrderedSet,
 };
 
+use crate::grammar::Grammar;
 use crate::symbols::{
     format_as_or_list, format_as_vec, AssociativePrecedence, Associativity, Symbol,
 };
@@ -254,7 +255,7 @@ impl GrammarItemKey {
     }
 
     pub fn rhs_tail(&self) -> &[Rc<Symbol>] {
-        &self.production.tail.right_hand_side[self.dot..]
+        &self.production.tail.right_hand_side[self.dot + 1..]
     }
 
     pub fn associativity(&self) -> Associativity {
@@ -279,6 +280,17 @@ impl GrammarItemKey {
 }
 
 pub struct GrammarItemSet(OrderedMap<Rc<GrammarItemKey>, OrderedSet<Rc<Symbol>>>);
+
+impl std::fmt::Display for GrammarItemSet {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let mut string = "GrammarItemSet{\n".to_string();
+        for (key, set) in self.0.iter() {
+            string += &format!("    {}: {}\n", key, set);
+        }
+        string += "}";
+        write!(f, "{}", string)
+    }
+}
 
 #[derive(Debug)]
 struct Reductions {

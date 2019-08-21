@@ -77,7 +77,7 @@ fn main() {
         .unwrap();
         std::process::exit(1);
     }
-    let expected_number_of_conflicts = 1;
+    let expected_number_of_conflicts = 0;
     let mut file = fs::File::open(file_name).unwrap();
     let mut input = String::new();
     file.read_to_string(&mut input).unwrap();
