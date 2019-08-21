@@ -517,13 +517,13 @@ impl SymbolTable {
         }
     }
 
-    pub fn new_tag(&mut self, name: &str, location: &lexan::Location) -> Result<(), Error> {
+    pub fn new_tag(&mut self, name: &str, location: &lexan::Location) -> Result<Rc<Symbol>, Error> {
         let tag = Symbol::new_tag_at(self.next_ident, name, location);
         self.next_ident += 1;
-        if let Some(tag) = self.tags.insert(name.to_string(), tag) {
+        if let Some(tag) = self.tags.insert(name.to_string(), Rc::clone(&tag)) {
             Err(Error::AlreadyDefined(Rc::clone(&tag)))
         } else {
-            Ok(())
+            Ok(tag)
         }
     }
 

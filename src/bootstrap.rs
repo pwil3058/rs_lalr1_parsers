@@ -1172,8 +1172,13 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData<AATerminal>>
                 // tag: IDENT
                 let name = aa_rhs[1 - 1].matched_text().unwrap();
                 let location = aa_rhs[1 - 1].location().unwrap();
-                if let Err(err) = self.symbol_table.new_tag(name, location) {
-                    self.error(location, &err.to_string())
+                match self.symbol_table.new_tag(name, location) {
+                    Ok(symbol) => {
+                        aa_lhs = AttributeData::Symbol(Some(symbol))
+                    }
+                    Err(err) => {
+                        self.error(location, &err.to_string())
+                    }
                 }
             }
             32 => {
