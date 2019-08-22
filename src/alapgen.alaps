@@ -1,0 +1,446 @@
+// alapgen.alaps
+// alapgen Specification for alapgen grammar Specification language
+
+%{
+use std::{fmt, fs::File, io::Read, rc::Rc};
+
+use crate::{
+    attributes::*,
+    grammar::GrammarSpecification,
+    state::ProductionTail,
+    symbols::{AssociativePrecedence, Associativity, SpecialSymbols},
+};
+%}
+
+%token  REGEX           (\(.+\)(?=\s))
+%token  LITERAL         ("(\\"|[^"\t\r\n\v\f])*")
+%token  TOKEN           "%token"
+%token  LEFT            "%left"
+%token  RIGHT           "%right"
+%token  NONASSOC        "%nonassoc"
+%token  PRECEDENCE      "%prec"
+%token  SKIP            "%skip"
+%token  ERROR           "%error"
+%token  INJECT          "%inject"
+%token  NEWSECTION      "%%"
+%token  COLON           ":"
+%token  VBAR            "|"
+%token  DOT             "."
+%token  IDENT           ([a-zA-Z]+[a-zA-Z0-9_]*)
+%token  PREDICATE       (\?\((.|[\n\r])*?\?\))
+%token  ACTION          (!\{(.|[\n\r])*?!\})
+%token  RUSTCODE        (%\{(.|[\n\r])*?%\})
+
+%skip (/\*(.|[\n\r])*?\*/)
+%skip (//[^\n\r]*)
+%skip (\s+)
+
+%right INJECT
+
+%%
+Specification: Preamble Definitions "%%" ProductionRules.
+
+OptionalInjection: !{ // no injection so nothing to do !} | Injection .
+
+InjectionHead: "%inject" LITERAL
+        !{
+            let (text, location) = $2.text_and_location().unwrap();
+            let file_path = text.trim_matches('"');
+            match File::open(&file_path) {
+                Ok(mut file) => {
+                    let mut text = String::new();
+                    if let Err(err) = file.read_to_string(&mut text) {
+                        self.error(&location, &format!("Injecting: {}", err));
+                    } else if text.len() == 0 {
+                        self.error(&location, &format!("Injected file \"{}\" is empty.", file_path));
+                    } else {
+                        aa_token_stream.inject(text, file_path.to_string());
+                    }
+                }
+                Err(err) => self.error(&location, &format!("Injecting: {}.", err)),
+            };
+        !}
+    .
+
+// NB This (including the split) is needed to allow for "look ahead" mechanism.
+// It ensures injection occurs before any meaningful tokens are read
+Injection: InjectionHead "." .
+
+// Preamble
+Preamble:
+        !{
+            // no Preamble defined so there's nothing to do
+        !}
+    | OptionalInjection RUSTCODE OptionalInjection
+        !{
+            let text = $2.matched_text.unwrap();
+            self.set_preamble(&text[2..text.len() - 2]);
+        !}
+    .
+
+Definitions : TokenDefinitions SkipDefinitions PrecedenceDefinitions .
+
+// Token Definitions
+TokenDefinitions : OptionalInjection TokenDefinition
+    | TokenDefinitions OptionalInjection TokenDefinition OptionalInjection
+    .
+
+TokenDefinition: "%token" NewTokenName Pattern
+        !{
+            let (name, location) = $2.text_and_location().unwrap();
+            let pattern = $3.matched_text().unwrap();
+            if let Err(err) = self.symbol_table.new_token(name, pattern, location) {
+                self.error(location, &err.to_string());
+            }
+        !}
+    .
+
+NewTokenName: IDENT ?( !Self::is_allowable_name($1.matched_text().unwrap()) ?)
+        !{
+            let (name, location) = $1.text_and_location().unwrap();
+            self.warning(
+                location,
+                &format!("token name \"{}\" may clash with generated code", name),
+            );
+        !}
+    | IDENT
+    .
+
+Pattern: REGEX
+    | LITERAL
+    .
+
+// Skip Definitions
+SkipDefinitions : // empty production
+        !{
+            // do nothing
+        !}
+    | SkipDefinitions OptionalInjection SkipDefinition OptionalInjection
+    .
+
+SkipDefinition: "%skip" REGEX
+        !{
+            let skip_rule = $2.matched_text().unwrap();
+            self.symbol_table.add_skip_rule(skip_rule);
+        !}
+    .
+
+// Precedence Definitions
+PrecedenceDefinitions : // empty production
+        !{
+            // do nothing
+        !}
+    | PrecedenceDefinitions OptionalInjection PrecedenceDefinition OptionalInjection
+    .
+
+PrecedenceDefinition: "%left" TagList
+        !{
+            let mut tag_list = $2.symbol_list().clone();
+            self.symbol_table
+                .set_precedences(Associativity::Left, &mut tag_list);
+        !}
+    | "%right" tag_list
+        !{
+            let mut tag_list = $2.symbol_list().clone();
+            self.symbol_table
+                .set_precedences(Associativity::Right, &mut tag_list);
+        !}
+    | "%nonassoc" tag_list
+        !{
+            let mut tag_list = $2.symbol_list().clone();
+            self.symbol_table
+                .set_precedences(Associativity::NonAssoc, &mut tag_list);
+        !}
+    .
+
+TagList: Tag
+        !{
+            let tag = $1.symbol().unwrap();
+            $$ = AttributeData::<AATerminal>::SymbolList(vec![Rc::clone(tag)]);
+        !}
+    | TagList Tag
+        !{
+            let mut tag_list = $1.symbol_list().clone();
+            let tag = $2.symbol().unwrap();
+            tag_list.push(Rc::clone(tag));
+            $$ = AttributeData::<AATerminal>::SymbolList(tag_list);
+        !}
+    .
+
+Tag: LITERAL
+        !{
+            let (text, location) = $1.text_and_location().unwrap();
+            if let Some(symbol) = self.symbol_table.get_literal_token(text, location) {
+                $$ = AttributeData::<AATerminal>::Symbol(Some(Rc::clone(symbol)));
+            } else {
+                let symbol = self.symbol_table.special_symbol(Some(SpecialSymbols::LexicalError));
+                $$ = AttributeData::<AATerminal>::Symbol(Some(Rc::clone(symbol)));
+                let msg = format!("Literal token \"{}\" is not known", text);
+                self.error(location, &msg);
+            }
+        !}
+    | IDENT
+        !{
+            let (name, location) = $1.text_and_location().unwrap();
+            if let Some(symbol) = self.symbol_table.use_symbol_named(name, location) {
+                $$ = AttributeData::<AATerminal>::Symbol(Some(Rc::clone(symbol)));
+                if symbol.is_non_terminal() {
+                    self.error(
+                        location,
+                        &format!(
+                            "Non terminal \"{}\" cannot be used as precedence tag.",
+                            name
+                        ),
+                    )
+                }
+            } else {
+                if !Self::is_allowable_name(name) {
+                    self.warning(
+                        location,
+                        &format!("tag name \"{}\" may clash with generated code", name),
+                    );
+                };
+                match self.symbol_table.new_tag(name, location) {
+                    Ok(symbol) => $$ = AttributeData::<AATerminal>::Symbol(Some(symbol)),
+                    Err(err) => self.error(location, &err.to_string()),
+                }
+            }
+        !}
+    .
+
+// Production rules
+ProductionRules: OptionalInjection ProductionGroup OptionalInjection
+    | ProductionRules ProductionGroup OptionalInjection
+    .
+
+ProductionGroup: ProductionGroupHead ProductionTailList "."
+        !{
+            let lhs = $1.left_hand_side();
+            let tails = $2.ProductionTailList();
+            for tail in tails.iter() {
+                self.new_production(Rc::clone(&lhs), tail.clone());
+            }
+        !}
+    .
+
+ProductionGroupHead: IDENT ":"
+        !{
+            let (name, location) = $1.text_and_location().unwrap();
+            if let Some(symbol) = self.symbol_table.use_symbol_named(name, location) {
+                $$ = AttributeData::<AATerminal>::LeftHandSide(Rc::clone(symbol));
+                if !symbol.is_non_terminal() {
+                    self.error(
+                        location,
+                        &format!(
+                            "Token/tag \"{}\" cannot be used as left hand side of production.",
+                            name
+                        ),
+                    )
+                }
+            } else {
+                if !Self::is_allowable_name(name) {
+                    self.warning(
+                        location,
+                        &format!("Non terminal name \"{}\" may clash with generated code", name),
+                    );
+                };
+                let non_terminal = self.symbol_table.define_non_terminal(name, location);
+                $$ = AttributeData::<AATerminal>::LeftHandSide(non_terminal);
+            }
+        !}
+    .
+
+ProductionTailList: ProductionTail
+        !{
+            let ProductionTail = $1.ProductionTail().clone();
+            $$ = AttributeData::<AATerminal>::ProductionTailList(vec![ProductionTail]);
+        !}
+    | ProductionTailList "|" ProductionTail
+        !{
+            let mut ProductionTailList = $1.ProductionTailList().clone();
+            let ProductionTail = $3.ProductionTail().clone();
+            ProductionTailList.push(ProductionTail);
+            $$ = AttributeData::<AATerminal>::ProductionTailList(ProductionTailList);
+        !}
+    .
+
+ProductionTail:
+        !{
+            let tail = ProductionTail::new(vec![], None, None, None);
+            $$ = AttributeData::<AATerminal>::ProductionTail(tail)
+        !}
+    | Action
+        !{
+            let action = $1.action().to_string();
+            let tail = ProductionTail::new(vec![], None, None, Some(action));
+            $$ = AttributeData::<AATerminal>::ProductionTail(tail)
+        !}
+    | Predicate Action
+        !{
+            let predicate = $1.predicate().to_string();
+            let action = $2.action().to_string();
+            let tail = ProductionTail::new(vec![], Some(predicate), None, Some(action));
+            $$ = AttributeData::<AATerminal>::ProductionTail(tail)
+        !}
+    | Predicate
+        !{
+            let predicate = $1.predicate().to_string();
+            let tail = ProductionTail::new(vec![], Some(predicate), None, None);
+            $$ = AttributeData::<AATerminal>::ProductionTail(tail)
+        !}
+    | SymbolList Predicate tagged_precedence Action
+        !{
+            let rhs = $1.symbol_list().clone();
+            let predicate = $2.predicate().to_string();
+            let tagged_precedence = $3.associative_precedence().clone();
+            let action = $4.action().to_string();
+            let tail = ProductionTail::new(rhs, Some(predicate), Some(tagged_precedence), Some(action));
+            $$ = AttributeData::<AATerminal>::ProductionTail(tail)
+        !}
+    | SymbolList Predicate tagged_precedence
+        !{
+            let lhs = $1.symbol_list().clone();
+            let predicate = $2.predicate().to_string();
+            let tagged_precedence = $3.associative_precedence().clone();
+            let tail = ProductionTail::new(lhs, Some(predicate), Some(tagged_precedence), None);
+            $$ = AttributeData::<AATerminal>::ProductionTail(tail)
+        !}
+    | SymbolList Predicate Action
+        !{
+            let lhs = $1.symbol_list().clone();
+            let predicate = $2.predicate().to_string();
+            let action = $3.action().to_string();
+            let tail = ProductionTail::new(lhs, Some(predicate), None, Some(action));
+            $$ = AttributeData::<AATerminal>::ProductionTail(tail)
+        !}
+    | SymbolList Predicate
+        !{
+            let lhs = $1.symbol_list().clone();
+            let predicate = $2.predicate().to_string();
+            let tail = ProductionTail::new(lhs, Some(predicate), None, None);
+            $$ = AttributeData::<AATerminal>::ProductionTail(tail)
+        !}
+    | SymbolList tagged_precedence Action
+        !{
+            let lhs = $1.symbol_list().clone();
+            let tagged_precedence = $2.associative_precedence().clone();
+            let action = $3.action().to_string();
+            let tail = ProductionTail::new(lhs, None, Some(tagged_precedence), Some(action));
+            $$ = AttributeData::<AATerminal>::ProductionTail(tail)
+        !}
+    | SymbolList tagged_precedence
+        !{
+            let lhs = $1.symbol_list().clone();
+            let tagged_precedence = $2.associative_precedence().clone();
+            let tail = ProductionTail::new(lhs, None, Some(tagged_precedence), None);
+            $$ = AttributeData::<AATerminal>::ProductionTail(tail)
+        !}
+    | SymbolList Action
+        !{
+            let lhs = $1.symbol_list().clone();
+            let action = $2.action().to_string();
+            let tail = ProductionTail::new(lhs, None, None, Some(action));
+            $$ = AttributeData::<AATerminal>::ProductionTail(tail)
+        !}
+    | SymbolList
+        !{
+            let lhs = $1.symbol_list().clone();
+            let tail = ProductionTail::new(lhs, None, None, None);
+            $$ = AttributeData::<AATerminal>::ProductionTail(tail)
+        !}
+    .
+
+Action: ACTION
+        !{
+            let text = $1.matched_text().unwrap();
+            $$ = AttributeData::<AATerminal>::Action(text[2..text.len() - 2].to_string());
+        !}
+    .
+
+Predicate: PREDICATE
+        !{
+            let text = $1.matched_text().unwrap();
+            $$ = AttributeData::<AATerminal>::Predicate(text[2..text.len() - 2].to_string());
+        !}
+    .
+
+tagged_precedence: "%prec" IDENT
+        !{
+            let (name, location) = $2.text_and_location();
+            let mut ap = AssociativePrecedence::default();
+            if let Some(symbol) = self.symbol_table.use_symbol_named(name, location) {
+                if symbol.is_non_terminal() {
+                    self.error(
+                        location,
+                        &format!("{}: illegal precedence tag (must be token or tag)", name),
+                    );
+                } else {
+                    ap = symbol.associative_precedence();
+                }
+            } else {
+                self.error(location, &format!("{}: unknown symbol", name));
+            };
+            $$ = AttributeData::<AATerminal>::AssociativePrecedence(ap);
+        !}
+    | "%prec" LITERAL
+        !{
+            let (lexeme, location) = $2.text_and_location();
+            let mut ap = AssociativePrecedence::default();
+            if let Some(symbol) = self.symbol_table.get_literal_token(lexeme, location) {
+                if symbol.is_non_terminal() {
+                    self.error(
+                        location,
+                        &format!("{}: illegal precedence tag (must be token or tag)", lexeme),
+                    );
+                } else {
+                    ap = symbol.associative_precedence();
+                }
+            } else {
+                self.error(location, &format!("{}: unknown literal", lexeme));
+            };
+            $$ = AttributeData::<AATerminal>::AssociativePrecedence(ap);
+        !}
+    .
+
+SymbolList: symbol
+        !{
+            let symbol = $1.symbol().unwrap();
+            $$ = AttributeData::<AATerminal>::SymbolList(vec![Rc::clone(&symbol)]);
+        !}
+    | SymbolList symbol
+        !{
+            let symbol = $2.symbol().unwrap();
+            let mut symbol_list = $2.symbol_list().clone();
+            symbol_list.push(Rc::clone(symbol));
+            $$ = AttributeData::<AATerminal>::SymbolList(symbol_list);
+        !}
+    .
+
+symbol: IDENT
+        !{
+            let (name, location) = $1.text_and_location();
+            if let Some(symbol) = self.symbol_table.use_symbol_named(name, location) {
+                $$ = AttributeData::<AATerminal>::Symbol(Some(Rc::clone(symbol)));
+            } else {
+                let symbol = self.symbol_table.use_new_non_terminal(name, location);
+                $$ = AttributeData::<AATerminal>::Symbol(Some(symbol));
+            }
+        !}
+    | LITERAL
+        !{
+            let (lexeme, location) = $1.text_and_location();
+            if let Some(symbol) = self.symbol_table.get_literal_token(lexeme, location) {
+                $$ = AttributeData::<AATerminal>::Symbol(Some(Rc::clone(symbol)));
+            } else {
+                self.error(location, &format!("{}: unknown literal)", lexeme));
+                $$ = AttributeData::<AATerminal>::Symbol(Some(SpecialSymbols::LexicalError));
+            }
+        !}
+    | "%error"
+        !{
+            let symbol = self
+                .symbol_table
+                .special_symbol(&SpecialSymbols::SyntaxError);
+            $$ = AttributeData::<AATerminal>::Symbol(Some(symbol));
+        !}
+    .
