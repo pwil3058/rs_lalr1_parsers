@@ -558,15 +558,29 @@ impl ParserState {
         let mut shift_list = self.shift_list.borrow_mut();
         let mut grammar_items = self.grammar_items.borrow_mut();
         for (shift_symbol, goto_state, reducible_item, look_ahead_set) in conflicts.iter() {
+            println!(
+                "State<{}> SR conflict: {}({}) vs {}({}): {}",
+                self.ident,
+                shift_symbol,
+                shift_symbol.precedence(),
+                reducible_item,
+                reducible_item.precedence(),
+                look_ahead_set
+            );
             if shift_symbol.precedence() < reducible_item.precedence() {
+                println!("reduce wins based on precedence");
                 shift_list.remove(shift_symbol);
             } else if shift_symbol.precedence() > reducible_item.precedence() {
+                println!("shift wins based on precedence");
                 grammar_items.0[Rc::clone(reducible_item)].remove(shift_symbol);
             } else if reducible_item.associativity() == Associativity::Left {
+                println!("reduce wins based on associativity");
                 shift_list.remove(shift_symbol);
             } else if reducible_item.has_error_recovery_tail() {
+                println!("shift wins based on error recovery");
                 grammar_items.0[Rc::clone(reducible_item)].remove(shift_symbol);
             } else {
+                println!("shift wins by default");
                 // Default: resolve in favour of shift but mark as unresolved
                 // to give the user the option of accepting this resolution
                 grammar_items.0[Rc::clone(reducible_item)].remove(shift_symbol);
@@ -597,6 +611,10 @@ impl ParserState {
                     .borrow()
                     .look_ahead_intersection(key_1, key_2);
                 if intersection.len() > 0 && key_1.predicate().is_none() {
+                    println!(
+                        "State<{}> RR conflict: {} vs {}: {}",
+                        self.ident, key_1, key_2, intersection
+                    );
                     if key_1.has_error_recovery_tail() {
                         self.grammar_items
                             .borrow_mut()
