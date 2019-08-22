@@ -30,6 +30,8 @@ pub struct GrammarSpecification {
     pub symbol_table: SymbolTable,
     productions: Vec<Rc<Production>>,
     preamble: String,
+    pub attribute_type: String,
+    pub target_type: String,
     pub error_count: u32,
     pub warning_count: u32,
 }
@@ -41,6 +43,8 @@ impl GrammarSpecification {
             symbol_table,
             productions: vec![],
             preamble: String::new(),
+            attribute_type: "AttributeData".to_string(),
+            target_type: "GrammarSpecification".to_string(),
             error_count: 0,
             warning_count: 0,
         };
@@ -205,13 +209,19 @@ impl GrammarSpecification {
         wtr.write(b"    fn do_semantic_action(\n")?;
         wtr.write(b"        &mut self,\n")?;
         wtr.write(b"        aa_production_id: u32,\n")?;
-        wtr.write(b"        aa_rhs: Vec<AttributeData>,\n")?;
+        wtr.write_fmt(format_args!(
+            "        aa_rhs: Vec<{}>,\n",
+            self.attribute_type
+        ))?;
         wtr.write(b"        aa_token_stream: &mut lexan::TokenStream<AATerminal>,\n")?;
-        wtr.write(b"    ) -> AttributeData {\n")?;
+        wtr.write_fmt(format_args!("    ) -> {} {{\n", self.attribute_type))?;
         wtr.write(b"        let mut aa_lhs = if let Some(a) = aa_rhs.first() {\n")?;
         wtr.write(b"            a.clone()\n")?;
         wtr.write(b"        } else {\n")?;
-        wtr.write(b"            AttributeData::default()\n")?;
+        wtr.write_fmt(format_args!(
+            "           {}::default()\n",
+            self.attribute_type
+        ))?;
         wtr.write(b"        };\n")?;
         wtr.write(b"        match aa_production_id {\n")?;
         for production in self.productions.iter() {
@@ -346,6 +356,8 @@ impl Grammar {
 
     fn write_symbol_enum_code<W: Write>(&self, wtr: &mut W) -> io::Result<()> {
         let tokens = self.specification.symbol_table.tokens_sorted();
+        wtr.write(b"use lalr1plus;\n")?;
+        wtr.write(b"use lexan;\n\n")?;
         wtr.write(b"#[derive(Debug, Clone, Copy, PartialOrd, Ord, PartialEq, Eq)]\n")?;
         wtr.write(b"pub enum AATerminal {\n")?;
         for token in tokens.iter() {
@@ -438,8 +450,8 @@ impl Grammar {
     }
 
     fn write_parser_implementation_code<W: Write>(&self, wtr: &mut W) -> io::Result<()> {
-        let attr = "AttributeData"; // TODO: make this configurable
-        let parser = "Calc"; // TODO: make this configurable
+        let attr = &self.specification.attribute_type;
+        let parser = &self.specification.target_type;
         let text = format!(
             "impl lalr1plus::Parser<AATerminal, AANonTerminal, {}> for {} {{\n",
             attr, parser
@@ -482,7 +494,6 @@ impl Grammar {
 
     fn write_error_recovery_code<W: Write>(&self, wtr: &mut W) -> io::Result<()> {
         wtr.write(b"    fn viable_error_recovery_states(token: &AATerminal) -> Vec<u32> {\n")?;
-        wtr.write(b"        use AATerminal::*;\n")?;
         wtr.write(b"        match token {\n")?;
         let mut default_required = false;
         for token in self.specification.symbol_table.tokens_sorted().iter() {
@@ -490,7 +501,7 @@ impl Grammar {
             if set.len() > 0 {
                 let set_str = Self::format_u32_vec(&set);
                 wtr.write_fmt(format_args!(
-                    "            {} => {},\n",
+                    "            AATerminal::{} => {},\n",
                     token.name(),
                     set_str
                 ))?;
@@ -523,7 +534,10 @@ impl Grammar {
         wtr.write(b"    fn next_action(\n")?;
         wtr.write(b"        &self,\n")?;
         wtr.write(b"        state: u32,\n")?;
-        wtr.write(b"        aa_attributes: &lalr1plus::ParseStack<AATerminal, AANonTerminal, AttributeData>,\n")?;
+        wtr.write_fmt(format_args!(
+            "        aa_attributes: &lalr1plus::ParseStack<AATerminal, AANonTerminal, {}>,\n",
+            self.specification.attribute_type
+        ))?;
         wtr.write(b"        token: &lexan::Token<AATerminal>,\n")?;
         wtr.write(b"    ) -> lalr1plus::Action<AATerminal> {\n")?;
         wtr.write(b"        use lalr1plus::Action;\n")?;

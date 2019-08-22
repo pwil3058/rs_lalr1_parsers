@@ -1,18 +1,16 @@
-use std::{fmt::Debug, rc::Rc};
+use std::rc::Rc;
 
 use lexan;
 
+use crate::bootstrap::AATerminal;
 use crate::state::ProductionTail;
 use crate::symbols::*;
 
 #[derive(Debug, Clone)]
-pub enum AttributeData<T>
-where
-    T: Debug + Copy + Eq + Ord,
-{
-    Token(lexan::Token<T>),
-    SyntaxError(lexan::Token<T>, Vec<T>),
-    LexicalError(lexan::Error<T>),
+pub enum AttributeData {
+    Token(lexan::Token<AATerminal>),
+    SyntaxError(lexan::Token<AATerminal>, Vec<AATerminal>),
+    LexicalError(lexan::Error<AATerminal>),
     SymbolList(Vec<Rc<Symbol>>),
     Symbol(Option<Rc<Symbol>>),
     LeftHandSide(Rc<Symbol>),
@@ -24,19 +22,13 @@ where
     Default,
 }
 
-impl<T> Default for AttributeData<T>
-where
-    T: Debug + Copy + Eq + Ord,
-{
+impl Default for AttributeData {
     fn default() -> Self {
         AttributeData::Default
     }
 }
 
-impl<T> AttributeData<T>
-where
-    T: Debug + Copy + Eq + Ord,
-{
+impl AttributeData {
     pub fn matched_text<'a>(&'a self) -> Option<&'a String> {
         match self {
             AttributeData::Token(token) => Some(token.lexeme()),
@@ -133,20 +125,14 @@ where
     }
 }
 
-impl<T> From<lexan::Token<T>> for AttributeData<T>
-where
-    T: Debug + Copy + Eq + Ord,
-{
-    fn from(token: lexan::Token<T>) -> Self {
+impl From<lexan::Token<AATerminal>> for AttributeData {
+    fn from(token: lexan::Token<AATerminal>) -> Self {
         AttributeData::Token(token)
     }
 }
 
-impl<T> From<lalr1plus::Error<T>> for AttributeData<T>
-where
-    T: Debug + Copy + Eq + Ord,
-{
-    fn from(error: lalr1plus::Error<T>) -> Self {
+impl From<lalr1plus::Error<AATerminal>> for AttributeData {
+    fn from(error: lalr1plus::Error<AATerminal>) -> Self {
         match error {
             lalr1plus::Error::LexicalError(error) => AttributeData::LexicalError(error),
             lalr1plus::Error::SyntaxError(token, expected) => {

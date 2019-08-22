@@ -139,13 +139,13 @@ PrecedenceDefinition: "%left" TagList
             self.symbol_table
                 .set_precedences(Associativity::Left, &mut tag_list);
         !}
-    | "%right" tag_list
+    | "%right" TagList
         !{
             let mut tag_list = $2.symbol_list().clone();
             self.symbol_table
                 .set_precedences(Associativity::Right, &mut tag_list);
         !}
-    | "%nonassoc" tag_list
+    | "%nonassoc" TagList
         !{
             let mut tag_list = $2.symbol_list().clone();
             self.symbol_table
@@ -156,14 +156,14 @@ PrecedenceDefinition: "%left" TagList
 TagList: Tag
         !{
             let tag = $1.symbol().unwrap();
-            $$ = AttributeData::<AATerminal>::SymbolList(vec![Rc::clone(tag)]);
+            $$ = AttributeData::SymbolList(vec![Rc::clone(tag)]);
         !}
     | TagList Tag
         !{
             let mut tag_list = $1.symbol_list().clone();
             let tag = $2.symbol().unwrap();
             tag_list.push(Rc::clone(tag));
-            $$ = AttributeData::<AATerminal>::SymbolList(tag_list);
+            $$ = AttributeData::SymbolList(tag_list);
         !}
     .
 
@@ -171,10 +171,10 @@ Tag: LITERAL
         !{
             let (text, location) = $1.text_and_location().unwrap();
             if let Some(symbol) = self.symbol_table.get_literal_token(text, location) {
-                $$ = AttributeData::<AATerminal>::Symbol(Some(Rc::clone(symbol)));
+                $$ = AttributeData::Symbol(Some(Rc::clone(symbol)));
             } else {
                 let symbol = self.symbol_table.special_symbol(Some(SpecialSymbols::LexicalError));
-                $$ = AttributeData::<AATerminal>::Symbol(Some(Rc::clone(symbol)));
+                $$ = AttributeData::Symbol(Some(Rc::clone(symbol)));
                 let msg = format!("Literal token \"{}\" is not known", text);
                 self.error(location, &msg);
             }
@@ -183,7 +183,7 @@ Tag: LITERAL
         !{
             let (name, location) = $1.text_and_location().unwrap();
             if let Some(symbol) = self.symbol_table.use_symbol_named(name, location) {
-                $$ = AttributeData::<AATerminal>::Symbol(Some(Rc::clone(symbol)));
+                $$ = AttributeData::Symbol(Some(Rc::clone(symbol)));
                 if symbol.is_non_terminal() {
                     self.error(
                         location,
@@ -201,7 +201,7 @@ Tag: LITERAL
                     );
                 };
                 match self.symbol_table.new_tag(name, location) {
-                    Ok(symbol) => $$ = AttributeData::<AATerminal>::Symbol(Some(symbol)),
+                    Ok(symbol) => $$ = AttributeData::Symbol(Some(symbol)),
                     Err(err) => self.error(location, &err.to_string()),
                 }
             }
@@ -227,7 +227,7 @@ ProductionGroupHead: IDENT ":"
         !{
             let (name, location) = $1.text_and_location().unwrap();
             if let Some(symbol) = self.symbol_table.use_symbol_named(name, location) {
-                $$ = AttributeData::<AATerminal>::LeftHandSide(Rc::clone(symbol));
+                $$ = AttributeData::LeftHandSide(Rc::clone(symbol));
                 if !symbol.is_non_terminal() {
                     self.error(
                         location,
@@ -245,7 +245,7 @@ ProductionGroupHead: IDENT ":"
                     );
                 };
                 let non_terminal = self.symbol_table.define_non_terminal(name, location);
-                $$ = AttributeData::<AATerminal>::LeftHandSide(non_terminal);
+                $$ = AttributeData::LeftHandSide(non_terminal);
             }
         !}
     .
@@ -253,57 +253,57 @@ ProductionGroupHead: IDENT ":"
 ProductionTailList: ProductionTail
         !{
             let ProductionTail = $1.ProductionTail().clone();
-            $$ = AttributeData::<AATerminal>::ProductionTailList(vec![ProductionTail]);
+            $$ = AttributeData::ProductionTailList(vec![ProductionTail]);
         !}
     | ProductionTailList "|" ProductionTail
         !{
             let mut ProductionTailList = $1.ProductionTailList().clone();
             let ProductionTail = $3.ProductionTail().clone();
             ProductionTailList.push(ProductionTail);
-            $$ = AttributeData::<AATerminal>::ProductionTailList(ProductionTailList);
+            $$ = AttributeData::ProductionTailList(ProductionTailList);
         !}
     .
 
 ProductionTail:
         !{
             let tail = ProductionTail::new(vec![], None, None, None);
-            $$ = AttributeData::<AATerminal>::ProductionTail(tail)
+            $$ = AttributeData::ProductionTail(tail)
         !}
     | Action
         !{
             let action = $1.action().to_string();
             let tail = ProductionTail::new(vec![], None, None, Some(action));
-            $$ = AttributeData::<AATerminal>::ProductionTail(tail)
+            $$ = AttributeData::ProductionTail(tail)
         !}
     | Predicate Action
         !{
             let predicate = $1.predicate().to_string();
             let action = $2.action().to_string();
             let tail = ProductionTail::new(vec![], Some(predicate), None, Some(action));
-            $$ = AttributeData::<AATerminal>::ProductionTail(tail)
+            $$ = AttributeData::ProductionTail(tail)
         !}
     | Predicate
         !{
             let predicate = $1.predicate().to_string();
             let tail = ProductionTail::new(vec![], Some(predicate), None, None);
-            $$ = AttributeData::<AATerminal>::ProductionTail(tail)
+            $$ = AttributeData::ProductionTail(tail)
         !}
-    | SymbolList Predicate tagged_precedence Action
+    | SymbolList Predicate TaggedPrecedence Action
         !{
             let rhs = $1.symbol_list().clone();
             let predicate = $2.predicate().to_string();
             let tagged_precedence = $3.associative_precedence().clone();
             let action = $4.action().to_string();
             let tail = ProductionTail::new(rhs, Some(predicate), Some(tagged_precedence), Some(action));
-            $$ = AttributeData::<AATerminal>::ProductionTail(tail)
+            $$ = AttributeData::ProductionTail(tail)
         !}
-    | SymbolList Predicate tagged_precedence
+    | SymbolList Predicate TaggedPrecedence
         !{
             let lhs = $1.symbol_list().clone();
             let predicate = $2.predicate().to_string();
             let tagged_precedence = $3.associative_precedence().clone();
             let tail = ProductionTail::new(lhs, Some(predicate), Some(tagged_precedence), None);
-            $$ = AttributeData::<AATerminal>::ProductionTail(tail)
+            $$ = AttributeData::ProductionTail(tail)
         !}
     | SymbolList Predicate Action
         !{
@@ -311,60 +311,60 @@ ProductionTail:
             let predicate = $2.predicate().to_string();
             let action = $3.action().to_string();
             let tail = ProductionTail::new(lhs, Some(predicate), None, Some(action));
-            $$ = AttributeData::<AATerminal>::ProductionTail(tail)
+            $$ = AttributeData::ProductionTail(tail)
         !}
     | SymbolList Predicate
         !{
             let lhs = $1.symbol_list().clone();
             let predicate = $2.predicate().to_string();
             let tail = ProductionTail::new(lhs, Some(predicate), None, None);
-            $$ = AttributeData::<AATerminal>::ProductionTail(tail)
+            $$ = AttributeData::ProductionTail(tail)
         !}
-    | SymbolList tagged_precedence Action
+    | SymbolList TaggedPrecedence Action
         !{
             let lhs = $1.symbol_list().clone();
             let tagged_precedence = $2.associative_precedence().clone();
             let action = $3.action().to_string();
             let tail = ProductionTail::new(lhs, None, Some(tagged_precedence), Some(action));
-            $$ = AttributeData::<AATerminal>::ProductionTail(tail)
+            $$ = AttributeData::ProductionTail(tail)
         !}
-    | SymbolList tagged_precedence
+    | SymbolList TaggedPrecedence
         !{
             let lhs = $1.symbol_list().clone();
             let tagged_precedence = $2.associative_precedence().clone();
             let tail = ProductionTail::new(lhs, None, Some(tagged_precedence), None);
-            $$ = AttributeData::<AATerminal>::ProductionTail(tail)
+            $$ = AttributeData::ProductionTail(tail)
         !}
     | SymbolList Action
         !{
             let lhs = $1.symbol_list().clone();
             let action = $2.action().to_string();
             let tail = ProductionTail::new(lhs, None, None, Some(action));
-            $$ = AttributeData::<AATerminal>::ProductionTail(tail)
+            $$ = AttributeData::ProductionTail(tail)
         !}
     | SymbolList
         !{
             let lhs = $1.symbol_list().clone();
             let tail = ProductionTail::new(lhs, None, None, None);
-            $$ = AttributeData::<AATerminal>::ProductionTail(tail)
+            $$ = AttributeData::ProductionTail(tail)
         !}
     .
 
 Action: ACTION
         !{
             let text = $1.matched_text().unwrap();
-            $$ = AttributeData::<AATerminal>::Action(text[2..text.len() - 2].to_string());
+            $$ = AttributeData::Action(text[2..text.len() - 2].to_string());
         !}
     .
 
 Predicate: PREDICATE
         !{
             let text = $1.matched_text().unwrap();
-            $$ = AttributeData::<AATerminal>::Predicate(text[2..text.len() - 2].to_string());
+            $$ = AttributeData::Predicate(text[2..text.len() - 2].to_string());
         !}
     .
 
-tagged_precedence: "%prec" IDENT
+TaggedPrecedence: "%prec" IDENT
         !{
             let (name, location) = $2.text_and_location();
             let mut ap = AssociativePrecedence::default();
@@ -380,7 +380,7 @@ tagged_precedence: "%prec" IDENT
             } else {
                 self.error(location, &format!("{}: unknown symbol", name));
             };
-            $$ = AttributeData::<AATerminal>::AssociativePrecedence(ap);
+            $$ = AttributeData::AssociativePrecedence(ap);
         !}
     | "%prec" LITERAL
         !{
@@ -398,42 +398,42 @@ tagged_precedence: "%prec" IDENT
             } else {
                 self.error(location, &format!("{}: unknown literal", lexeme));
             };
-            $$ = AttributeData::<AATerminal>::AssociativePrecedence(ap);
+            $$ = AttributeData::AssociativePrecedence(ap);
         !}
     .
 
-SymbolList: symbol
+SymbolList: Symbol
         !{
             let symbol = $1.symbol().unwrap();
-            $$ = AttributeData::<AATerminal>::SymbolList(vec![Rc::clone(&symbol)]);
+            $$ = AttributeData::SymbolList(vec![Rc::clone(&symbol)]);
         !}
-    | SymbolList symbol
+    | SymbolList Symbol
         !{
             let symbol = $2.symbol().unwrap();
             let mut symbol_list = $2.symbol_list().clone();
             symbol_list.push(Rc::clone(symbol));
-            $$ = AttributeData::<AATerminal>::SymbolList(symbol_list);
+            $$ = AttributeData::SymbolList(symbol_list);
         !}
     .
 
-symbol: IDENT
+Symbol: IDENT
         !{
             let (name, location) = $1.text_and_location();
             if let Some(symbol) = self.symbol_table.use_symbol_named(name, location) {
-                $$ = AttributeData::<AATerminal>::Symbol(Some(Rc::clone(symbol)));
+                $$ = AttributeData::Symbol(Some(Rc::clone(symbol)));
             } else {
                 let symbol = self.symbol_table.use_new_non_terminal(name, location);
-                $$ = AttributeData::<AATerminal>::Symbol(Some(symbol));
+                $$ = AttributeData::Symbol(Some(symbol));
             }
         !}
     | LITERAL
         !{
             let (lexeme, location) = $1.text_and_location();
             if let Some(symbol) = self.symbol_table.get_literal_token(lexeme, location) {
-                $$ = AttributeData::<AATerminal>::Symbol(Some(Rc::clone(symbol)));
+                $$ = AttributeData::Symbol(Some(Rc::clone(symbol)));
             } else {
                 self.error(location, &format!("{}: unknown literal)", lexeme));
-                $$ = AttributeData::<AATerminal>::Symbol(Some(SpecialSymbols::LexicalError));
+                $$ = AttributeData::Symbol(Some(SpecialSymbols::LexicalError));
             }
         !}
     | "%error"
@@ -441,6 +441,6 @@ symbol: IDENT
             let symbol = self
                 .symbol_table
                 .special_symbol(&SpecialSymbols::SyntaxError);
-            $$ = AttributeData::<AATerminal>::Symbol(Some(symbol));
+            $$ = AttributeData::Symbol(Some(symbol));
         !}
     .

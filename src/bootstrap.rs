@@ -160,9 +160,7 @@ impl fmt::Display for AANonTerminal {
     }
 }
 
-impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData<AATerminal>>
-    for GrammarSpecification
-{
+impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData> for GrammarSpecification {
     fn lexical_analyzer(&self) -> &lexan::LexicalAnalyzer<AATerminal> {
         &AALEXAN
     }
@@ -178,7 +176,7 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData<AATerminal>>
     fn next_action<'a>(
         &self,
         state: u32,
-        aa_attributes: &lalr1plus::ParseStack<AATerminal, AANonTerminal, AttributeData<AATerminal>>,
+        aa_attributes: &lalr1plus::ParseStack<AATerminal, AANonTerminal, AttributeData>,
         token: &lexan::Token<AATerminal>,
     ) -> lalr1plus::Action<AATerminal> {
         use lalr1plus::Action;
@@ -1028,9 +1026,9 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData<AATerminal>>
     fn do_semantic_action(
         &mut self,
         aa_production_id: u32,
-        aa_rhs: Vec<AttributeData<AATerminal>>,
+        aa_rhs: Vec<AttributeData>,
         aa_token_stream: &mut lexan::TokenStream<AATerminal>,
-    ) -> AttributeData<AATerminal> {
+    ) -> AttributeData {
         let mut aa_lhs = if let Some(attr_data) = aa_rhs.first() {
             attr_data.clone()
         } else {

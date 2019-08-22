@@ -8,6 +8,9 @@ use crate::{
     symbols::{AssociativePrecedence, Associativity, SpecialSymbols},
 };
 
+use lalr1plus;
+use lexan;
+
 #[derive(Debug, Clone, Copy, PartialOrd, Ord, PartialEq, Eq)]
 pub enum AATerminal {
     AAEND,
@@ -63,32 +66,32 @@ pub enum AANonTerminal {
     AALEXICALERROR,
     AASYNTAXERROR,
     AASEMANTICERROR,
-    specification,
-    preamble,
-    definitions,
-    production_rules,
-    oinjection,
-    injection,
-    injection_head,
-    token_definitions,
-    skip_definitions,
-    precedence_definitions,
-    token_definition,
-    new_token_name,
-    pattern,
-    skip_definition,
-    precedence_definition,
-    tag_list,
-    tag,
-    production_group,
-    production_group_head,
-    production_tail_list,
-    production_tail,
-    action,
-    predicate,
-    symbol_list,
-    tagged_precedence,
-    symbol,
+    Specification,
+    Preamble,
+    Definitions,
+    ProductionRules,
+    OptionalInjection,
+    Injection,
+    InjectionHead,
+    TokenDefinitions,
+    SkipDefinitions,
+    PrecedenceDefinitions,
+    TokenDefinition,
+    NewTokenName,
+    Pattern,
+    SkipDefinition,
+    PrecedenceDefinition,
+    TagList,
+    Tag,
+    ProductionGroup,
+    ProductionGroupHead,
+    ProductionTailList,
+    ProductionTail,
+    Action,
+    Predicate,
+    SymbolList,
+    TaggedPrecedence,
+    Symbol,
 }
 
 impl std::fmt::Display for AANonTerminal {
@@ -98,32 +101,32 @@ impl std::fmt::Display for AANonTerminal {
         AANonTerminal::AALEXICALERROR => write!(f, r"AALEXICALERROR"),
         AANonTerminal::AASYNTAXERROR => write!(f, r"AASYNTAXERROR"),
         AANonTerminal::AASEMANTICERROR => write!(f, r"AASEMANTICERROR"),
-        AANonTerminal::specification => write!(f, r"specification"),
-        AANonTerminal::preamble => write!(f, r"preamble"),
-        AANonTerminal::definitions => write!(f, r"definitions"),
-        AANonTerminal::production_rules => write!(f, r"production_rules"),
-        AANonTerminal::oinjection => write!(f, r"oinjection"),
-        AANonTerminal::injection => write!(f, r"injection"),
-        AANonTerminal::injection_head => write!(f, r"injection_head"),
-        AANonTerminal::token_definitions => write!(f, r"token_definitions"),
-        AANonTerminal::skip_definitions => write!(f, r"skip_definitions"),
-        AANonTerminal::precedence_definitions => write!(f, r"precedence_definitions"),
-        AANonTerminal::token_definition => write!(f, r"token_definition"),
-        AANonTerminal::new_token_name => write!(f, r"new_token_name"),
-        AANonTerminal::pattern => write!(f, r"pattern"),
-        AANonTerminal::skip_definition => write!(f, r"skip_definition"),
-        AANonTerminal::precedence_definition => write!(f, r"precedence_definition"),
-        AANonTerminal::tag_list => write!(f, r"tag_list"),
-        AANonTerminal::tag => write!(f, r"tag"),
-        AANonTerminal::production_group => write!(f, r"production_group"),
-        AANonTerminal::production_group_head => write!(f, r"production_group_head"),
-        AANonTerminal::production_tail_list => write!(f, r"production_tail_list"),
-        AANonTerminal::production_tail => write!(f, r"production_tail"),
-        AANonTerminal::action => write!(f, r"action"),
-        AANonTerminal::predicate => write!(f, r"predicate"),
-        AANonTerminal::symbol_list => write!(f, r"symbol_list"),
-        AANonTerminal::tagged_precedence => write!(f, r"tagged_precedence"),
-        AANonTerminal::symbol => write!(f, r"symbol"),
+        AANonTerminal::Specification => write!(f, r"Specification"),
+        AANonTerminal::Preamble => write!(f, r"Preamble"),
+        AANonTerminal::Definitions => write!(f, r"Definitions"),
+        AANonTerminal::ProductionRules => write!(f, r"ProductionRules"),
+        AANonTerminal::OptionalInjection => write!(f, r"OptionalInjection"),
+        AANonTerminal::Injection => write!(f, r"Injection"),
+        AANonTerminal::InjectionHead => write!(f, r"InjectionHead"),
+        AANonTerminal::TokenDefinitions => write!(f, r"TokenDefinitions"),
+        AANonTerminal::SkipDefinitions => write!(f, r"SkipDefinitions"),
+        AANonTerminal::PrecedenceDefinitions => write!(f, r"PrecedenceDefinitions"),
+        AANonTerminal::TokenDefinition => write!(f, r"TokenDefinition"),
+        AANonTerminal::NewTokenName => write!(f, r"NewTokenName"),
+        AANonTerminal::Pattern => write!(f, r"Pattern"),
+        AANonTerminal::SkipDefinition => write!(f, r"SkipDefinition"),
+        AANonTerminal::PrecedenceDefinition => write!(f, r"PrecedenceDefinition"),
+        AANonTerminal::TagList => write!(f, r"TagList"),
+        AANonTerminal::Tag => write!(f, r"Tag"),
+        AANonTerminal::ProductionGroup => write!(f, r"ProductionGroup"),
+        AANonTerminal::ProductionGroupHead => write!(f, r"ProductionGroupHead"),
+        AANonTerminal::ProductionTailList => write!(f, r"ProductionTailList"),
+        AANonTerminal::ProductionTail => write!(f, r"ProductionTail"),
+        AANonTerminal::Action => write!(f, r"Action"),
+        AANonTerminal::Predicate => write!(f, r"Predicate"),
+        AANonTerminal::SymbolList => write!(f, r"SymbolList"),
+        AANonTerminal::TaggedPrecedence => write!(f, r"TaggedPrecedence"),
+        AANonTerminal::Symbol => write!(f, r"Symbol"),
         }
     }
 }
@@ -164,7 +167,7 @@ lazy_static! {
     };
 }
 
-impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData> for Calc {
+impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData> for GrammarSpecification {
     fn lexical_analyzer(&self) -> &lexan::LexicalAnalyzer<AATerminal> {
         &AALEXAN
     }
@@ -172,60 +175,60 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData> for Calc {
     fn production_data(production_id: u32) -> (AANonTerminal, usize) {
         match production_id {
             0 => (AANonTerminal::AASTART, 1),
-            1 => (AANonTerminal::specification, 4),
-            2 => (AANonTerminal::oinjection, 0),
-            3 => (AANonTerminal::oinjection, 1),
-            4 => (AANonTerminal::injection_head, 2),
-            5 => (AANonTerminal::injection, 2),
-            6 => (AANonTerminal::preamble, 0),
-            7 => (AANonTerminal::preamble, 3),
-            8 => (AANonTerminal::definitions, 3),
-            9 => (AANonTerminal::token_definitions, 2),
-            10 => (AANonTerminal::token_definitions, 4),
-            11 => (AANonTerminal::token_definition, 3),
-            12 => (AANonTerminal::new_token_name, 1),
-            13 => (AANonTerminal::new_token_name, 1),
-            14 => (AANonTerminal::pattern, 1),
-            15 => (AANonTerminal::pattern, 1),
-            16 => (AANonTerminal::skip_definitions, 0),
-            17 => (AANonTerminal::skip_definitions, 4),
-            18 => (AANonTerminal::skip_definition, 2),
-            19 => (AANonTerminal::precedence_definitions, 0),
-            20 => (AANonTerminal::precedence_definitions, 4),
-            21 => (AANonTerminal::precedence_definition, 2),
-            22 => (AANonTerminal::precedence_definition, 2),
-            23 => (AANonTerminal::precedence_definition, 2),
-            24 => (AANonTerminal::tag_list, 1),
-            25 => (AANonTerminal::tag_list, 2),
-            26 => (AANonTerminal::tag, 1),
-            27 => (AANonTerminal::tag, 1),
-            28 => (AANonTerminal::production_rules, 3),
-            29 => (AANonTerminal::production_rules, 3),
-            30 => (AANonTerminal::production_group, 3),
-            31 => (AANonTerminal::production_group_head, 2),
-            32 => (AANonTerminal::production_tail_list, 1),
-            33 => (AANonTerminal::production_tail_list, 3),
-            34 => (AANonTerminal::production_tail, 0),
-            35 => (AANonTerminal::production_tail, 1),
-            36 => (AANonTerminal::production_tail, 2),
-            37 => (AANonTerminal::production_tail, 1),
-            38 => (AANonTerminal::production_tail, 4),
-            39 => (AANonTerminal::production_tail, 3),
-            40 => (AANonTerminal::production_tail, 3),
-            41 => (AANonTerminal::production_tail, 2),
-            42 => (AANonTerminal::production_tail, 3),
-            43 => (AANonTerminal::production_tail, 2),
-            44 => (AANonTerminal::production_tail, 2),
-            45 => (AANonTerminal::production_tail, 1),
-            46 => (AANonTerminal::action, 1),
-            47 => (AANonTerminal::predicate, 1),
-            48 => (AANonTerminal::tagged_precedence, 2),
-            49 => (AANonTerminal::tagged_precedence, 2),
-            50 => (AANonTerminal::symbol_list, 1),
-            51 => (AANonTerminal::symbol_list, 2),
-            52 => (AANonTerminal::symbol, 1),
-            53 => (AANonTerminal::symbol, 1),
-            54 => (AANonTerminal::symbol, 1),
+            1 => (AANonTerminal::Specification, 4),
+            2 => (AANonTerminal::OptionalInjection, 0),
+            3 => (AANonTerminal::OptionalInjection, 1),
+            4 => (AANonTerminal::InjectionHead, 2),
+            5 => (AANonTerminal::Injection, 2),
+            6 => (AANonTerminal::Preamble, 0),
+            7 => (AANonTerminal::Preamble, 3),
+            8 => (AANonTerminal::Definitions, 3),
+            9 => (AANonTerminal::TokenDefinitions, 2),
+            10 => (AANonTerminal::TokenDefinitions, 4),
+            11 => (AANonTerminal::TokenDefinition, 3),
+            12 => (AANonTerminal::NewTokenName, 1),
+            13 => (AANonTerminal::NewTokenName, 1),
+            14 => (AANonTerminal::Pattern, 1),
+            15 => (AANonTerminal::Pattern, 1),
+            16 => (AANonTerminal::SkipDefinitions, 0),
+            17 => (AANonTerminal::SkipDefinitions, 4),
+            18 => (AANonTerminal::SkipDefinition, 2),
+            19 => (AANonTerminal::PrecedenceDefinitions, 0),
+            20 => (AANonTerminal::PrecedenceDefinitions, 4),
+            21 => (AANonTerminal::PrecedenceDefinition, 2),
+            22 => (AANonTerminal::PrecedenceDefinition, 2),
+            23 => (AANonTerminal::PrecedenceDefinition, 2),
+            24 => (AANonTerminal::TagList, 1),
+            25 => (AANonTerminal::TagList, 2),
+            26 => (AANonTerminal::Tag, 1),
+            27 => (AANonTerminal::Tag, 1),
+            28 => (AANonTerminal::ProductionRules, 3),
+            29 => (AANonTerminal::ProductionRules, 3),
+            30 => (AANonTerminal::ProductionGroup, 3),
+            31 => (AANonTerminal::ProductionGroupHead, 2),
+            32 => (AANonTerminal::ProductionTailList, 1),
+            33 => (AANonTerminal::ProductionTailList, 3),
+            34 => (AANonTerminal::ProductionTail, 0),
+            35 => (AANonTerminal::ProductionTail, 1),
+            36 => (AANonTerminal::ProductionTail, 2),
+            37 => (AANonTerminal::ProductionTail, 1),
+            38 => (AANonTerminal::ProductionTail, 4),
+            39 => (AANonTerminal::ProductionTail, 3),
+            40 => (AANonTerminal::ProductionTail, 3),
+            41 => (AANonTerminal::ProductionTail, 2),
+            42 => (AANonTerminal::ProductionTail, 3),
+            43 => (AANonTerminal::ProductionTail, 2),
+            44 => (AANonTerminal::ProductionTail, 2),
+            45 => (AANonTerminal::ProductionTail, 1),
+            46 => (AANonTerminal::Action, 1),
+            47 => (AANonTerminal::Predicate, 1),
+            48 => (AANonTerminal::TaggedPrecedence, 2),
+            49 => (AANonTerminal::TaggedPrecedence, 2),
+            50 => (AANonTerminal::SymbolList, 1),
+            51 => (AANonTerminal::SymbolList, 2),
+            52 => (AANonTerminal::Symbol, 1),
+            53 => (AANonTerminal::Symbol, 1),
+            54 => (AANonTerminal::Symbol, 1),
             _ => panic!("malformed production data table"),
         }
     }
@@ -239,15 +242,15 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData> for Calc {
         let mut aa_lhs = if let Some(a) = aa_rhs.first() {
             a.clone()
         } else {
-            AttributeData::default()
+           AttributeData::default()
         };
         match aa_production_id {
             2 => {
-                // oinjection: <empty>
+                // OptionalInjection: <empty>
                  // no injection so nothing to do 
             }
             4 => {
-                // injection_head: "%inject" LITERAL
+                // InjectionHead: "%inject" LITERAL
                 
             let (text, location) = aa_rhs[1].text_and_location().unwrap();
             let file_path = text.trim_matches('"');
@@ -267,20 +270,20 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData> for Calc {
         
             }
             6 => {
-                // preamble: <empty>
+                // Preamble: <empty>
                 
-            // no preamble defined so there's nothing to do
+            // no Preamble defined so there's nothing to do
         
             }
             7 => {
-                // preamble: oinjection RUSTCODE oinjection
+                // Preamble: OptionalInjection RUSTCODE OptionalInjection
                 
             let text = aa_rhs[1].matched_text.unwrap();
             self.set_preamble(&text[2..text.len() - 2]);
         
             }
             11 => {
-                // token_definition: "%token" new_token_name pattern
+                // TokenDefinition: "%token" NewTokenName Pattern
                 
             let (name, location) = aa_rhs[1].text_and_location().unwrap();
             let pattern = aa_rhs[2].matched_text().unwrap();
@@ -290,7 +293,7 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData> for Calc {
         
             }
             12 => {
-                // new_token_name: IDENT ?( !Self::is_allowable_name($1.matched_text().unwrap()) ?)
+                // NewTokenName: IDENT ?( !Self::is_allowable_name($1.matched_text().unwrap()) ?)
                 
             let (name, location) = aa_rhs[0].text_and_location().unwrap();
             self.warning(
@@ -300,26 +303,26 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData> for Calc {
         
             }
             16 => {
-                // skip_definitions: <empty>
+                // SkipDefinitions: <empty>
                 
             // do nothing
         
             }
             18 => {
-                // skip_definition: "%skip" REGEX
+                // SkipDefinition: "%skip" REGEX
                 
             let skip_rule = aa_rhs[1].matched_text().unwrap();
             self.symbol_table.add_skip_rule(skip_rule);
         
             }
             19 => {
-                // precedence_definitions: <empty>
+                // PrecedenceDefinitions: <empty>
                 
             // do nothing
         
             }
             21 => {
-                // precedence_definition: "%left" tag_list
+                // PrecedenceDefinition: "%left" TagList
                 
             let mut tag_list = aa_rhs[1].symbol_list().clone();
             self.symbol_table
@@ -327,7 +330,7 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData> for Calc {
         
             }
             22 => {
-                // precedence_definition: "%right" tag_list
+                // PrecedenceDefinition: "%right" TagList
                 
             let mut tag_list = aa_rhs[1].symbol_list().clone();
             self.symbol_table
@@ -335,7 +338,7 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData> for Calc {
         
             }
             23 => {
-                // precedence_definition: "%nonassoc" tag_list
+                // PrecedenceDefinition: "%nonassoc" TagList
                 
             let mut tag_list = aa_rhs[1].symbol_list().clone();
             self.symbol_table
@@ -343,41 +346,41 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData> for Calc {
         
             }
             24 => {
-                // tag_list: tag
+                // TagList: Tag
                 
             let tag = aa_rhs[0].symbol().unwrap();
-            aa_lhs = AttributeData::<AATerminal>::SymbolList(vec![Rc::clone(tag)]);
+            aa_lhs = AttributeData::SymbolList(vec![Rc::clone(tag)]);
         
             }
             25 => {
-                // tag_list: tag_list tag
+                // TagList: TagList Tag
                 
             let mut tag_list = aa_rhs[0].symbol_list().clone();
             let tag = aa_rhs[1].symbol().unwrap();
             tag_list.push(Rc::clone(tag));
-            aa_lhs = AttributeData::<AATerminal>::SymbolList(tag_list);
+            aa_lhs = AttributeData::SymbolList(tag_list);
         
             }
             26 => {
-                // tag: LITERAL
+                // Tag: LITERAL
                 
             let (text, location) = aa_rhs[0].text_and_location().unwrap();
             if let Some(symbol) = self.symbol_table.get_literal_token(text, location) {
-                aa_lhs = AttributeData::<AATerminal>::Symbol(Some(Rc::clone(symbol)));
+                aa_lhs = AttributeData::Symbol(Some(Rc::clone(symbol)));
             } else {
                 let symbol = self.symbol_table.special_symbol(Some(SpecialSymbols::LexicalError));
-                aa_lhs = AttributeData::<AATerminal>::Symbol(Some(Rc::clone(symbol)));
+                aa_lhs = AttributeData::Symbol(Some(Rc::clone(symbol)));
                 let msg = format!("Literal token \"{}\" is not known", text);
                 self.error(location, &msg);
             }
         
             }
             27 => {
-                // tag: IDENT
+                // Tag: IDENT
                 
             let (name, location) = aa_rhs[0].text_and_location().unwrap();
             if let Some(symbol) = self.symbol_table.use_symbol_named(name, location) {
-                aa_lhs = AttributeData::<AATerminal>::Symbol(Some(Rc::clone(symbol)));
+                aa_lhs = AttributeData::Symbol(Some(Rc::clone(symbol)));
                 if symbol.is_non_terminal() {
                     self.error(
                         location,
@@ -395,28 +398,28 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData> for Calc {
                     );
                 };
                 match self.symbol_table.new_tag(name, location) {
-                    Ok(symbol) => aa_lhs = AttributeData::<AATerminal>::Symbol(Some(symbol)),
+                    Ok(symbol) => aa_lhs = AttributeData::Symbol(Some(symbol)),
                     Err(err) => self.error(location, &err.to_string()),
                 }
             }
         
             }
             30 => {
-                // production_group: production_group_head production_tail_list "."
+                // ProductionGroup: ProductionGroupHead ProductionTailList "."
                 
             let lhs = aa_rhs[0].left_hand_side();
-            let tails = aa_rhs[1].production_tail_list();
+            let tails = aa_rhs[1].ProductionTailList();
             for tail in tails.iter() {
                 self.new_production(Rc::clone(&lhs), tail.clone());
             }
         
             }
             31 => {
-                // production_group_head: IDENT ":"
+                // ProductionGroupHead: IDENT ":"
                 
             let (name, location) = aa_rhs[0].text_and_location().unwrap();
             if let Some(symbol) = self.symbol_table.use_symbol_named(name, location) {
-                aa_lhs = AttributeData::<AATerminal>::LeftHandSide(Rc::clone(symbol));
+                aa_lhs = AttributeData::LeftHandSide(Rc::clone(symbol));
                 if !symbol.is_non_terminal() {
                     self.error(
                         location,
@@ -434,150 +437,150 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData> for Calc {
                     );
                 };
                 let non_terminal = self.symbol_table.define_non_terminal(name, location);
-                aa_lhs = AttributeData::<AATerminal>::LeftHandSide(non_terminal);
+                aa_lhs = AttributeData::LeftHandSide(non_terminal);
             }
         
             }
             32 => {
-                // production_tail_list: production_tail
+                // ProductionTailList: ProductionTail
                 
-            let production_tail = aa_rhs[0].production_tail().clone();
-            aa_lhs = AttributeData::<AATerminal>::ProductionTailList(vec![production_tail]);
+            let ProductionTail = aa_rhs[0].ProductionTail().clone();
+            aa_lhs = AttributeData::ProductionTailList(vec![ProductionTail]);
         
             }
             33 => {
-                // production_tail_list: production_tail_list "|" production_tail
+                // ProductionTailList: ProductionTailList "|" ProductionTail
                 
-            let mut production_tail_list = aa_rhs[0].production_tail_list().clone();
-            let production_tail = aa_rhs[2].production_tail().clone();
-            production_tail_list.push(production_tail);
-            aa_lhs = AttributeData::<AATerminal>::ProductionTailList(production_tail_list);
+            let mut ProductionTailList = aa_rhs[0].ProductionTailList().clone();
+            let ProductionTail = aa_rhs[2].ProductionTail().clone();
+            ProductionTailList.push(ProductionTail);
+            aa_lhs = AttributeData::ProductionTailList(ProductionTailList);
         
             }
             34 => {
-                // production_tail: <empty>
+                // ProductionTail: <empty>
                 
             let tail = ProductionTail::new(vec![], None, None, None);
-            aa_lhs = AttributeData::<AATerminal>::ProductionTail(tail)
+            aa_lhs = AttributeData::ProductionTail(tail)
         
             }
             35 => {
-                // production_tail: action
+                // ProductionTail: Action
                 
             let action = aa_rhs[0].action().to_string();
             let tail = ProductionTail::new(vec![], None, None, Some(action));
-            aa_lhs = AttributeData::<AATerminal>::ProductionTail(tail)
+            aa_lhs = AttributeData::ProductionTail(tail)
         
             }
             36 => {
-                // production_tail: predicate action
+                // ProductionTail: Predicate Action
                 
             let predicate = aa_rhs[0].predicate().to_string();
             let action = aa_rhs[1].action().to_string();
             let tail = ProductionTail::new(vec![], Some(predicate), None, Some(action));
-            aa_lhs = AttributeData::<AATerminal>::ProductionTail(tail)
+            aa_lhs = AttributeData::ProductionTail(tail)
         
             }
             37 => {
-                // production_tail: predicate
+                // ProductionTail: Predicate
                 
             let predicate = aa_rhs[0].predicate().to_string();
             let tail = ProductionTail::new(vec![], Some(predicate), None, None);
-            aa_lhs = AttributeData::<AATerminal>::ProductionTail(tail)
+            aa_lhs = AttributeData::ProductionTail(tail)
         
             }
             38 => {
-                // production_tail: symbol_list predicate tagged_precedence action
+                // ProductionTail: SymbolList Predicate TaggedPrecedence Action
                 
             let rhs = aa_rhs[0].symbol_list().clone();
             let predicate = aa_rhs[1].predicate().to_string();
             let tagged_precedence = aa_rhs[2].associative_precedence().clone();
             let action = aa_rhs[3].action().to_string();
             let tail = ProductionTail::new(rhs, Some(predicate), Some(tagged_precedence), Some(action));
-            aa_lhs = AttributeData::<AATerminal>::ProductionTail(tail)
+            aa_lhs = AttributeData::ProductionTail(tail)
         
             }
             39 => {
-                // production_tail: symbol_list predicate tagged_precedence
+                // ProductionTail: SymbolList Predicate TaggedPrecedence
                 
             let lhs = aa_rhs[0].symbol_list().clone();
             let predicate = aa_rhs[1].predicate().to_string();
             let tagged_precedence = aa_rhs[2].associative_precedence().clone();
             let tail = ProductionTail::new(lhs, Some(predicate), Some(tagged_precedence), None);
-            aa_lhs = AttributeData::<AATerminal>::ProductionTail(tail)
+            aa_lhs = AttributeData::ProductionTail(tail)
         
             }
             40 => {
-                // production_tail: symbol_list predicate action
+                // ProductionTail: SymbolList Predicate Action
                 
             let lhs = aa_rhs[0].symbol_list().clone();
             let predicate = aa_rhs[1].predicate().to_string();
             let action = aa_rhs[2].action().to_string();
             let tail = ProductionTail::new(lhs, Some(predicate), None, Some(action));
-            aa_lhs = AttributeData::<AATerminal>::ProductionTail(tail)
+            aa_lhs = AttributeData::ProductionTail(tail)
         
             }
             41 => {
-                // production_tail: symbol_list predicate
+                // ProductionTail: SymbolList Predicate
                 
             let lhs = aa_rhs[0].symbol_list().clone();
             let predicate = aa_rhs[1].predicate().to_string();
             let tail = ProductionTail::new(lhs, Some(predicate), None, None);
-            aa_lhs = AttributeData::<AATerminal>::ProductionTail(tail)
+            aa_lhs = AttributeData::ProductionTail(tail)
         
             }
             42 => {
-                // production_tail: symbol_list tagged_precedence action
+                // ProductionTail: SymbolList TaggedPrecedence Action
                 
             let lhs = aa_rhs[0].symbol_list().clone();
             let tagged_precedence = aa_rhs[1].associative_precedence().clone();
             let action = aa_rhs[2].action().to_string();
             let tail = ProductionTail::new(lhs, None, Some(tagged_precedence), Some(action));
-            aa_lhs = AttributeData::<AATerminal>::ProductionTail(tail)
+            aa_lhs = AttributeData::ProductionTail(tail)
         
             }
             43 => {
-                // production_tail: symbol_list tagged_precedence
+                // ProductionTail: SymbolList TaggedPrecedence
                 
             let lhs = aa_rhs[0].symbol_list().clone();
             let tagged_precedence = aa_rhs[1].associative_precedence().clone();
             let tail = ProductionTail::new(lhs, None, Some(tagged_precedence), None);
-            aa_lhs = AttributeData::<AATerminal>::ProductionTail(tail)
+            aa_lhs = AttributeData::ProductionTail(tail)
         
             }
             44 => {
-                // production_tail: symbol_list action
+                // ProductionTail: SymbolList Action
                 
             let lhs = aa_rhs[0].symbol_list().clone();
             let action = aa_rhs[1].action().to_string();
             let tail = ProductionTail::new(lhs, None, None, Some(action));
-            aa_lhs = AttributeData::<AATerminal>::ProductionTail(tail)
+            aa_lhs = AttributeData::ProductionTail(tail)
         
             }
             45 => {
-                // production_tail: symbol_list
+                // ProductionTail: SymbolList
                 
             let lhs = aa_rhs[0].symbol_list().clone();
             let tail = ProductionTail::new(lhs, None, None, None);
-            aa_lhs = AttributeData::<AATerminal>::ProductionTail(tail)
+            aa_lhs = AttributeData::ProductionTail(tail)
         
             }
             46 => {
-                // action: ACTION
+                // Action: ACTION
                 
             let text = aa_rhs[0].matched_text().unwrap();
-            aa_lhs = AttributeData::<AATerminal>::Action(text[2..text.len() - 2].to_string());
+            aa_lhs = AttributeData::Action(text[2..text.len() - 2].to_string());
         
             }
             47 => {
-                // predicate: PREDICATE
+                // Predicate: PREDICATE
                 
             let text = aa_rhs[0].matched_text().unwrap();
-            aa_lhs = AttributeData::<AATerminal>::Predicate(text[2..text.len() - 2].to_string());
+            aa_lhs = AttributeData::Predicate(text[2..text.len() - 2].to_string());
         
             }
             48 => {
-                // tagged_precedence: "%prec" IDENT
+                // TaggedPrecedence: "%prec" IDENT
                 
             let (name, location) = aa_rhs[1].text_and_location();
             let mut ap = AssociativePrecedence::default();
@@ -593,11 +596,11 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData> for Calc {
             } else {
                 self.error(location, &format!("{}: unknown symbol", name));
             };
-            aa_lhs = AttributeData::<AATerminal>::AssociativePrecedence(ap);
+            aa_lhs = AttributeData::AssociativePrecedence(ap);
         
             }
             49 => {
-                // tagged_precedence: "%prec" LITERAL
+                // TaggedPrecedence: "%prec" LITERAL
                 
             let (lexeme, location) = aa_rhs[1].text_and_location();
             let mut ap = AssociativePrecedence::default();
@@ -613,56 +616,56 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData> for Calc {
             } else {
                 self.error(location, &format!("{}: unknown literal", lexeme));
             };
-            aa_lhs = AttributeData::<AATerminal>::AssociativePrecedence(ap);
+            aa_lhs = AttributeData::AssociativePrecedence(ap);
         
             }
             50 => {
-                // symbol_list: symbol
+                // SymbolList: Symbol
                 
             let symbol = aa_rhs[0].symbol().unwrap();
-            aa_lhs = AttributeData::<AATerminal>::SymbolList(vec![Rc::clone(&symbol)]);
+            aa_lhs = AttributeData::SymbolList(vec![Rc::clone(&symbol)]);
         
             }
             51 => {
-                // symbol_list: symbol_list symbol
+                // SymbolList: SymbolList Symbol
                 
             let symbol = aa_rhs[1].symbol().unwrap();
             let mut symbol_list = aa_rhs[1].symbol_list().clone();
             symbol_list.push(Rc::clone(symbol));
-            aa_lhs = AttributeData::<AATerminal>::SymbolList(symbol_list);
+            aa_lhs = AttributeData::SymbolList(symbol_list);
         
             }
             52 => {
-                // symbol: IDENT
+                // Symbol: IDENT
                 
             let (name, location) = aa_rhs[0].text_and_location();
             if let Some(symbol) = self.symbol_table.use_symbol_named(name, location) {
-                aa_lhs = AttributeData::<AATerminal>::Symbol(Some(Rc::clone(symbol)));
+                aa_lhs = AttributeData::Symbol(Some(Rc::clone(symbol)));
             } else {
                 let symbol = self.symbol_table.use_new_non_terminal(name, location);
-                aa_lhs = AttributeData::<AATerminal>::Symbol(Some(symbol));
+                aa_lhs = AttributeData::Symbol(Some(symbol));
             }
         
             }
             53 => {
-                // symbol: LITERAL
+                // Symbol: LITERAL
                 
             let (lexeme, location) = aa_rhs[0].text_and_location();
             if let Some(symbol) = self.symbol_table.get_literal_token(lexeme, location) {
-                aa_lhs = AttributeData::<AATerminal>::Symbol(Some(Rc::clone(symbol)));
+                aa_lhs = AttributeData::Symbol(Some(Rc::clone(symbol)));
             } else {
                 self.error(location, &format!("{}: unknown literal)", lexeme));
-                aa_lhs = AttributeData::<AATerminal>::Symbol(Some(SpecialSymbols::LexicalError));
+                aa_lhs = AttributeData::Symbol(Some(SpecialSymbols::LexicalError));
             }
         
             }
             54 => {
-                // symbol: "%error"
+                // Symbol: "%error"
                 
             let symbol = self
                 .symbol_table
                 .special_symbol(&SpecialSymbols::SyntaxError);
-            aa_lhs = AttributeData::<AATerminal>::Symbol(Some(symbol));
+            aa_lhs = AttributeData::Symbol(Some(symbol));
         
             }
             _ => (),
@@ -673,184 +676,184 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData> for Calc {
     fn goto_state(lhs: &AANonTerminal, current_state: u32) -> u32 {
         return match current_state {
             0 => match lhs {
-                AANonTerminal::specification => 1,
-                AANonTerminal::preamble => 2,
-                AANonTerminal::oinjection => 6,
-                AANonTerminal::injection => 3,
-                AANonTerminal::injection_head => 5,
+                AANonTerminal::Specification => 1,
+                AANonTerminal::Preamble => 2,
+                AANonTerminal::OptionalInjection => 6,
+                AANonTerminal::Injection => 3,
+                AANonTerminal::InjectionHead => 5,
                 _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
             },
             2 => match lhs {
-                AANonTerminal::definitions => 7,
-                AANonTerminal::oinjection => 9,
-                AANonTerminal::injection => 3,
-                AANonTerminal::injection_head => 5,
-                AANonTerminal::token_definitions => 8,
+                AANonTerminal::Definitions => 7,
+                AANonTerminal::OptionalInjection => 9,
+                AANonTerminal::Injection => 3,
+                AANonTerminal::InjectionHead => 5,
+                AANonTerminal::TokenDefinitions => 8,
                 _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
             },
             8 => match lhs {
-                AANonTerminal::oinjection => 15,
-                AANonTerminal::injection => 3,
-                AANonTerminal::injection_head => 5,
-                AANonTerminal::skip_definitions => 14,
+                AANonTerminal::OptionalInjection => 15,
+                AANonTerminal::Injection => 3,
+                AANonTerminal::InjectionHead => 5,
+                AANonTerminal::SkipDefinitions => 14,
                 _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
             },
             9 => match lhs {
-                AANonTerminal::token_definition => 16,
+                AANonTerminal::TokenDefinition => 16,
                 _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
             },
             12 => match lhs {
-                AANonTerminal::oinjection => 18,
-                AANonTerminal::injection => 3,
-                AANonTerminal::injection_head => 5,
+                AANonTerminal::OptionalInjection => 18,
+                AANonTerminal::Injection => 3,
+                AANonTerminal::InjectionHead => 5,
                 _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
             },
             13 => match lhs {
-                AANonTerminal::production_rules => 19,
-                AANonTerminal::oinjection => 20,
-                AANonTerminal::injection => 3,
-                AANonTerminal::injection_head => 5,
+                AANonTerminal::ProductionRules => 19,
+                AANonTerminal::OptionalInjection => 20,
+                AANonTerminal::Injection => 3,
+                AANonTerminal::InjectionHead => 5,
                 _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
             },
             14 => match lhs {
-                AANonTerminal::oinjection => 22,
-                AANonTerminal::injection => 3,
-                AANonTerminal::injection_head => 5,
-                AANonTerminal::precedence_definitions => 21,
+                AANonTerminal::OptionalInjection => 22,
+                AANonTerminal::Injection => 3,
+                AANonTerminal::InjectionHead => 5,
+                AANonTerminal::PrecedenceDefinitions => 21,
                 _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
             },
             15 => match lhs {
-                AANonTerminal::token_definition => 23,
+                AANonTerminal::TokenDefinition => 23,
                 _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
             },
             17 => match lhs {
-                AANonTerminal::new_token_name => 24,
+                AANonTerminal::NewTokenName => 24,
                 _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
             },
             19 => match lhs {
-                AANonTerminal::production_group => 26,
-                AANonTerminal::production_group_head => 27,
+                AANonTerminal::ProductionGroup => 26,
+                AANonTerminal::ProductionGroupHead => 27,
                 _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
             },
             20 => match lhs {
-                AANonTerminal::production_group => 29,
-                AANonTerminal::production_group_head => 27,
+                AANonTerminal::ProductionGroup => 29,
+                AANonTerminal::ProductionGroupHead => 27,
                 _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
             },
             21 => match lhs {
-                AANonTerminal::oinjection => 30,
-                AANonTerminal::injection => 3,
-                AANonTerminal::injection_head => 5,
+                AANonTerminal::OptionalInjection => 30,
+                AANonTerminal::Injection => 3,
+                AANonTerminal::InjectionHead => 5,
                 _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
             },
             22 => match lhs {
-                AANonTerminal::skip_definition => 31,
+                AANonTerminal::SkipDefinition => 31,
                 _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
             },
             23 => match lhs {
-                AANonTerminal::oinjection => 33,
-                AANonTerminal::injection => 3,
-                AANonTerminal::injection_head => 5,
+                AANonTerminal::OptionalInjection => 33,
+                AANonTerminal::Injection => 3,
+                AANonTerminal::InjectionHead => 5,
                 _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
             },
             24 => match lhs {
-                AANonTerminal::pattern => 34,
+                AANonTerminal::Pattern => 34,
                 _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
             },
             26 => match lhs {
-                AANonTerminal::oinjection => 37,
-                AANonTerminal::injection => 3,
-                AANonTerminal::injection_head => 5,
+                AANonTerminal::OptionalInjection => 37,
+                AANonTerminal::Injection => 3,
+                AANonTerminal::InjectionHead => 5,
                 _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
             },
             27 => match lhs {
-                AANonTerminal::production_tail_list => 38,
-                AANonTerminal::production_tail => 39,
-                AANonTerminal::action => 40,
-                AANonTerminal::predicate => 41,
-                AANonTerminal::symbol_list => 42,
-                AANonTerminal::symbol => 45,
+                AANonTerminal::ProductionTailList => 38,
+                AANonTerminal::ProductionTail => 39,
+                AANonTerminal::Action => 40,
+                AANonTerminal::Predicate => 41,
+                AANonTerminal::SymbolList => 42,
+                AANonTerminal::Symbol => 45,
                 _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
             },
             29 => match lhs {
-                AANonTerminal::oinjection => 50,
-                AANonTerminal::injection => 3,
-                AANonTerminal::injection_head => 5,
+                AANonTerminal::OptionalInjection => 50,
+                AANonTerminal::Injection => 3,
+                AANonTerminal::InjectionHead => 5,
                 _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
             },
             30 => match lhs {
-                AANonTerminal::precedence_definition => 51,
+                AANonTerminal::PrecedenceDefinition => 51,
                 _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
             },
             31 => match lhs {
-                AANonTerminal::oinjection => 55,
-                AANonTerminal::injection => 3,
-                AANonTerminal::injection_head => 5,
+                AANonTerminal::OptionalInjection => 55,
+                AANonTerminal::Injection => 3,
+                AANonTerminal::InjectionHead => 5,
                 _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
             },
             41 => match lhs {
-                AANonTerminal::action => 59,
+                AANonTerminal::Action => 59,
                 _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
             },
             42 => match lhs {
-                AANonTerminal::action => 62,
-                AANonTerminal::predicate => 60,
-                AANonTerminal::tagged_precedence => 61,
-                AANonTerminal::symbol => 64,
+                AANonTerminal::Action => 62,
+                AANonTerminal::Predicate => 60,
+                AANonTerminal::TaggedPrecedence => 61,
+                AANonTerminal::Symbol => 64,
                 _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
             },
             51 => match lhs {
-                AANonTerminal::oinjection => 65,
-                AANonTerminal::injection => 3,
-                AANonTerminal::injection_head => 5,
+                AANonTerminal::OptionalInjection => 65,
+                AANonTerminal::Injection => 3,
+                AANonTerminal::InjectionHead => 5,
                 _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
             },
             52 => match lhs {
-                AANonTerminal::tag_list => 66,
-                AANonTerminal::tag => 67,
+                AANonTerminal::TagList => 66,
+                AANonTerminal::Tag => 67,
                 _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
             },
             53 => match lhs {
-                AANonTerminal::tag_list => 70,
-                AANonTerminal::tag => 67,
+                AANonTerminal::TagList => 70,
+                AANonTerminal::Tag => 67,
                 _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
             },
             54 => match lhs {
-                AANonTerminal::tag_list => 71,
-                AANonTerminal::tag => 67,
+                AANonTerminal::TagList => 71,
+                AANonTerminal::Tag => 67,
                 _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
             },
             58 => match lhs {
-                AANonTerminal::production_tail => 72,
-                AANonTerminal::action => 40,
-                AANonTerminal::predicate => 41,
-                AANonTerminal::symbol_list => 42,
-                AANonTerminal::symbol => 45,
+                AANonTerminal::ProductionTail => 72,
+                AANonTerminal::Action => 40,
+                AANonTerminal::Predicate => 41,
+                AANonTerminal::SymbolList => 42,
+                AANonTerminal::Symbol => 45,
                 _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
             },
             60 => match lhs {
-                AANonTerminal::action => 74,
-                AANonTerminal::tagged_precedence => 73,
+                AANonTerminal::Action => 74,
+                AANonTerminal::TaggedPrecedence => 73,
                 _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
             },
             61 => match lhs {
-                AANonTerminal::action => 75,
+                AANonTerminal::Action => 75,
                 _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
             },
             66 => match lhs {
-                AANonTerminal::tag => 78,
+                AANonTerminal::Tag => 78,
                 _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
             },
             70 => match lhs {
-                AANonTerminal::tag => 78,
+                AANonTerminal::Tag => 78,
                 _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
             },
             71 => match lhs {
-                AANonTerminal::tag => 78,
+                AANonTerminal::Tag => 78,
                 _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
             },
             73 => match lhs {
-                AANonTerminal::action => 79,
+                AANonTerminal::Action => 79,
                 _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
             },
             _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
@@ -858,7 +861,6 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData> for Calc {
     }
 
     fn viable_error_recovery_states(token: &AATerminal) -> Vec<u32> {
-        use AATerminal::*;
         match token {
             _ => vec![],
         }
@@ -882,25 +884,25 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData> for Calc {
         return match state {
             0 => match aa_tag {
                 INJECT => Action::Shift(4),
-                // oinjection: <empty>
+                // OptionalInjection: <empty>
                 RUSTCODE => Action::Reduce(2),
-                // preamble: <empty>
+                // Preamble: <empty>
                 TOKEN => Action::Reduce(6),
                 _ => Action::SyntaxError(vec![TOKEN, INJECT, RUSTCODE]),
             },
             1 => match aa_tag {
-                // AASTART: specification
+                // AASTART: Specification
                 AAEND => Action::Accept,
                 _ => Action::SyntaxError(vec![AAEND]),
             },
             2 => match aa_tag {
                 INJECT => Action::Shift(4),
-                // oinjection: <empty>
+                // OptionalInjection: <empty>
                 TOKEN => Action::Reduce(2),
                 _ => Action::SyntaxError(vec![TOKEN, INJECT]),
             },
             3 => match aa_tag {
-                // oinjection: injection
+                // OptionalInjection: Injection
                 AAEND | TOKEN | LEFT | RIGHT | NONASSOC | SKIP | INJECT | NEWSECTION | IDENT | RUSTCODE => Action::Reduce(3),
                 _ => Action::SyntaxError(vec![AAEND, TOKEN, LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION, IDENT, RUSTCODE]),
             },
@@ -921,9 +923,9 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData> for Calc {
             },
             8 => match aa_tag {
                 INJECT => Action::Shift(4),
-                // oinjection: <empty>
+                // OptionalInjection: <empty>
                 TOKEN => Action::Reduce(2),
-                // skip_definitions: <empty>
+                // SkipDefinitions: <empty>
                 LEFT | RIGHT | NONASSOC | SKIP | NEWSECTION => Action::Reduce(16),
                 _ => Action::SyntaxError(vec![TOKEN, LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION]),
             },
@@ -932,32 +934,32 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData> for Calc {
                 _ => Action::SyntaxError(vec![TOKEN]),
             },
             10 => match aa_tag {
-                // injection_head: "%inject" LITERAL
+                // InjectionHead: "%inject" LITERAL
                 DOT => Action::Reduce(4),
                 _ => Action::SyntaxError(vec![DOT]),
             },
             11 => match aa_tag {
-                // injection: injection_head "."
+                // Injection: InjectionHead "."
                 AAEND | TOKEN | LEFT | RIGHT | NONASSOC | SKIP | INJECT | NEWSECTION | IDENT | RUSTCODE => Action::Reduce(5),
                 _ => Action::SyntaxError(vec![AAEND, TOKEN, LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION, IDENT, RUSTCODE]),
             },
             12 => match aa_tag {
                 INJECT => Action::Shift(4),
-                // oinjection: <empty>
+                // OptionalInjection: <empty>
                 TOKEN => Action::Reduce(2),
                 _ => Action::SyntaxError(vec![TOKEN, INJECT]),
             },
             13 => match aa_tag {
                 INJECT => Action::Shift(4),
-                // oinjection: <empty>
+                // OptionalInjection: <empty>
                 IDENT => Action::Reduce(2),
                 _ => Action::SyntaxError(vec![INJECT, IDENT]),
             },
             14 => match aa_tag {
                 INJECT => Action::Shift(4),
-                // oinjection: <empty>
+                // OptionalInjection: <empty>
                 SKIP => Action::Reduce(2),
-                // precedence_definitions: <empty>
+                // PrecedenceDefinitions: <empty>
                 LEFT | RIGHT | NONASSOC | NEWSECTION => Action::Reduce(19),
                 _ => Action::SyntaxError(vec![LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION]),
             },
@@ -966,7 +968,7 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData> for Calc {
                 _ => Action::SyntaxError(vec![TOKEN]),
             },
             16 => match aa_tag {
-                // token_definitions: oinjection token_definition
+                // TokenDefinitions: OptionalInjection TokenDefinition
                 TOKEN | LEFT | RIGHT | NONASSOC | SKIP | INJECT | NEWSECTION => Action::Reduce(9),
                 _ => Action::SyntaxError(vec![TOKEN, LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION]),
             },
@@ -975,13 +977,13 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData> for Calc {
                 _ => Action::SyntaxError(vec![IDENT]),
             },
             18 => match aa_tag {
-                // preamble: oinjection RUSTCODE oinjection
+                // Preamble: OptionalInjection RUSTCODE OptionalInjection
                 TOKEN | INJECT => Action::Reduce(7),
                 _ => Action::SyntaxError(vec![TOKEN, INJECT]),
             },
             19 => match aa_tag {
                 IDENT => Action::Shift(28),
-                // specification: preamble definitions "%%" production_rules
+                // Specification: Preamble Definitions "%%" ProductionRules
                 AAEND => Action::Reduce(1),
                 _ => Action::SyntaxError(vec![AAEND, IDENT]),
             },
@@ -991,9 +993,9 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData> for Calc {
             },
             21 => match aa_tag {
                 INJECT => Action::Shift(4),
-                // oinjection: <empty>
+                // OptionalInjection: <empty>
                 LEFT | RIGHT | NONASSOC => Action::Reduce(2),
-                // definitions: token_definitions skip_definitions precedence_definitions
+                // Definitions: TokenDefinitions SkipDefinitions PrecedenceDefinitions
                 NEWSECTION => Action::Reduce(8),
                 _ => Action::SyntaxError(vec![LEFT, RIGHT, NONASSOC, INJECT, NEWSECTION]),
             },
@@ -1003,7 +1005,7 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData> for Calc {
             },
             23 => match aa_tag {
                 INJECT => Action::Shift(4),
-                // oinjection: <empty>
+                // OptionalInjection: <empty>
                 TOKEN | LEFT | RIGHT | NONASSOC | SKIP | NEWSECTION => Action::Reduce(2),
                 _ => Action::SyntaxError(vec![TOKEN, LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION]),
             },
@@ -1015,10 +1017,10 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData> for Calc {
             25 => match aa_tag {
                 REGEX | LITERAL => {
                     if  !Self::is_allowable_name(aa_attributes.at_len_minus_n(1).matched_text().unwrap())  {
-                        // new_token_name: IDENT ?( !Self::is_allowable_name($1.matched_text().unwrap()) ?)
+                        // NewTokenName: IDENT ?( !Self::is_allowable_name($1.matched_text().unwrap()) ?)
                         Action::Reduce(12)
                     } else {
-                        // new_token_name: IDENT
+                        // NewTokenName: IDENT
                         Action::Reduce(13)
                     }
                 }
@@ -1026,7 +1028,7 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData> for Calc {
             },
             26 => match aa_tag {
                 INJECT => Action::Shift(4),
-                // oinjection: <empty>
+                // OptionalInjection: <empty>
                 AAEND | IDENT => Action::Reduce(2),
                 _ => Action::SyntaxError(vec![AAEND, INJECT, IDENT]),
             },
@@ -1036,7 +1038,7 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData> for Calc {
                 IDENT => Action::Shift(46),
                 PREDICATE => Action::Shift(44),
                 ACTION => Action::Shift(43),
-                // production_tail: <empty>
+                // ProductionTail: <empty>
                 VBAR | DOT => Action::Reduce(34),
                 _ => Action::SyntaxError(vec![LITERAL, ERROR, VBAR, DOT, IDENT, PREDICATE, ACTION]),
             },
@@ -1046,7 +1048,7 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData> for Calc {
             },
             29 => match aa_tag {
                 INJECT => Action::Shift(4),
-                // oinjection: <empty>
+                // OptionalInjection: <empty>
                 AAEND | IDENT => Action::Reduce(2),
                 _ => Action::SyntaxError(vec![AAEND, INJECT, IDENT]),
             },
@@ -1058,7 +1060,7 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData> for Calc {
             },
             31 => match aa_tag {
                 INJECT => Action::Shift(4),
-                // oinjection: <empty>
+                // OptionalInjection: <empty>
                 LEFT | RIGHT | NONASSOC | SKIP | NEWSECTION => Action::Reduce(2),
                 _ => Action::SyntaxError(vec![LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION]),
             },
@@ -1067,27 +1069,27 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData> for Calc {
                 _ => Action::SyntaxError(vec![REGEX]),
             },
             33 => match aa_tag {
-                // token_definitions: token_definitions oinjection token_definition oinjection
+                // TokenDefinitions: TokenDefinitions OptionalInjection TokenDefinition OptionalInjection
                 TOKEN | LEFT | RIGHT | NONASSOC | SKIP | INJECT | NEWSECTION => Action::Reduce(10),
                 _ => Action::SyntaxError(vec![TOKEN, LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION]),
             },
             34 => match aa_tag {
-                // token_definition: "%token" new_token_name pattern
+                // TokenDefinition: "%token" NewTokenName Pattern
                 TOKEN | LEFT | RIGHT | NONASSOC | SKIP | INJECT | NEWSECTION => Action::Reduce(11),
                 _ => Action::SyntaxError(vec![TOKEN, LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION]),
             },
             35 => match aa_tag {
-                // pattern: REGEX
+                // Pattern: REGEX
                 TOKEN | LEFT | RIGHT | NONASSOC | SKIP | INJECT | NEWSECTION => Action::Reduce(14),
                 _ => Action::SyntaxError(vec![TOKEN, LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION]),
             },
             36 => match aa_tag {
-                // pattern: LITERAL
+                // Pattern: LITERAL
                 TOKEN | LEFT | RIGHT | NONASSOC | SKIP | INJECT | NEWSECTION => Action::Reduce(15),
                 _ => Action::SyntaxError(vec![TOKEN, LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION]),
             },
             37 => match aa_tag {
-                // production_rules: production_rules production_group oinjection
+                // ProductionRules: ProductionRules ProductionGroup OptionalInjection
                 AAEND | IDENT => Action::Reduce(29),
                 _ => Action::SyntaxError(vec![AAEND, IDENT]),
             },
@@ -1097,18 +1099,18 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData> for Calc {
                 _ => Action::SyntaxError(vec![VBAR, DOT]),
             },
             39 => match aa_tag {
-                // production_tail_list: production_tail
+                // ProductionTailList: ProductionTail
                 VBAR | DOT => Action::Reduce(32),
                 _ => Action::SyntaxError(vec![VBAR, DOT]),
             },
             40 => match aa_tag {
-                // production_tail: action
+                // ProductionTail: Action
                 VBAR | DOT => Action::Reduce(35),
                 _ => Action::SyntaxError(vec![VBAR, DOT]),
             },
             41 => match aa_tag {
                 ACTION => Action::Shift(43),
-                // production_tail: predicate
+                // ProductionTail: Predicate
                 VBAR | DOT => Action::Reduce(37),
                 _ => Action::SyntaxError(vec![VBAR, DOT, ACTION]),
             },
@@ -1119,53 +1121,53 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData> for Calc {
                 IDENT => Action::Shift(46),
                 PREDICATE => Action::Shift(44),
                 ACTION => Action::Shift(43),
-                // production_tail: symbol_list
+                // ProductionTail: SymbolList
                 VBAR | DOT => Action::Reduce(45),
                 _ => Action::SyntaxError(vec![LITERAL, PRECEDENCE, ERROR, VBAR, DOT, IDENT, PREDICATE, ACTION]),
             },
             43 => match aa_tag {
-                // action: ACTION
+                // Action: ACTION
                 VBAR | DOT => Action::Reduce(46),
                 _ => Action::SyntaxError(vec![VBAR, DOT]),
             },
             44 => match aa_tag {
-                // predicate: PREDICATE
+                // Predicate: PREDICATE
                 PRECEDENCE | VBAR | DOT | ACTION => Action::Reduce(47),
                 _ => Action::SyntaxError(vec![PRECEDENCE, VBAR, DOT, ACTION]),
             },
             45 => match aa_tag {
-                // symbol_list: symbol
+                // SymbolList: Symbol
                 LITERAL | PRECEDENCE | ERROR | VBAR | DOT | IDENT | PREDICATE | ACTION => Action::Reduce(50),
                 _ => Action::SyntaxError(vec![LITERAL, PRECEDENCE, ERROR, VBAR, DOT, IDENT, PREDICATE, ACTION]),
             },
             46 => match aa_tag {
-                // symbol: IDENT
+                // Symbol: IDENT
                 LITERAL | PRECEDENCE | ERROR | VBAR | DOT | IDENT | PREDICATE | ACTION => Action::Reduce(52),
                 _ => Action::SyntaxError(vec![LITERAL, PRECEDENCE, ERROR, VBAR, DOT, IDENT, PREDICATE, ACTION]),
             },
             47 => match aa_tag {
-                // symbol: LITERAL
+                // Symbol: LITERAL
                 LITERAL | PRECEDENCE | ERROR | VBAR | DOT | IDENT | PREDICATE | ACTION => Action::Reduce(53),
                 _ => Action::SyntaxError(vec![LITERAL, PRECEDENCE, ERROR, VBAR, DOT, IDENT, PREDICATE, ACTION]),
             },
             48 => match aa_tag {
-                // symbol: "%error"
+                // Symbol: "%error"
                 LITERAL | PRECEDENCE | ERROR | VBAR | DOT | IDENT | PREDICATE | ACTION => Action::Reduce(54),
                 _ => Action::SyntaxError(vec![LITERAL, PRECEDENCE, ERROR, VBAR, DOT, IDENT, PREDICATE, ACTION]),
             },
             49 => match aa_tag {
-                // production_group_head: IDENT ":"
+                // ProductionGroupHead: IDENT ":"
                 LITERAL | ERROR | VBAR | DOT | IDENT | PREDICATE | ACTION => Action::Reduce(31),
                 _ => Action::SyntaxError(vec![LITERAL, ERROR, VBAR, DOT, IDENT, PREDICATE, ACTION]),
             },
             50 => match aa_tag {
-                // production_rules: oinjection production_group oinjection
+                // ProductionRules: OptionalInjection ProductionGroup OptionalInjection
                 AAEND | IDENT => Action::Reduce(28),
                 _ => Action::SyntaxError(vec![AAEND, IDENT]),
             },
             51 => match aa_tag {
                 INJECT => Action::Shift(4),
-                // oinjection: <empty>
+                // OptionalInjection: <empty>
                 LEFT | RIGHT | NONASSOC | NEWSECTION => Action::Reduce(2),
                 _ => Action::SyntaxError(vec![LEFT, RIGHT, NONASSOC, INJECT, NEWSECTION]),
             },
@@ -1185,17 +1187,17 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData> for Calc {
                 _ => Action::SyntaxError(vec![LITERAL, IDENT]),
             },
             55 => match aa_tag {
-                // skip_definitions: skip_definitions oinjection skip_definition oinjection
+                // SkipDefinitions: SkipDefinitions OptionalInjection SkipDefinition OptionalInjection
                 LEFT | RIGHT | NONASSOC | SKIP | INJECT | NEWSECTION => Action::Reduce(17),
                 _ => Action::SyntaxError(vec![LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION]),
             },
             56 => match aa_tag {
-                // skip_definition: "%skip" REGEX
+                // SkipDefinition: "%skip" REGEX
                 LEFT | RIGHT | NONASSOC | SKIP | INJECT | NEWSECTION => Action::Reduce(18),
                 _ => Action::SyntaxError(vec![LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION]),
             },
             57 => match aa_tag {
-                // production_group: production_group_head production_tail_list "."
+                // ProductionGroup: ProductionGroupHead ProductionTailList "."
                 AAEND | INJECT | IDENT => Action::Reduce(30),
                 _ => Action::SyntaxError(vec![AAEND, INJECT, IDENT]),
             },
@@ -1205,30 +1207,30 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData> for Calc {
                 IDENT => Action::Shift(46),
                 PREDICATE => Action::Shift(44),
                 ACTION => Action::Shift(43),
-                // production_tail: <empty>
+                // ProductionTail: <empty>
                 VBAR | DOT => Action::Reduce(34),
                 _ => Action::SyntaxError(vec![LITERAL, ERROR, VBAR, DOT, IDENT, PREDICATE, ACTION]),
             },
             59 => match aa_tag {
-                // production_tail: predicate action
+                // ProductionTail: Predicate Action
                 VBAR | DOT => Action::Reduce(36),
                 _ => Action::SyntaxError(vec![VBAR, DOT]),
             },
             60 => match aa_tag {
                 PRECEDENCE => Action::Shift(63),
                 ACTION => Action::Shift(43),
-                // production_tail: symbol_list predicate
+                // ProductionTail: SymbolList Predicate
                 VBAR | DOT => Action::Reduce(41),
                 _ => Action::SyntaxError(vec![PRECEDENCE, VBAR, DOT, ACTION]),
             },
             61 => match aa_tag {
                 ACTION => Action::Shift(43),
-                // production_tail: symbol_list tagged_precedence
+                // ProductionTail: SymbolList TaggedPrecedence
                 VBAR | DOT => Action::Reduce(43),
                 _ => Action::SyntaxError(vec![VBAR, DOT, ACTION]),
             },
             62 => match aa_tag {
-                // production_tail: symbol_list action
+                // ProductionTail: SymbolList Action
                 VBAR | DOT => Action::Reduce(44),
                 _ => Action::SyntaxError(vec![VBAR, DOT]),
             },
@@ -1238,89 +1240,89 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData> for Calc {
                 _ => Action::SyntaxError(vec![LITERAL, IDENT]),
             },
             64 => match aa_tag {
-                // symbol_list: symbol_list symbol
+                // SymbolList: SymbolList Symbol
                 LITERAL | PRECEDENCE | ERROR | VBAR | DOT | IDENT | PREDICATE | ACTION => Action::Reduce(51),
                 _ => Action::SyntaxError(vec![LITERAL, PRECEDENCE, ERROR, VBAR, DOT, IDENT, PREDICATE, ACTION]),
             },
             65 => match aa_tag {
-                // precedence_definitions: precedence_definitions oinjection precedence_definition oinjection
+                // PrecedenceDefinitions: PrecedenceDefinitions OptionalInjection PrecedenceDefinition OptionalInjection
                 LEFT | RIGHT | NONASSOC | INJECT | NEWSECTION => Action::Reduce(20),
                 _ => Action::SyntaxError(vec![LEFT, RIGHT, NONASSOC, INJECT, NEWSECTION]),
             },
             66 => match aa_tag {
                 LITERAL => Action::Shift(68),
                 IDENT => Action::Shift(69),
-                // precedence_definition: "%left" tag_list
+                // PrecedenceDefinition: "%left" TagList
                 LEFT | RIGHT | NONASSOC | INJECT | NEWSECTION => Action::Reduce(21),
                 _ => Action::SyntaxError(vec![LITERAL, LEFT, RIGHT, NONASSOC, INJECT, NEWSECTION, IDENT]),
             },
             67 => match aa_tag {
-                // tag_list: tag
+                // TagList: Tag
                 LITERAL | LEFT | RIGHT | NONASSOC | INJECT | NEWSECTION | IDENT => Action::Reduce(24),
                 _ => Action::SyntaxError(vec![LITERAL, LEFT, RIGHT, NONASSOC, INJECT, NEWSECTION, IDENT]),
             },
             68 => match aa_tag {
-                // tag: LITERAL
+                // Tag: LITERAL
                 LITERAL | LEFT | RIGHT | NONASSOC | INJECT | NEWSECTION | IDENT => Action::Reduce(26),
                 _ => Action::SyntaxError(vec![LITERAL, LEFT, RIGHT, NONASSOC, INJECT, NEWSECTION, IDENT]),
             },
             69 => match aa_tag {
-                // tag: IDENT
+                // Tag: IDENT
                 LITERAL | LEFT | RIGHT | NONASSOC | INJECT | NEWSECTION | IDENT => Action::Reduce(27),
                 _ => Action::SyntaxError(vec![LITERAL, LEFT, RIGHT, NONASSOC, INJECT, NEWSECTION, IDENT]),
             },
             70 => match aa_tag {
                 LITERAL => Action::Shift(68),
                 IDENT => Action::Shift(69),
-                // precedence_definition: "%right" tag_list
+                // PrecedenceDefinition: "%right" TagList
                 LEFT | RIGHT | NONASSOC | INJECT | NEWSECTION => Action::Reduce(22),
                 _ => Action::SyntaxError(vec![LITERAL, LEFT, RIGHT, NONASSOC, INJECT, NEWSECTION, IDENT]),
             },
             71 => match aa_tag {
                 LITERAL => Action::Shift(68),
                 IDENT => Action::Shift(69),
-                // precedence_definition: "%nonassoc" tag_list
+                // PrecedenceDefinition: "%nonassoc" TagList
                 LEFT | RIGHT | NONASSOC | INJECT | NEWSECTION => Action::Reduce(23),
                 _ => Action::SyntaxError(vec![LITERAL, LEFT, RIGHT, NONASSOC, INJECT, NEWSECTION, IDENT]),
             },
             72 => match aa_tag {
-                // production_tail_list: production_tail_list "|" production_tail
+                // ProductionTailList: ProductionTailList "|" ProductionTail
                 VBAR | DOT => Action::Reduce(33),
                 _ => Action::SyntaxError(vec![VBAR, DOT]),
             },
             73 => match aa_tag {
                 ACTION => Action::Shift(43),
-                // production_tail: symbol_list predicate tagged_precedence
+                // ProductionTail: SymbolList Predicate TaggedPrecedence
                 VBAR | DOT => Action::Reduce(39),
                 _ => Action::SyntaxError(vec![VBAR, DOT, ACTION]),
             },
             74 => match aa_tag {
-                // production_tail: symbol_list predicate action
+                // ProductionTail: SymbolList Predicate Action
                 VBAR | DOT => Action::Reduce(40),
                 _ => Action::SyntaxError(vec![VBAR, DOT]),
             },
             75 => match aa_tag {
-                // production_tail: symbol_list tagged_precedence action
+                // ProductionTail: SymbolList TaggedPrecedence Action
                 VBAR | DOT => Action::Reduce(42),
                 _ => Action::SyntaxError(vec![VBAR, DOT]),
             },
             76 => match aa_tag {
-                // tagged_precedence: "%prec" IDENT
+                // TaggedPrecedence: "%prec" IDENT
                 VBAR | DOT | ACTION => Action::Reduce(48),
                 _ => Action::SyntaxError(vec![VBAR, DOT, ACTION]),
             },
             77 => match aa_tag {
-                // tagged_precedence: "%prec" LITERAL
+                // TaggedPrecedence: "%prec" LITERAL
                 VBAR | DOT | ACTION => Action::Reduce(49),
                 _ => Action::SyntaxError(vec![VBAR, DOT, ACTION]),
             },
             78 => match aa_tag {
-                // tag_list: tag_list tag
+                // TagList: TagList Tag
                 LITERAL | LEFT | RIGHT | NONASSOC | INJECT | NEWSECTION | IDENT => Action::Reduce(25),
                 _ => Action::SyntaxError(vec![LITERAL, LEFT, RIGHT, NONASSOC, INJECT, NEWSECTION, IDENT]),
             },
             79 => match aa_tag {
-                // production_tail: symbol_list predicate tagged_precedence action
+                // ProductionTail: SymbolList Predicate TaggedPrecedence Action
                 VBAR | DOT => Action::Reduce(38),
                 _ => Action::SyntaxError(vec![VBAR, DOT]),
             },

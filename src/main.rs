@@ -34,7 +34,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-mod alapgen;
+//mod alapgen;
 mod attributes;
 mod bootstrap;
 mod grammar;
