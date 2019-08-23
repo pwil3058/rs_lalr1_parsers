@@ -155,13 +155,13 @@ PrecedenceDefinition: "%left" TagList
 
 TagList: Tag
         !{
-            let tag = $1.symbol().clone().unwrap();
+            let tag = $1.symbol();
             $$ = AttributeData::SymbolList(vec![Rc::clone(&tag)]);
         !}
     | TagList Tag
         !{
             let mut tag_list = $1.symbol_list().clone();
-            let tag = $2.symbol().clone().unwrap();
+            let tag = $2.symbol();
             tag_list.push(Rc::clone(&tag));
             $$ = AttributeData::SymbolList(tag_list);
         !}
@@ -171,10 +171,10 @@ Tag: LITERAL
         !{
             let (text, location) = $1.text_and_location().unwrap();
             if let Some(symbol) = self.symbol_table.get_literal_token(text, location) {
-                $$ = AttributeData::Symbol(Some(Rc::clone(symbol)));
+                $$ = AttributeData::Symbol(Rc::clone(symbol));
             } else {
                 let symbol = self.symbol_table.special_symbol(&SpecialSymbols::LexicalError);
-                $$ = AttributeData::Symbol(Some(symbol));
+                $$ = AttributeData::Symbol(symbol);
                 let msg = format!("Literal token \"{}\" is not known", text);
                 self.error(location, &msg);
             }
@@ -183,7 +183,7 @@ Tag: LITERAL
         !{
             let (name, location) = $1.text_and_location().unwrap();
             if let Some(symbol) = self.symbol_table.use_symbol_named(name, location) {
-                $$ = AttributeData::Symbol(Some(Rc::clone(symbol)));
+                $$ = AttributeData::Symbol(Rc::clone(symbol));
                 if symbol.is_non_terminal() {
                     self.error(
                         location,
@@ -201,7 +201,7 @@ Tag: LITERAL
                     );
                 };
                 match self.symbol_table.new_tag(name, location) {
-                    Ok(symbol) => $$ = AttributeData::Symbol(Some(symbol)),
+                    Ok(symbol) => $$ = AttributeData::Symbol(symbol),
                     Err(err) => self.error(location, &err.to_string()),
                 }
             }
@@ -406,12 +406,12 @@ TaggedPrecedence: "%prec" IDENT
 
 SymbolList: Symbol
         !{
-            let symbol = $1.symbol().clone().unwrap();
+            let symbol = $1.symbol();
             $$ = AttributeData::SymbolList(vec![Rc::clone(&symbol)]);
         !}
     | SymbolList Symbol
         !{
-            let symbol = $2.symbol().clone().unwrap();
+            let symbol = $2.symbol();
             let mut symbol_list = $1.symbol_list().clone();
             symbol_list.push(Rc::clone(&symbol));
             $$ = AttributeData::SymbolList(symbol_list);
@@ -422,21 +422,21 @@ Symbol: IDENT
         !{
             let (name, location) = $1.text_and_location().unwrap();
             if let Some(symbol) = self.symbol_table.use_symbol_named(name, location) {
-                $$ = AttributeData::Symbol(Some(Rc::clone(symbol)));
+                $$ = AttributeData::Symbol(Rc::clone(symbol));
             } else {
                 let symbol = self.symbol_table.use_new_non_terminal(name, location);
-                $$ = AttributeData::Symbol(Some(symbol));
+                $$ = AttributeData::Symbol(symbol);
             }
         !}
     | LITERAL
         !{
             let (lexeme, location) = $1.text_and_location().unwrap();
             if let Some(symbol) = self.symbol_table.get_literal_token(lexeme, location) {
-                $$ = AttributeData::Symbol(Some(Rc::clone(symbol)));
+                $$ = AttributeData::Symbol(Rc::clone(symbol));
             } else {
                 self.error(location, &format!("{}: unknown literal)", lexeme));
                 let symbol = self.symbol_table.special_symbol(&SpecialSymbols::LexicalError);
-                $$ = AttributeData::Symbol(Some(symbol));
+                $$ = AttributeData::Symbol(symbol);
             }
         !}
     | "%error"
@@ -444,6 +444,6 @@ Symbol: IDENT
             let symbol = self
                 .symbol_table
                 .special_symbol(&SpecialSymbols::SyntaxError);
-            $$ = AttributeData::Symbol(Some(symbol));
+            $$ = AttributeData::Symbol(symbol);
         !}
     .

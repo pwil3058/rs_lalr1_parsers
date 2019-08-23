@@ -1005,7 +1005,7 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData> for GrammarSpec
             24 => {
                 // TagList: Tag
                 
-            let tag = aa_rhs[0].symbol().clone().unwrap();
+            let tag = aa_rhs[0].symbol();
             aa_lhs = AttributeData::SymbolList(vec![Rc::clone(&tag)]);
         
             }
@@ -1013,7 +1013,7 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData> for GrammarSpec
                 // TagList: TagList Tag
                 
             let mut tag_list = aa_rhs[0].symbol_list().clone();
-            let tag = aa_rhs[1].symbol().clone().unwrap();
+            let tag = aa_rhs[1].symbol();
             tag_list.push(Rc::clone(&tag));
             aa_lhs = AttributeData::SymbolList(tag_list);
         
@@ -1023,10 +1023,10 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData> for GrammarSpec
                 
             let (text, location) = aa_rhs[0].text_and_location().unwrap();
             if let Some(symbol) = self.symbol_table.get_literal_token(text, location) {
-                aa_lhs = AttributeData::Symbol(Some(Rc::clone(symbol)));
+                aa_lhs = AttributeData::Symbol(Rc::clone(symbol));
             } else {
                 let symbol = self.symbol_table.special_symbol(&SpecialSymbols::LexicalError);
-                aa_lhs = AttributeData::Symbol(Some(symbol));
+                aa_lhs = AttributeData::Symbol(symbol);
                 let msg = format!("Literal token \"{}\" is not known", text);
                 self.error(location, &msg);
             }
@@ -1037,7 +1037,7 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData> for GrammarSpec
                 
             let (name, location) = aa_rhs[0].text_and_location().unwrap();
             if let Some(symbol) = self.symbol_table.use_symbol_named(name, location) {
-                aa_lhs = AttributeData::Symbol(Some(Rc::clone(symbol)));
+                aa_lhs = AttributeData::Symbol(Rc::clone(symbol));
                 if symbol.is_non_terminal() {
                     self.error(
                         location,
@@ -1055,7 +1055,7 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData> for GrammarSpec
                     );
                 };
                 match self.symbol_table.new_tag(name, location) {
-                    Ok(symbol) => aa_lhs = AttributeData::Symbol(Some(symbol)),
+                    Ok(symbol) => aa_lhs = AttributeData::Symbol(symbol),
                     Err(err) => self.error(location, &err.to_string()),
                 }
             }
@@ -1281,14 +1281,14 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData> for GrammarSpec
             50 => {
                 // SymbolList: Symbol
                 
-            let symbol = aa_rhs[0].symbol().clone().unwrap();
+            let symbol = aa_rhs[0].symbol();
             aa_lhs = AttributeData::SymbolList(vec![Rc::clone(&symbol)]);
         
             }
             51 => {
                 // SymbolList: SymbolList Symbol
                 
-            let symbol = aa_rhs[1].symbol().clone().unwrap();
+            let symbol = aa_rhs[1].symbol();
             let mut symbol_list = aa_rhs[0].symbol_list().clone();
             symbol_list.push(Rc::clone(&symbol));
             aa_lhs = AttributeData::SymbolList(symbol_list);
@@ -1299,10 +1299,10 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData> for GrammarSpec
                 
             let (name, location) = aa_rhs[0].text_and_location().unwrap();
             if let Some(symbol) = self.symbol_table.use_symbol_named(name, location) {
-                aa_lhs = AttributeData::Symbol(Some(Rc::clone(symbol)));
+                aa_lhs = AttributeData::Symbol(Rc::clone(symbol));
             } else {
                 let symbol = self.symbol_table.use_new_non_terminal(name, location);
-                aa_lhs = AttributeData::Symbol(Some(symbol));
+                aa_lhs = AttributeData::Symbol(symbol);
             }
         
             }
@@ -1311,11 +1311,11 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData> for GrammarSpec
                 
             let (lexeme, location) = aa_rhs[0].text_and_location().unwrap();
             if let Some(symbol) = self.symbol_table.get_literal_token(lexeme, location) {
-                aa_lhs = AttributeData::Symbol(Some(Rc::clone(symbol)));
+                aa_lhs = AttributeData::Symbol(Rc::clone(symbol));
             } else {
                 self.error(location, &format!("{}: unknown literal)", lexeme));
                 let symbol = self.symbol_table.special_symbol(&SpecialSymbols::LexicalError);
-                aa_lhs = AttributeData::Symbol(Some(symbol));
+                aa_lhs = AttributeData::Symbol(symbol);
             }
         
             }
@@ -1325,7 +1325,7 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData> for GrammarSpec
             let symbol = self
                 .symbol_table
                 .special_symbol(&SpecialSymbols::SyntaxError);
-            aa_lhs = AttributeData::Symbol(Some(symbol));
+            aa_lhs = AttributeData::Symbol(symbol);
         
             }
             _ => (),

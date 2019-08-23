@@ -15,7 +15,7 @@ pub enum AttributeData {
     SyntaxError(lexan::Token<AATerminal>, Vec<AATerminal>),
     LexicalError(lexan::Error<AATerminal>),
     SymbolList(Vec<Rc<Symbol>>),
-    Symbol(Option<Rc<Symbol>>),
+    Symbol(Rc<Symbol>),
     LeftHandSide(Rc<Symbol>),
     ProductionTail(ProductionTail),
     ProductionTailList(Vec<ProductionTail>),
@@ -71,10 +71,10 @@ impl AttributeData {
         }
     }
 
-    pub fn symbol<'a>(&'a self) -> &'a Option<Rc<Symbol>> {
+    pub fn symbol<'a>(&'a self) -> &'a Rc<Symbol> {
         match self {
             AttributeData::Symbol(symbol) => symbol,
-            _ => &None, //panic!("Wrong attribute variant."),
+            _ => panic!("Wrong attribute variant."),
         }
     }
 
