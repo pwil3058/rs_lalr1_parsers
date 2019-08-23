@@ -12,8 +12,15 @@ use crate::{
 };
 %}
 
+%attr   AttributeData
+%target GrammarSpecification
+
+%%
+
 %token  REGEX           (\(.+\))
 %token  LITERAL         ("(\\"|[^"\t\r\n\v\f])*")
+%token  ATTR            "%attr"
+%token  TARGET          "%target"
 %token  TOKEN           "%token"
 %token  LEFT            "%left"
 %token  RIGHT           "%right"
@@ -38,7 +45,7 @@ use crate::{
 %right INJECT
 
 %%
-Specification: Preamble Definitions "%%" ProductionRules.
+Specification: Preamble Configuration "%%" Definitions "%%" ProductionRules.
 
 OptionalInjection: !{ // no injection so nothing to do !} | Injection .
 
@@ -76,6 +83,23 @@ Preamble:
             let text = $2.matched_text().unwrap();
             self.set_preamble(&text[2..text.len() - 2]);
         !}
+    .
+
+// Configuration
+Configuration: AttributeType OptionalInjection TargetType OptionalInjection
+    | TargetType OptionalInjection AttributeType OptionalInjection
+    .
+
+AttributeType: "%attr" IDENT
+    !{
+        self.attribute_type = $2.matched_text().unwrap().to_string();
+    !}
+    .
+
+TargetType: "%target" IDENT
+    !{
+        self.target_type = $2.matched_text().unwrap().to_string();
+    !}
     .
 
 Definitions : TokenDefinitions SkipDefinitions PrecedenceDefinitions .
