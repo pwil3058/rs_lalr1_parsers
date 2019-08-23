@@ -6,7 +6,7 @@ use std::{
 
 use ordered_collections::{ordered_set::ord_set_iterators::ToSet, OrderedMap, OrderedSet};
 
-use lalr1plus::{self, parser::Parser};
+use lalr1plus::{self, parser::Parser, parser::ReportError};
 use lexan;
 
 use crate::state::{GrammarItemKey, GrammarItemSet, ParserState, Production, ProductionTail};
@@ -38,6 +38,8 @@ pub struct GrammarSpecification {
     pub error_count: u32,
     pub warning_count: u32,
 }
+
+impl ReportError<AATerminal> for GrammarSpecification {}
 
 impl GrammarSpecification {
     pub fn new(text: String, label: String) -> Result<Self, lalr1plus::Error<AATerminal>> {
