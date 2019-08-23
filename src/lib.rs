@@ -11,6 +11,7 @@ pub use parser::*;
 mod tests {
     use super::parser;
 
+    use crate::ReportError;
     use std::collections::HashMap;
     use std::convert::From;
     use std::fmt;
@@ -103,6 +104,8 @@ mod tests {
         errors: u32,
         variables: HashMap<String, f64>,
     }
+
+    impl ReportError<Terminal> for Calc {}
 
     lazy_static! {
         static ref AALEXAN: lexan::LexicalAnalyzer<Terminal> = {

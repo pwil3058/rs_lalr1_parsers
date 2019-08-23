@@ -5,11 +5,36 @@ use std::{
 };
 
 use lexan;
+use std::io::Write;
 
 #[derive(Debug, Clone)]
 pub enum Error<T: Copy + Debug + Eq> {
     LexicalError(lexan::Error<T>),
     SyntaxError(lexan::Token<T>, Vec<T>),
+}
+
+impl<T: Copy + Debug + Eq> std::fmt::Display for Error<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match self {
+            Error::LexicalError(lex_err) => write!(f, "Lexical Error: {}.", lex_err),
+            Error::SyntaxError(found, expected) => write!(
+                f,
+                "Syntax Error: expected: {:?} found: {:?} at: {}.",
+                expected,
+                found.tag(),
+                found.location()
+            ),
+        }
+    }
+}
+
+pub trait ReportError<T: Copy + Debug + Eq> {
+    fn report_error(&mut self, error: &Error<T>) {
+        let message = error.to_string();
+        std::io::stderr()
+            .write_all(message.as_bytes())
+            .expect("Nowhere to go here!!!");
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -119,6 +144,7 @@ where
     T: Ord + Copy + Debug,
     N: Ord + Display + Debug,
     A: Default + From<lexan::Token<T>> + From<Error<T>>,
+    Self: ReportError<T>,
 {
     fn lexical_analyzer(&self) -> &lexan::LexicalAnalyzer<T>;
     fn next_action(
@@ -135,18 +161,6 @@ where
         attributes: Vec<A>,
         token_stream: &mut lexan::TokenStream<T>,
     ) -> A;
-
-    fn report_error(error: &Error<T>) {
-        match error {
-            Error::LexicalError(lex_err) => println!("Lexical Error: {}.", lex_err),
-            Error::SyntaxError(found, expected) => println!(
-                "Syntax Error: expected: {:?} found: {:?} at: {}.",
-                expected,
-                found.tag(),
-                found.location()
-            ),
-        }
-    }
 
     fn short_circuit() -> bool {
         false
@@ -168,7 +182,7 @@ where
                         panic!("Fatal Error: {}", err);
                     }
                     let err = Error::LexicalError(err);
-                    Self::report_error(&err);
+                    self.report_error(&err);
                     result = Err(err);
                     if Self::short_circuit() {
                         return result;
@@ -196,7 +210,7 @@ where
                         }
                         Action::SyntaxError(expected) => {
                             let error = Error::SyntaxError(token.clone(), expected);
-                            Self::report_error(&error);
+                            self.report_error(&error);
                             result = Err(error.clone());
                             if Self::short_circuit() {
                                 return result;
@@ -212,7 +226,8 @@ where
                             }
                             if let Some(distance) = distance {
                                 parse_stack.pop_n(distance);
-                                let next_state = Self::error_goto_state(parse_stack.current_state());
+                                let next_state =
+                                    Self::error_goto_state(parse_stack.current_state());
                                 parse_stack.push_error(next_state, error);
                             } else {
                                 return result;
