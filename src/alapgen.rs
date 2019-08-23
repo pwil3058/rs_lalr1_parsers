@@ -1,4 +1,3 @@
-
 use std::{fs::File, io::Read, rc::Rc};
 
 use crate::{
@@ -226,8 +225,12 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData> for GrammarSpec
             },
             3 => match aa_tag {
                 // OptionalInjection: Injection
-                AAEnd | ATTR | TARGET | TOKEN | LEFT | RIGHT | NONASSOC | SKIP | INJECT | NEWSECTION | IDENT | RUSTCODE => Action::Reduce(3),
-                _ => Action::SyntaxError(vec![AAEnd, ATTR, TARGET, TOKEN, LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION, IDENT, RUSTCODE]),
+                AAEnd | ATTR | TARGET | TOKEN | LEFT | RIGHT | NONASSOC | SKIP | INJECT
+                | NEWSECTION | IDENT | RUSTCODE => Action::Reduce(3),
+                _ => Action::SyntaxError(vec![
+                    AAEnd, ATTR, TARGET, TOKEN, LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION,
+                    IDENT, RUSTCODE,
+                ]),
             },
             4 => match aa_tag {
                 LITERAL => Action::Shift(12),
@@ -272,8 +275,12 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData> for GrammarSpec
             },
             13 => match aa_tag {
                 // Injection: InjectionHead "."
-                AAEnd | ATTR | TARGET | TOKEN | LEFT | RIGHT | NONASSOC | SKIP | INJECT | NEWSECTION | IDENT | RUSTCODE => Action::Reduce(5),
-                _ => Action::SyntaxError(vec![AAEnd, ATTR, TARGET, TOKEN, LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION, IDENT, RUSTCODE]),
+                AAEnd | ATTR | TARGET | TOKEN | LEFT | RIGHT | NONASSOC | SKIP | INJECT
+                | NEWSECTION | IDENT | RUSTCODE => Action::Reduce(5),
+                _ => Action::SyntaxError(vec![
+                    AAEnd, ATTR, TARGET, TOKEN, LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION,
+                    IDENT, RUSTCODE,
+                ]),
             },
             14 => match aa_tag {
                 INJECT => Action::Shift(4),
@@ -320,7 +327,9 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData> for GrammarSpec
                 TOKEN => Action::Reduce(2),
                 // SkipDefinitions: <empty>
                 LEFT | RIGHT | NONASSOC | SKIP | NEWSECTION => Action::Reduce(20),
-                _ => Action::SyntaxError(vec![TOKEN, LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION]),
+                _ => Action::SyntaxError(vec![
+                    TOKEN, LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION,
+                ]),
             },
             23 => match aa_tag {
                 TOKEN => Action::Shift(30),
@@ -359,7 +368,9 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData> for GrammarSpec
             29 => match aa_tag {
                 // TokenDefinitions: OptionalInjection TokenDefinition
                 TOKEN | LEFT | RIGHT | NONASSOC | SKIP | INJECT | NEWSECTION => Action::Reduce(13),
-                _ => Action::SyntaxError(vec![TOKEN, LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION]),
+                _ => Action::SyntaxError(vec![
+                    TOKEN, LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION,
+                ]),
             },
             30 => match aa_tag {
                 IDENT => Action::Shift(39),
@@ -401,7 +412,9 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData> for GrammarSpec
                 INJECT => Action::Shift(4),
                 // OptionalInjection: <empty>
                 TOKEN | LEFT | RIGHT | NONASSOC | SKIP | NEWSECTION => Action::Reduce(2),
-                _ => Action::SyntaxError(vec![TOKEN, LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION]),
+                _ => Action::SyntaxError(vec![
+                    TOKEN, LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION,
+                ]),
             },
             38 => match aa_tag {
                 REGEX => Action::Shift(49),
@@ -410,7 +423,9 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData> for GrammarSpec
             },
             39 => match aa_tag {
                 REGEX | LITERAL => {
-                    if  !Self::is_allowable_name(aa_attributes.at_len_minus_n(1).matched_text().unwrap())  {
+                    if !Self::is_allowable_name(
+                        aa_attributes.at_len_minus_n(1).matched_text().unwrap(),
+                    ) {
                         // NewTokenName: IDENT ?( !Self::is_allowable_name($1.matched_text().unwrap()) ?)
                         Action::Reduce(16)
                     } else {
@@ -465,22 +480,30 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData> for GrammarSpec
             47 => match aa_tag {
                 // TokenDefinitions: TokenDefinitions OptionalInjection TokenDefinition OptionalInjection
                 TOKEN | LEFT | RIGHT | NONASSOC | SKIP | INJECT | NEWSECTION => Action::Reduce(14),
-                _ => Action::SyntaxError(vec![TOKEN, LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION]),
+                _ => Action::SyntaxError(vec![
+                    TOKEN, LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION,
+                ]),
             },
             48 => match aa_tag {
                 // TokenDefinition: "%token" NewTokenName Pattern
                 TOKEN | LEFT | RIGHT | NONASSOC | SKIP | INJECT | NEWSECTION => Action::Reduce(15),
-                _ => Action::SyntaxError(vec![TOKEN, LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION]),
+                _ => Action::SyntaxError(vec![
+                    TOKEN, LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION,
+                ]),
             },
             49 => match aa_tag {
                 // Pattern: REGEX
                 TOKEN | LEFT | RIGHT | NONASSOC | SKIP | INJECT | NEWSECTION => Action::Reduce(18),
-                _ => Action::SyntaxError(vec![TOKEN, LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION]),
+                _ => Action::SyntaxError(vec![
+                    TOKEN, LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION,
+                ]),
             },
             50 => match aa_tag {
                 // Pattern: LITERAL
                 TOKEN | LEFT | RIGHT | NONASSOC | SKIP | INJECT | NEWSECTION => Action::Reduce(19),
-                _ => Action::SyntaxError(vec![TOKEN, LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION]),
+                _ => Action::SyntaxError(vec![
+                    TOKEN, LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION,
+                ]),
             },
             51 => match aa_tag {
                 // ProductionRules: ProductionRules ProductionGroup OptionalInjection
@@ -517,7 +540,9 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData> for GrammarSpec
                 ACTION => Action::Shift(57),
                 // ProductionTail: SymbolList
                 VBAR | DOT => Action::Reduce(49),
-                _ => Action::SyntaxError(vec![LITERAL, PRECEDENCE, ERROR, VBAR, DOT, IDENT, PREDICATE, ACTION]),
+                _ => Action::SyntaxError(vec![
+                    LITERAL, PRECEDENCE, ERROR, VBAR, DOT, IDENT, PREDICATE, ACTION,
+                ]),
             },
             57 => match aa_tag {
                 // Action: ACTION
@@ -531,23 +556,39 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData> for GrammarSpec
             },
             59 => match aa_tag {
                 // SymbolList: Symbol
-                LITERAL | PRECEDENCE | ERROR | VBAR | DOT | IDENT | PREDICATE | ACTION => Action::Reduce(54),
-                _ => Action::SyntaxError(vec![LITERAL, PRECEDENCE, ERROR, VBAR, DOT, IDENT, PREDICATE, ACTION]),
+                LITERAL | PRECEDENCE | ERROR | VBAR | DOT | IDENT | PREDICATE | ACTION => {
+                    Action::Reduce(54)
+                }
+                _ => Action::SyntaxError(vec![
+                    LITERAL, PRECEDENCE, ERROR, VBAR, DOT, IDENT, PREDICATE, ACTION,
+                ]),
             },
             60 => match aa_tag {
                 // Symbol: IDENT
-                LITERAL | PRECEDENCE | ERROR | VBAR | DOT | IDENT | PREDICATE | ACTION => Action::Reduce(56),
-                _ => Action::SyntaxError(vec![LITERAL, PRECEDENCE, ERROR, VBAR, DOT, IDENT, PREDICATE, ACTION]),
+                LITERAL | PRECEDENCE | ERROR | VBAR | DOT | IDENT | PREDICATE | ACTION => {
+                    Action::Reduce(56)
+                }
+                _ => Action::SyntaxError(vec![
+                    LITERAL, PRECEDENCE, ERROR, VBAR, DOT, IDENT, PREDICATE, ACTION,
+                ]),
             },
             61 => match aa_tag {
                 // Symbol: LITERAL
-                LITERAL | PRECEDENCE | ERROR | VBAR | DOT | IDENT | PREDICATE | ACTION => Action::Reduce(57),
-                _ => Action::SyntaxError(vec![LITERAL, PRECEDENCE, ERROR, VBAR, DOT, IDENT, PREDICATE, ACTION]),
+                LITERAL | PRECEDENCE | ERROR | VBAR | DOT | IDENT | PREDICATE | ACTION => {
+                    Action::Reduce(57)
+                }
+                _ => Action::SyntaxError(vec![
+                    LITERAL, PRECEDENCE, ERROR, VBAR, DOT, IDENT, PREDICATE, ACTION,
+                ]),
             },
             62 => match aa_tag {
                 // Symbol: "%error"
-                LITERAL | PRECEDENCE | ERROR | VBAR | DOT | IDENT | PREDICATE | ACTION => Action::Reduce(58),
-                _ => Action::SyntaxError(vec![LITERAL, PRECEDENCE, ERROR, VBAR, DOT, IDENT, PREDICATE, ACTION]),
+                LITERAL | PRECEDENCE | ERROR | VBAR | DOT | IDENT | PREDICATE | ACTION => {
+                    Action::Reduce(58)
+                }
+                _ => Action::SyntaxError(vec![
+                    LITERAL, PRECEDENCE, ERROR, VBAR, DOT, IDENT, PREDICATE, ACTION,
+                ]),
             },
             63 => match aa_tag {
                 // ProductionGroupHead: IDENT ":"
@@ -635,8 +676,12 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData> for GrammarSpec
             },
             78 => match aa_tag {
                 // SymbolList: SymbolList Symbol
-                LITERAL | PRECEDENCE | ERROR | VBAR | DOT | IDENT | PREDICATE | ACTION => Action::Reduce(55),
-                _ => Action::SyntaxError(vec![LITERAL, PRECEDENCE, ERROR, VBAR, DOT, IDENT, PREDICATE, ACTION]),
+                LITERAL | PRECEDENCE | ERROR | VBAR | DOT | IDENT | PREDICATE | ACTION => {
+                    Action::Reduce(55)
+                }
+                _ => Action::SyntaxError(vec![
+                    LITERAL, PRECEDENCE, ERROR, VBAR, DOT, IDENT, PREDICATE, ACTION,
+                ]),
             },
             79 => match aa_tag {
                 // PrecedenceDefinitions: PrecedenceDefinitions OptionalInjection PrecedenceDefinition OptionalInjection
@@ -648,36 +693,54 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData> for GrammarSpec
                 IDENT => Action::Shift(83),
                 // PrecedenceDefinition: "%left" TagList
                 LEFT | RIGHT | NONASSOC | INJECT | NEWSECTION => Action::Reduce(25),
-                _ => Action::SyntaxError(vec![LITERAL, LEFT, RIGHT, NONASSOC, INJECT, NEWSECTION, IDENT]),
+                _ => Action::SyntaxError(vec![
+                    LITERAL, LEFT, RIGHT, NONASSOC, INJECT, NEWSECTION, IDENT,
+                ]),
             },
             81 => match aa_tag {
                 // TagList: Tag
-                LITERAL | LEFT | RIGHT | NONASSOC | INJECT | NEWSECTION | IDENT => Action::Reduce(28),
-                _ => Action::SyntaxError(vec![LITERAL, LEFT, RIGHT, NONASSOC, INJECT, NEWSECTION, IDENT]),
+                LITERAL | LEFT | RIGHT | NONASSOC | INJECT | NEWSECTION | IDENT => {
+                    Action::Reduce(28)
+                }
+                _ => Action::SyntaxError(vec![
+                    LITERAL, LEFT, RIGHT, NONASSOC, INJECT, NEWSECTION, IDENT,
+                ]),
             },
             82 => match aa_tag {
                 // Tag: LITERAL
-                LITERAL | LEFT | RIGHT | NONASSOC | INJECT | NEWSECTION | IDENT => Action::Reduce(30),
-                _ => Action::SyntaxError(vec![LITERAL, LEFT, RIGHT, NONASSOC, INJECT, NEWSECTION, IDENT]),
+                LITERAL | LEFT | RIGHT | NONASSOC | INJECT | NEWSECTION | IDENT => {
+                    Action::Reduce(30)
+                }
+                _ => Action::SyntaxError(vec![
+                    LITERAL, LEFT, RIGHT, NONASSOC, INJECT, NEWSECTION, IDENT,
+                ]),
             },
             83 => match aa_tag {
                 // Tag: IDENT
-                LITERAL | LEFT | RIGHT | NONASSOC | INJECT | NEWSECTION | IDENT => Action::Reduce(31),
-                _ => Action::SyntaxError(vec![LITERAL, LEFT, RIGHT, NONASSOC, INJECT, NEWSECTION, IDENT]),
+                LITERAL | LEFT | RIGHT | NONASSOC | INJECT | NEWSECTION | IDENT => {
+                    Action::Reduce(31)
+                }
+                _ => Action::SyntaxError(vec![
+                    LITERAL, LEFT, RIGHT, NONASSOC, INJECT, NEWSECTION, IDENT,
+                ]),
             },
             84 => match aa_tag {
                 LITERAL => Action::Shift(82),
                 IDENT => Action::Shift(83),
                 // PrecedenceDefinition: "%right" TagList
                 LEFT | RIGHT | NONASSOC | INJECT | NEWSECTION => Action::Reduce(26),
-                _ => Action::SyntaxError(vec![LITERAL, LEFT, RIGHT, NONASSOC, INJECT, NEWSECTION, IDENT]),
+                _ => Action::SyntaxError(vec![
+                    LITERAL, LEFT, RIGHT, NONASSOC, INJECT, NEWSECTION, IDENT,
+                ]),
             },
             85 => match aa_tag {
                 LITERAL => Action::Shift(82),
                 IDENT => Action::Shift(83),
                 // PrecedenceDefinition: "%nonassoc" TagList
                 LEFT | RIGHT | NONASSOC | INJECT | NEWSECTION => Action::Reduce(27),
-                _ => Action::SyntaxError(vec![LITERAL, LEFT, RIGHT, NONASSOC, INJECT, NEWSECTION, IDENT]),
+                _ => Action::SyntaxError(vec![
+                    LITERAL, LEFT, RIGHT, NONASSOC, INJECT, NEWSECTION, IDENT,
+                ]),
             },
             86 => match aa_tag {
                 // ProductionTailList: ProductionTailList "|" ProductionTail
@@ -712,8 +775,12 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData> for GrammarSpec
             },
             92 => match aa_tag {
                 // TagList: TagList Tag
-                LITERAL | LEFT | RIGHT | NONASSOC | INJECT | NEWSECTION | IDENT => Action::Reduce(29),
-                _ => Action::SyntaxError(vec![LITERAL, LEFT, RIGHT, NONASSOC, INJECT, NEWSECTION, IDENT]),
+                LITERAL | LEFT | RIGHT | NONASSOC | INJECT | NEWSECTION | IDENT => {
+                    Action::Reduce(29)
+                }
+                _ => Action::SyntaxError(vec![
+                    LITERAL, LEFT, RIGHT, NONASSOC, INJECT, NEWSECTION, IDENT,
+                ]),
             },
             93 => match aa_tag {
                 // ProductionTail: SymbolList Predicate TaggedPrecedence Action
@@ -721,7 +788,7 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData> for GrammarSpec
                 _ => Action::SyntaxError(vec![VBAR, DOT]),
             },
             _ => panic!("illegal state: {}", state),
-        }
+        };
     }
 
     fn production_data(production_id: u32) -> (AANonTerminal, usize) {
@@ -1011,7 +1078,7 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData> for GrammarSpec
                 _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
             },
             _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
-        }
+        };
     }
 
     fn do_semantic_action(
@@ -1023,450 +1090,425 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData> for GrammarSpec
         let mut aa_lhs = if let Some(a) = aa_rhs.first() {
             a.clone()
         } else {
-           AttributeData::default()
+            AttributeData::default()
         };
         match aa_production_id {
             2 => {
                 // OptionalInjection: <empty>
-                 // no injection so nothing to do 
+                // no injection so nothing to do
             }
             4 => {
                 // InjectionHead: "%inject" LITERAL
-                
-            let (text, location) = aa_rhs[1].text_and_location().unwrap();
-            let file_path = text.trim_matches('"');
-            match File::open(&file_path) {
-                Ok(mut file) => {
-                    let mut text = String::new();
-                    if let Err(err) = file.read_to_string(&mut text) {
-                        self.error(&location, &format!("Injecting: {}", err));
-                    } else if text.len() == 0 {
-                        self.error(&location, &format!("Injected file \"{}\" is empty.", file_path));
-                    } else {
-                        aa_token_stream.inject(text, file_path.to_string());
+
+                let (text, location) = aa_rhs[1].text_and_location().unwrap();
+                let file_path = text.trim_matches('"');
+                match File::open(&file_path) {
+                    Ok(mut file) => {
+                        let mut text = String::new();
+                        if let Err(err) = file.read_to_string(&mut text) {
+                            self.error(&location, &format!("Injecting: {}", err));
+                        } else if text.len() == 0 {
+                            self.error(
+                                &location,
+                                &format!("Injected file \"{}\" is empty.", file_path),
+                            );
+                        } else {
+                            aa_token_stream.inject(text, file_path.to_string());
+                        }
                     }
-                }
-                Err(err) => self.error(&location, &format!("Injecting: {}.", err)),
-            };
-        
+                    Err(err) => self.error(&location, &format!("Injecting: {}.", err)),
+                };
             }
             6 => {
                 // Preamble: <empty>
-                
-            // no Preamble defined so there's nothing to do
-        
+
+                // no Preamble defined so there's nothing to do
+
             }
             7 => {
                 // Preamble: OptionalInjection RUSTCODE OptionalInjection
-                
-            let text = aa_rhs[1].matched_text().unwrap();
-            self.set_preamble(&text[2..text.len() - 2]);
-        
+
+                let text = aa_rhs[1].matched_text().unwrap();
+                self.set_preamble(&text[2..text.len() - 2]);
             }
             10 => {
                 // AttributeType: "%attr" IDENT
-                
-        self.attribute_type = aa_rhs[1].matched_text().unwrap().to_string();
-    
+
+                self.attribute_type = aa_rhs[1].matched_text().unwrap().to_string();
             }
             11 => {
                 // TargetType: "%target" IDENT
-                
-        self.target_type = aa_rhs[1].matched_text().unwrap().to_string();
-    
+
+                self.target_type = aa_rhs[1].matched_text().unwrap().to_string();
             }
             15 => {
                 // TokenDefinition: "%token" NewTokenName Pattern
-                
-            let (name, location) = aa_rhs[1].text_and_location().unwrap();
-            let pattern = aa_rhs[2].matched_text().unwrap();
-            if let Err(err) = self.symbol_table.new_token(name, pattern, location) {
-                self.error(location, &err.to_string());
-            }
-        
+
+                let (name, location) = aa_rhs[1].text_and_location().unwrap();
+                let pattern = aa_rhs[2].matched_text().unwrap();
+                if let Err(err) = self.symbol_table.new_token(name, pattern, location) {
+                    self.error(location, &err.to_string());
+                }
             }
             16 => {
                 // NewTokenName: IDENT ?( !Self::is_allowable_name($1.matched_text().unwrap()) ?)
-                
-            let (name, location) = aa_rhs[0].text_and_location().unwrap();
-            self.warning(
-                location,
-                &format!("token name \"{}\" may clash with generated code", name),
-            );
-        
+
+                let (name, location) = aa_rhs[0].text_and_location().unwrap();
+                self.warning(
+                    location,
+                    &format!("token name \"{}\" may clash with generated code", name),
+                );
             }
             20 => {
                 // SkipDefinitions: <empty>
-                
-            // do nothing
-        
+
+                // do nothing
+
             }
             22 => {
                 // SkipDefinition: "%skip" REGEX
-                
-            let skip_rule = aa_rhs[1].matched_text().unwrap();
-            self.symbol_table.add_skip_rule(skip_rule);
-        
+
+                let skip_rule = aa_rhs[1].matched_text().unwrap();
+                self.symbol_table.add_skip_rule(skip_rule);
             }
             23 => {
                 // PrecedenceDefinitions: <empty>
-                
-            // do nothing
-        
+
+                // do nothing
+
             }
             25 => {
                 // PrecedenceDefinition: "%left" TagList
-                
-            let mut tag_list = aa_rhs[1].symbol_list().clone();
-            self.symbol_table
-                .set_precedences(Associativity::Left, &mut tag_list);
-        
+
+                let mut tag_list = aa_rhs[1].symbol_list().clone();
+                self.symbol_table
+                    .set_precedences(Associativity::Left, &mut tag_list);
             }
             26 => {
                 // PrecedenceDefinition: "%right" TagList
-                
-            let mut tag_list = aa_rhs[1].symbol_list().clone();
-            self.symbol_table
-                .set_precedences(Associativity::Right, &mut tag_list);
-        
+
+                let mut tag_list = aa_rhs[1].symbol_list().clone();
+                self.symbol_table
+                    .set_precedences(Associativity::Right, &mut tag_list);
             }
             27 => {
                 // PrecedenceDefinition: "%nonassoc" TagList
-                
-            let mut tag_list = aa_rhs[1].symbol_list().clone();
-            self.symbol_table
-                .set_precedences(Associativity::NonAssoc, &mut tag_list);
-        
+
+                let mut tag_list = aa_rhs[1].symbol_list().clone();
+                self.symbol_table
+                    .set_precedences(Associativity::NonAssoc, &mut tag_list);
             }
             28 => {
                 // TagList: Tag
-                
-            let tag = aa_rhs[0].symbol();
-            aa_lhs = AttributeData::SymbolList(vec![Rc::clone(&tag)]);
-        
+
+                let tag = aa_rhs[0].symbol();
+                aa_lhs = AttributeData::SymbolList(vec![Rc::clone(&tag)]);
             }
             29 => {
                 // TagList: TagList Tag
-                
-            let mut tag_list = aa_rhs[0].symbol_list().clone();
-            let tag = aa_rhs[1].symbol();
-            tag_list.push(Rc::clone(&tag));
-            aa_lhs = AttributeData::SymbolList(tag_list);
-        
+
+                let mut tag_list = aa_rhs[0].symbol_list().clone();
+                let tag = aa_rhs[1].symbol();
+                tag_list.push(Rc::clone(&tag));
+                aa_lhs = AttributeData::SymbolList(tag_list);
             }
             30 => {
                 // Tag: LITERAL
-                
-            let (text, location) = aa_rhs[0].text_and_location().unwrap();
-            if let Some(symbol) = self.symbol_table.get_literal_token(text, location) {
-                aa_lhs = AttributeData::Symbol(Rc::clone(symbol));
-            } else {
-                let symbol = self.symbol_table.special_symbol(&SpecialSymbols::LexicalError);
-                aa_lhs = AttributeData::Symbol(symbol);
-                let msg = format!("Literal token \"{}\" is not known", text);
-                self.error(location, &msg);
-            }
-        
+
+                let (text, location) = aa_rhs[0].text_and_location().unwrap();
+                if let Some(symbol) = self.symbol_table.get_literal_token(text, location) {
+                    aa_lhs = AttributeData::Symbol(Rc::clone(symbol));
+                } else {
+                    let symbol = self
+                        .symbol_table
+                        .special_symbol(&SpecialSymbols::LexicalError);
+                    aa_lhs = AttributeData::Symbol(symbol);
+                    let msg = format!("Literal token \"{}\" is not known", text);
+                    self.error(location, &msg);
+                }
             }
             31 => {
                 // Tag: IDENT
-                
-            let (name, location) = aa_rhs[0].text_and_location().unwrap();
-            if let Some(symbol) = self.symbol_table.use_symbol_named(name, location) {
-                aa_lhs = AttributeData::Symbol(Rc::clone(symbol));
-                if symbol.is_non_terminal() {
-                    self.error(
-                        location,
-                        &format!(
-                            "Non terminal \"{}\" cannot be used as precedence tag.",
-                            name
-                        ),
-                    )
+
+                let (name, location) = aa_rhs[0].text_and_location().unwrap();
+                if let Some(symbol) = self.symbol_table.use_symbol_named(name, location) {
+                    aa_lhs = AttributeData::Symbol(Rc::clone(symbol));
+                    if symbol.is_non_terminal() {
+                        self.error(
+                            location,
+                            &format!(
+                                "Non terminal \"{}\" cannot be used as precedence tag.",
+                                name
+                            ),
+                        )
+                    }
+                } else {
+                    if !Self::is_allowable_name(name) {
+                        self.warning(
+                            location,
+                            &format!("tag name \"{}\" may clash with generated code", name),
+                        );
+                    };
+                    match self.symbol_table.new_tag(name, location) {
+                        Ok(symbol) => aa_lhs = AttributeData::Symbol(symbol),
+                        Err(err) => self.error(location, &err.to_string()),
+                    }
                 }
-            } else {
-                if !Self::is_allowable_name(name) {
-                    self.warning(
-                        location,
-                        &format!("tag name \"{}\" may clash with generated code", name),
-                    );
-                };
-                match self.symbol_table.new_tag(name, location) {
-                    Ok(symbol) => aa_lhs = AttributeData::Symbol(symbol),
-                    Err(err) => self.error(location, &err.to_string()),
-                }
-            }
-        
             }
             34 => {
                 // ProductionGroup: ProductionGroupHead ProductionTailList "."
-                
-            let lhs = aa_rhs[0].left_hand_side();
-            let tails = aa_rhs[1].production_tail_list();
-            for tail in tails.iter() {
-                self.new_production(Rc::clone(&lhs), tail.clone());
-            }
-        
+
+                let lhs = aa_rhs[0].left_hand_side();
+                let tails = aa_rhs[1].production_tail_list();
+                for tail in tails.iter() {
+                    self.new_production(Rc::clone(&lhs), tail.clone());
+                }
             }
             35 => {
                 // ProductionGroupHead: IDENT ":"
-                
-            let (name, location) = aa_rhs[0].text_and_location().unwrap();
-            if let Some(symbol) = self.symbol_table.use_symbol_named(name, location) {
-                aa_lhs = AttributeData::LeftHandSide(Rc::clone(symbol));
-                if symbol.is_non_terminal() {
-                    symbol.set_defined_at(location);
+
+                let (name, location) = aa_rhs[0].text_and_location().unwrap();
+                if let Some(symbol) = self.symbol_table.use_symbol_named(name, location) {
+                    aa_lhs = AttributeData::LeftHandSide(Rc::clone(symbol));
+                    if symbol.is_non_terminal() {
+                        symbol.set_defined_at(location);
+                    } else {
+                        self.error(
+                            location,
+                            &format!(
+                                "Token/tag \"{}\" cannot be used as left hand side of production.",
+                                name
+                            ),
+                        );
+                    }
                 } else {
-                    self.error(
-                        location,
-                        &format!(
-                            "Token/tag \"{}\" cannot be used as left hand side of production.",
-                            name
-                        ),
-                    );
+                    if !Self::is_allowable_name(name) {
+                        self.warning(
+                            location,
+                            &format!(
+                                "Non terminal name \"{}\" may clash with generated code",
+                                name
+                            ),
+                        );
+                    };
+                    let non_terminal = self.symbol_table.define_non_terminal(name, location);
+                    aa_lhs = AttributeData::LeftHandSide(non_terminal);
                 }
-            } else {
-                if !Self::is_allowable_name(name) {
-                    self.warning(
-                        location,
-                        &format!("Non terminal name \"{}\" may clash with generated code", name),
-                    );
-                };
-                let non_terminal = self.symbol_table.define_non_terminal(name, location);
-                aa_lhs = AttributeData::LeftHandSide(non_terminal);
-            }
-        
             }
             36 => {
                 // ProductionTailList: ProductionTail
-                
-            let production_tail = aa_rhs[0].production_tail().clone();
-            aa_lhs = AttributeData::ProductionTailList(vec![production_tail]);
-        
+
+                let production_tail = aa_rhs[0].production_tail().clone();
+                aa_lhs = AttributeData::ProductionTailList(vec![production_tail]);
             }
             37 => {
                 // ProductionTailList: ProductionTailList "|" ProductionTail
-                
-            let mut production_tail_list = aa_rhs[0].production_tail_list().clone();
-            let production_tail = aa_rhs[2].production_tail().clone();
-            production_tail_list.push(production_tail);
-            aa_lhs = AttributeData::ProductionTailList(production_tail_list);
-        
+
+                let mut production_tail_list = aa_rhs[0].production_tail_list().clone();
+                let production_tail = aa_rhs[2].production_tail().clone();
+                production_tail_list.push(production_tail);
+                aa_lhs = AttributeData::ProductionTailList(production_tail_list);
             }
             38 => {
                 // ProductionTail: <empty>
-                
-            let tail = ProductionTail::new(vec![], None, None, None);
-            aa_lhs = AttributeData::ProductionTail(tail)
-        
+
+                let tail = ProductionTail::new(vec![], None, None, None);
+                aa_lhs = AttributeData::ProductionTail(tail)
             }
             39 => {
                 // ProductionTail: Action
-                
-            let action = aa_rhs[0].action().to_string();
-            let tail = ProductionTail::new(vec![], None, None, Some(action));
-            aa_lhs = AttributeData::ProductionTail(tail)
-        
+
+                let action = aa_rhs[0].action().to_string();
+                let tail = ProductionTail::new(vec![], None, None, Some(action));
+                aa_lhs = AttributeData::ProductionTail(tail)
             }
             40 => {
                 // ProductionTail: Predicate Action
-                
-            let predicate = aa_rhs[0].predicate().to_string();
-            let action = aa_rhs[1].action().to_string();
-            let tail = ProductionTail::new(vec![], Some(predicate), None, Some(action));
-            aa_lhs = AttributeData::ProductionTail(tail)
-        
+
+                let predicate = aa_rhs[0].predicate().to_string();
+                let action = aa_rhs[1].action().to_string();
+                let tail = ProductionTail::new(vec![], Some(predicate), None, Some(action));
+                aa_lhs = AttributeData::ProductionTail(tail)
             }
             41 => {
                 // ProductionTail: Predicate
-                
-            let predicate = aa_rhs[0].predicate().to_string();
-            let tail = ProductionTail::new(vec![], Some(predicate), None, None);
-            aa_lhs = AttributeData::ProductionTail(tail)
-        
+
+                let predicate = aa_rhs[0].predicate().to_string();
+                let tail = ProductionTail::new(vec![], Some(predicate), None, None);
+                aa_lhs = AttributeData::ProductionTail(tail)
             }
             42 => {
                 // ProductionTail: SymbolList Predicate TaggedPrecedence Action
-                
-            let rhs = aa_rhs[0].symbol_list().clone();
-            let predicate = aa_rhs[1].predicate().to_string();
-            let tagged_precedence = aa_rhs[2].associative_precedence().clone();
-            let action = aa_rhs[3].action().to_string();
-            let tail = ProductionTail::new(rhs, Some(predicate), Some(tagged_precedence), Some(action));
-            aa_lhs = AttributeData::ProductionTail(tail)
-        
+
+                let rhs = aa_rhs[0].symbol_list().clone();
+                let predicate = aa_rhs[1].predicate().to_string();
+                let tagged_precedence = aa_rhs[2].associative_precedence().clone();
+                let action = aa_rhs[3].action().to_string();
+                let tail = ProductionTail::new(
+                    rhs,
+                    Some(predicate),
+                    Some(tagged_precedence),
+                    Some(action),
+                );
+                aa_lhs = AttributeData::ProductionTail(tail)
             }
             43 => {
                 // ProductionTail: SymbolList Predicate TaggedPrecedence
-                
-            let rhs = aa_rhs[0].symbol_list().clone();
-            let predicate = aa_rhs[1].predicate().to_string();
-            let tagged_precedence = aa_rhs[2].associative_precedence().clone();
-            let tail = ProductionTail::new(rhs, Some(predicate), Some(tagged_precedence), None);
-            aa_lhs = AttributeData::ProductionTail(tail)
-        
+
+                let rhs = aa_rhs[0].symbol_list().clone();
+                let predicate = aa_rhs[1].predicate().to_string();
+                let tagged_precedence = aa_rhs[2].associative_precedence().clone();
+                let tail = ProductionTail::new(rhs, Some(predicate), Some(tagged_precedence), None);
+                aa_lhs = AttributeData::ProductionTail(tail)
             }
             44 => {
                 // ProductionTail: SymbolList Predicate Action
-                
-            let rhs = aa_rhs[0].symbol_list().clone();
-            let predicate = aa_rhs[1].predicate().to_string();
-            let action = aa_rhs[2].action().to_string();
-            let tail = ProductionTail::new(rhs, Some(predicate), None, Some(action));
-            aa_lhs = AttributeData::ProductionTail(tail)
-        
+
+                let rhs = aa_rhs[0].symbol_list().clone();
+                let predicate = aa_rhs[1].predicate().to_string();
+                let action = aa_rhs[2].action().to_string();
+                let tail = ProductionTail::new(rhs, Some(predicate), None, Some(action));
+                aa_lhs = AttributeData::ProductionTail(tail)
             }
             45 => {
                 // ProductionTail: SymbolList Predicate
-                
-            let rhs = aa_rhs[0].symbol_list().clone();
-            let predicate = aa_rhs[1].predicate().to_string();
-            let tail = ProductionTail::new(rhs, Some(predicate), None, None);
-            aa_lhs = AttributeData::ProductionTail(tail)
-        
+
+                let rhs = aa_rhs[0].symbol_list().clone();
+                let predicate = aa_rhs[1].predicate().to_string();
+                let tail = ProductionTail::new(rhs, Some(predicate), None, None);
+                aa_lhs = AttributeData::ProductionTail(tail)
             }
             46 => {
                 // ProductionTail: SymbolList TaggedPrecedence Action
-                
-            let rhs = aa_rhs[0].symbol_list().clone();
-            let tagged_precedence = aa_rhs[1].associative_precedence().clone();
-            let action = aa_rhs[2].action().to_string();
-            let tail = ProductionTail::new(rhs, None, Some(tagged_precedence), Some(action));
-            aa_lhs = AttributeData::ProductionTail(tail)
-        
+
+                let rhs = aa_rhs[0].symbol_list().clone();
+                let tagged_precedence = aa_rhs[1].associative_precedence().clone();
+                let action = aa_rhs[2].action().to_string();
+                let tail = ProductionTail::new(rhs, None, Some(tagged_precedence), Some(action));
+                aa_lhs = AttributeData::ProductionTail(tail)
             }
             47 => {
                 // ProductionTail: SymbolList TaggedPrecedence
-                
-            let rhs = aa_rhs[0].symbol_list().clone();
-            let tagged_precedence = aa_rhs[1].associative_precedence().clone();
-            let tail = ProductionTail::new(rhs, None, Some(tagged_precedence), None);
-            aa_lhs = AttributeData::ProductionTail(tail)
-        
+
+                let rhs = aa_rhs[0].symbol_list().clone();
+                let tagged_precedence = aa_rhs[1].associative_precedence().clone();
+                let tail = ProductionTail::new(rhs, None, Some(tagged_precedence), None);
+                aa_lhs = AttributeData::ProductionTail(tail)
             }
             48 => {
                 // ProductionTail: SymbolList Action
-                
-            let rhs = aa_rhs[0].symbol_list().clone();
-            let action = aa_rhs[1].action().to_string();
-            let tail = ProductionTail::new(rhs, None, None, Some(action));
-            aa_lhs = AttributeData::ProductionTail(tail)
-        
+
+                let rhs = aa_rhs[0].symbol_list().clone();
+                let action = aa_rhs[1].action().to_string();
+                let tail = ProductionTail::new(rhs, None, None, Some(action));
+                aa_lhs = AttributeData::ProductionTail(tail)
             }
             49 => {
                 // ProductionTail: SymbolList
-                
-            let rhs = aa_rhs[0].symbol_list().clone();
-            let tail = ProductionTail::new(rhs, None, None, None);
-            aa_lhs = AttributeData::ProductionTail(tail)
-        
+
+                let rhs = aa_rhs[0].symbol_list().clone();
+                let tail = ProductionTail::new(rhs, None, None, None);
+                aa_lhs = AttributeData::ProductionTail(tail)
             }
             50 => {
                 // Action: ACTION
-                
-            let text = aa_rhs[0].matched_text().unwrap();
-            aa_lhs = AttributeData::Action(text[2..text.len() - 2].to_string());
-        
+
+                let text = aa_rhs[0].matched_text().unwrap();
+                aa_lhs = AttributeData::Action(text[2..text.len() - 2].to_string());
             }
             51 => {
                 // Predicate: PREDICATE
-                
-            let text = aa_rhs[0].matched_text().unwrap();
-            aa_lhs = AttributeData::Predicate(text[2..text.len() - 2].to_string());
-        
+
+                let text = aa_rhs[0].matched_text().unwrap();
+                aa_lhs = AttributeData::Predicate(text[2..text.len() - 2].to_string());
             }
             52 => {
                 // TaggedPrecedence: "%prec" IDENT
-                
-            let (name, location) = aa_rhs[1].text_and_location().unwrap();
-            let mut ap = AssociativePrecedence::default();
-            if let Some(symbol) = self.symbol_table.use_symbol_named(name, location) {
-                if symbol.is_non_terminal() {
-                    self.error(
-                        location,
-                        &format!("{}: illegal precedence tag (must be token or tag)", name),
-                    );
+
+                let (name, location) = aa_rhs[1].text_and_location().unwrap();
+                let mut ap = AssociativePrecedence::default();
+                if let Some(symbol) = self.symbol_table.use_symbol_named(name, location) {
+                    if symbol.is_non_terminal() {
+                        self.error(
+                            location,
+                            &format!("{}: illegal precedence tag (must be token or tag)", name),
+                        );
+                    } else {
+                        ap = symbol.associative_precedence();
+                    }
                 } else {
-                    ap = symbol.associative_precedence();
-                }
-            } else {
-                self.error(location, &format!("{}: unknown symbol", name));
-            };
-            aa_lhs = AttributeData::AssociativePrecedence(ap);
-        
+                    self.error(location, &format!("{}: unknown symbol", name));
+                };
+                aa_lhs = AttributeData::AssociativePrecedence(ap);
             }
             53 => {
                 // TaggedPrecedence: "%prec" LITERAL
-                
-            let (lexeme, location) = aa_rhs[1].text_and_location().unwrap();
-            let mut ap = AssociativePrecedence::default();
-            if let Some(symbol) = self.symbol_table.get_literal_token(lexeme, location) {
-                if symbol.is_non_terminal() {
-                    self.error(
-                        location,
-                        &format!("{}: illegal precedence tag (must be token or tag)", lexeme),
-                    );
+
+                let (lexeme, location) = aa_rhs[1].text_and_location().unwrap();
+                let mut ap = AssociativePrecedence::default();
+                if let Some(symbol) = self.symbol_table.get_literal_token(lexeme, location) {
+                    if symbol.is_non_terminal() {
+                        self.error(
+                            location,
+                            &format!("{}: illegal precedence tag (must be token or tag)", lexeme),
+                        );
+                    } else {
+                        ap = symbol.associative_precedence();
+                    }
                 } else {
-                    ap = symbol.associative_precedence();
-                }
-            } else {
-                self.error(location, &format!("{}: unknown literal", lexeme));
-            };
-            aa_lhs = AttributeData::AssociativePrecedence(ap);
-        
+                    self.error(location, &format!("{}: unknown literal", lexeme));
+                };
+                aa_lhs = AttributeData::AssociativePrecedence(ap);
             }
             54 => {
                 // SymbolList: Symbol
-                
-            let symbol = aa_rhs[0].symbol();
-            aa_lhs = AttributeData::SymbolList(vec![Rc::clone(&symbol)]);
-        
+
+                let symbol = aa_rhs[0].symbol();
+                aa_lhs = AttributeData::SymbolList(vec![Rc::clone(&symbol)]);
             }
             55 => {
                 // SymbolList: SymbolList Symbol
-                
-            let symbol = aa_rhs[1].symbol();
-            let mut symbol_list = aa_rhs[0].symbol_list().clone();
-            symbol_list.push(Rc::clone(&symbol));
-            aa_lhs = AttributeData::SymbolList(symbol_list);
-        
+
+                let symbol = aa_rhs[1].symbol();
+                let mut symbol_list = aa_rhs[0].symbol_list().clone();
+                symbol_list.push(Rc::clone(&symbol));
+                aa_lhs = AttributeData::SymbolList(symbol_list);
             }
             56 => {
                 // Symbol: IDENT
-                
-            let (name, location) = aa_rhs[0].text_and_location().unwrap();
-            if let Some(symbol) = self.symbol_table.use_symbol_named(name, location) {
-                aa_lhs = AttributeData::Symbol(Rc::clone(symbol));
-            } else {
-                let symbol = self.symbol_table.use_new_non_terminal(name, location);
-                aa_lhs = AttributeData::Symbol(symbol);
-            }
-        
+
+                let (name, location) = aa_rhs[0].text_and_location().unwrap();
+                if let Some(symbol) = self.symbol_table.use_symbol_named(name, location) {
+                    aa_lhs = AttributeData::Symbol(Rc::clone(symbol));
+                } else {
+                    let symbol = self.symbol_table.use_new_non_terminal(name, location);
+                    aa_lhs = AttributeData::Symbol(symbol);
+                }
             }
             57 => {
                 // Symbol: LITERAL
-                
-            let (lexeme, location) = aa_rhs[0].text_and_location().unwrap();
-            if let Some(symbol) = self.symbol_table.get_literal_token(lexeme, location) {
-                aa_lhs = AttributeData::Symbol(Rc::clone(symbol));
-            } else {
-                self.error(location, &format!("{}: unknown literal)", lexeme));
-                let symbol = self.symbol_table.special_symbol(&SpecialSymbols::LexicalError);
-                aa_lhs = AttributeData::Symbol(symbol);
-            }
-        
+
+                let (lexeme, location) = aa_rhs[0].text_and_location().unwrap();
+                if let Some(symbol) = self.symbol_table.get_literal_token(lexeme, location) {
+                    aa_lhs = AttributeData::Symbol(Rc::clone(symbol));
+                } else {
+                    self.error(location, &format!("{}: unknown literal)", lexeme));
+                    let symbol = self
+                        .symbol_table
+                        .special_symbol(&SpecialSymbols::LexicalError);
+                    aa_lhs = AttributeData::Symbol(symbol);
+                }
             }
             58 => {
                 // Symbol: "%error"
-                
-            let symbol = self
-                .symbol_table
-                .special_symbol(&SpecialSymbols::SyntaxError);
-            aa_lhs = AttributeData::Symbol(symbol);
-        
+
+                let symbol = self
+                    .symbol_table
+                    .special_symbol(&SpecialSymbols::SyntaxError);
+                aa_lhs = AttributeData::Symbol(symbol);
             }
             _ => (),
         };
         aa_lhs
     }
-
 }

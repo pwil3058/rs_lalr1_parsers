@@ -39,10 +39,27 @@ pub enum Associativity {
     Right,
 }
 
+impl std::fmt::Display for Associativity {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        use Associativity::*;
+        match self {
+            NonAssoc => write!(f, "NonAssoc"),
+            Left => write!(f, "Left"),
+            Right => write!(f, "Right"),
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy)]
 pub struct AssociativePrecedence {
     pub associativity: Associativity,
     pub precedence: u32,
+}
+
+impl std::fmt::Display for AssociativePrecedence {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{}:({})", self.associativity, self.precedence)
+    }
 }
 
 impl Default for AssociativePrecedence {
@@ -563,5 +580,33 @@ impl SymbolTable {
         } else {
             None
         }
+    }
+
+    pub fn description(&self) -> String {
+        let mut string = "Symbols:\n".to_string();
+        string += "  Tokens:\n";
+        for token in self.tokens_sorted() {
+            string += &format!(
+                "    {}({}): {} {}\n",
+                token.name,
+                token.pattern,
+                token.associative_precedence(),
+                token.firsts_data()
+            );
+        }
+        string += "  Tags:\n";
+        for (_, tag) in self.tags.iter() {
+            string += &format!("    {}: {}\n", tag.name, tag.associative_precedence(),);
+        }
+        string += "  Non Terminal Symbols:\n";
+        for symbol in self.non_terminal_symbols_sorted() {
+            string += &format!(
+                "    {}: {} {}\n",
+                symbol.name,
+                symbol.associative_precedence(),
+                symbol.firsts_data()
+            );
+        }
+        string
     }
 }
