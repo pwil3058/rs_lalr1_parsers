@@ -60,6 +60,11 @@ impl Calc {
 }
 %}
 
+%attr   AttributeData
+%target Calc
+
+%%
+
 %token          EOL     (\n)
 %token          PLUS    "+"
 %token          MINUS   "-"
