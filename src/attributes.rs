@@ -58,19 +58,6 @@ impl AttributeData {
         }
     }
 
-    pub fn location<'a>(&'a self) -> Option<&'a lexan::Location> {
-        match self {
-            AttributeData::Token(token) => Some(token.location()),
-            AttributeData::SyntaxError(token, _) => Some(token.location()),
-            AttributeData::LexicalError(error) => match error {
-                lexan::Error::UnexpectedText(_, location) => Some(location),
-                lexan::Error::AmbiguousMatches(_, _, location) => Some(location),
-                lexan::Error::AdvancedWhenEmpty(location) => Some(location),
-            },
-            _ => None, //panic!("Wrong attribute variant."),
-        }
-    }
-
     pub fn symbol<'a>(&'a self) -> &'a Rc<Symbol> {
         match self {
             AttributeData::Symbol(symbol) => symbol,

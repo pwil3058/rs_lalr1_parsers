@@ -370,7 +370,7 @@ impl Grammar {
         wtr.write(b"    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {\n")?;
         wtr.write(b"        match self {\n")?;
         for token in tokens.iter() {
-            wtr.write(b"        AATerminal::")?;
+            wtr.write(b"            AATerminal::")?;
             let name = token.name();
             let pattern = token.pattern();
             if pattern.starts_with('"') {
@@ -403,7 +403,7 @@ impl Grammar {
         wtr.write(b"    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {\n")?;
         wtr.write(b"        match self {\n")?;
         for symbol in non_terminal_symbols.iter() {
-            wtr.write(b"        AANonTerminal::")?;
+            wtr.write(b"            AANonTerminal::")?;
             let name = symbol.name();
             wtr.write_fmt(format_args!("{} => write!(f, r\"{}\"),\n", name, name))?;
         }

@@ -3,6 +3,11 @@ use std::{cell::RefCell, fmt, rc::Rc};
 use lexan;
 use ordered_collections::{OrderedMap, OrderedSet};
 
+#[cfg(not(feature = "bootstrap"))]
+use crate::alapgen::{AANonTerminal, AATerminal};
+#[cfg(feature = "bootstrap")]
+use crate::bootstrap::{AANonTerminal, AATerminal};
+
 #[derive(Debug)]
 pub enum Error {
     AlreadyDefined(Rc<Symbol>),
@@ -347,6 +352,19 @@ pub enum SpecialSymbols {
     SemanticError,
 }
 
+impl std::fmt::Display for SpecialSymbols {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        use SpecialSymbols::*;
+        match self {
+            Start => write!(f, "{}", AANonTerminal::AASTART),
+            End => write!(f, "{}", AATerminal::AAEND),
+            LexicalError => write!(f, "{}", AANonTerminal::AALEXICALERROR),
+            SyntaxError => write!(f, "{}", AANonTerminal::AASYNTAXERROR),
+            SemanticError => write!(f, "{}", AANonTerminal::AASEMANTICERROR),
+        }
+    }
+}
+
 #[derive(Debug, Default, Clone)]
 pub struct SymbolTable {
     special_symbols: OrderedMap<SpecialSymbols, Rc<Symbol>>,
@@ -375,22 +393,25 @@ impl SymbolTable {
         };
         let start_location = lexan::Location::default();
 
-        let symbol = st.define_non_terminal("AASTART", &start_location);
+        let symbol = st.define_non_terminal(&SpecialSymbols::Start.to_string(), &start_location);
         st.special_symbols.insert(SpecialSymbols::Start, symbol);
 
-        let token = st.new_token("AAEND", "", &start_location);
+        let token = st.new_token(&SpecialSymbols::End.to_string(), "", &start_location);
         st.special_symbols
             .insert(SpecialSymbols::End, token.unwrap());
 
-        let symbol = st.define_non_terminal("AALEXICALERROR", &start_location);
+        let symbol =
+            st.define_non_terminal(&SpecialSymbols::LexicalError.to_string(), &start_location);
         st.special_symbols
             .insert(SpecialSymbols::LexicalError, symbol);
 
-        let symbol = st.define_non_terminal("AASYNTAXERROR", &start_location);
+        let symbol =
+            st.define_non_terminal(&SpecialSymbols::SyntaxError.to_string(), &start_location);
         st.special_symbols
             .insert(SpecialSymbols::SyntaxError, symbol);
 
-        let symbol = st.define_non_terminal("AASEMANTICERROR", &start_location);
+        let symbol =
+            st.define_non_terminal(&SpecialSymbols::SemanticError.to_string(), &start_location);
         st.special_symbols
             .insert(SpecialSymbols::SemanticError, symbol);
 
@@ -439,18 +460,6 @@ impl SymbolTable {
         Rc::clone(self.special_symbols.get(t).unwrap())
     }
 
-    pub fn is_known_non_terminal(&self, _name: &String) -> bool {
-        false
-    }
-
-    pub fn is_known_tag(&self, name: &String) -> bool {
-        self.tags.contains_key(name)
-    }
-
-    pub fn is_known_token(&self, name: &String) -> bool {
-        self.tokens.contains_key(name)
-    }
-
     pub fn use_symbol_named(
         &mut self,
         symbol_name: &String,
@@ -465,18 +474,6 @@ impl SymbolTable {
         } else if let Some(non_terminal) = self.non_terminals.get(symbol_name) {
             non_terminal.add_used_at(location);
             Some(non_terminal)
-        } else {
-            None
-        }
-    }
-
-    pub fn declaration_location(&self, symbol_name: &String) -> Option<lexan::Location> {
-        if let Some(token) = self.tokens.get(symbol_name) {
-            token.defined_at()
-        } else if let Some(tag) = self.tags.get(symbol_name) {
-            tag.defined_at()
-        } else if let Some(non_terminal) = self.non_terminals.get(symbol_name) {
-            non_terminal.defined_at()
         } else {
             None
         }
@@ -561,15 +558,6 @@ impl SymbolTable {
         location: &lexan::Location,
     ) -> Option<&Rc<Symbol>> {
         if let Some(token) = self.literal_tokens.get(text) {
-            token.add_used_at(location);
-            Some(token)
-        } else {
-            None
-        }
-    }
-
-    pub fn get_token(&self, name: &String, location: &lexan::Location) -> Option<&Rc<Symbol>> {
-        if let Some(token) = self.tokens.get(name) {
             token.add_used_at(location);
             Some(token)
         } else {
