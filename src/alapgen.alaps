@@ -2,7 +2,7 @@
 // alapgen Specification for alapgen grammar Specification language
 
 %{
-use std::{fmt, fs::File, io::Read, rc::Rc};
+use std::{fs::File, io::Read, rc::Rc};
 
 use crate::{
     attributes::*,
@@ -12,7 +12,7 @@ use crate::{
 };
 %}
 
-%token  REGEX           (\(.+\)(?=\s))
+%token  REGEX           (\(.+\))
 %token  LITERAL         ("(\\"|[^"\t\r\n\v\f])*")
 %token  TOKEN           "%token"
 %token  LEFT            "%left"
@@ -73,7 +73,7 @@ Preamble:
         !}
     | OptionalInjection RUSTCODE OptionalInjection
         !{
-            let text = $2.matched_text.unwrap();
+            let text = $2.matched_text().unwrap();
             self.set_preamble(&text[2..text.len() - 2]);
         !}
     .
@@ -155,14 +155,14 @@ PrecedenceDefinition: "%left" TagList
 
 TagList: Tag
         !{
-            let tag = $1.symbol().unwrap();
-            $$ = AttributeData::SymbolList(vec![Rc::clone(tag)]);
+            let tag = $1.symbol().clone().unwrap();
+            $$ = AttributeData::SymbolList(vec![Rc::clone(&tag)]);
         !}
     | TagList Tag
         !{
             let mut tag_list = $1.symbol_list().clone();
-            let tag = $2.symbol().unwrap();
-            tag_list.push(Rc::clone(tag));
+            let tag = $2.symbol().clone().unwrap();
+            tag_list.push(Rc::clone(&tag));
             $$ = AttributeData::SymbolList(tag_list);
         !}
     .
@@ -173,8 +173,8 @@ Tag: LITERAL
             if let Some(symbol) = self.symbol_table.get_literal_token(text, location) {
                 $$ = AttributeData::Symbol(Some(Rc::clone(symbol)));
             } else {
-                let symbol = self.symbol_table.special_symbol(Some(SpecialSymbols::LexicalError));
-                $$ = AttributeData::Symbol(Some(Rc::clone(symbol)));
+                let symbol = self.symbol_table.special_symbol(&SpecialSymbols::LexicalError);
+                $$ = AttributeData::Symbol(Some(symbol));
                 let msg = format!("Literal token \"{}\" is not known", text);
                 self.error(location, &msg);
             }
@@ -216,7 +216,7 @@ ProductionRules: OptionalInjection ProductionGroup OptionalInjection
 ProductionGroup: ProductionGroupHead ProductionTailList "."
         !{
             let lhs = $1.left_hand_side();
-            let tails = $2.ProductionTailList();
+            let tails = $2.production_tail_list();
             for tail in tails.iter() {
                 self.new_production(Rc::clone(&lhs), tail.clone());
             }
@@ -228,14 +228,16 @@ ProductionGroupHead: IDENT ":"
             let (name, location) = $1.text_and_location().unwrap();
             if let Some(symbol) = self.symbol_table.use_symbol_named(name, location) {
                 $$ = AttributeData::LeftHandSide(Rc::clone(symbol));
-                if !symbol.is_non_terminal() {
+                if symbol.is_non_terminal() {
+                    symbol.set_defined_at(location);
+                } else {
                     self.error(
                         location,
                         &format!(
                             "Token/tag \"{}\" cannot be used as left hand side of production.",
                             name
                         ),
-                    )
+                    );
                 }
             } else {
                 if !Self::is_allowable_name(name) {
@@ -252,15 +254,15 @@ ProductionGroupHead: IDENT ":"
 
 ProductionTailList: ProductionTail
         !{
-            let ProductionTail = $1.ProductionTail().clone();
-            $$ = AttributeData::ProductionTailList(vec![ProductionTail]);
+            let production_tail = $1.production_tail().clone();
+            $$ = AttributeData::ProductionTailList(vec![production_tail]);
         !}
     | ProductionTailList "|" ProductionTail
         !{
-            let mut ProductionTailList = $1.ProductionTailList().clone();
-            let ProductionTail = $3.ProductionTail().clone();
-            ProductionTailList.push(ProductionTail);
-            $$ = AttributeData::ProductionTailList(ProductionTailList);
+            let mut production_tail_list = $1.production_tail_list().clone();
+            let production_tail = $3.production_tail().clone();
+            production_tail_list.push(production_tail);
+            $$ = AttributeData::ProductionTailList(production_tail_list);
         !}
     .
 
@@ -366,7 +368,7 @@ Predicate: PREDICATE
 
 TaggedPrecedence: "%prec" IDENT
         !{
-            let (name, location) = $2.text_and_location();
+            let (name, location) = $2.text_and_location().unwrap();
             let mut ap = AssociativePrecedence::default();
             if let Some(symbol) = self.symbol_table.use_symbol_named(name, location) {
                 if symbol.is_non_terminal() {
@@ -384,7 +386,7 @@ TaggedPrecedence: "%prec" IDENT
         !}
     | "%prec" LITERAL
         !{
-            let (lexeme, location) = $2.text_and_location();
+            let (lexeme, location) = $2.text_and_location().unwrap();
             let mut ap = AssociativePrecedence::default();
             if let Some(symbol) = self.symbol_table.get_literal_token(lexeme, location) {
                 if symbol.is_non_terminal() {
@@ -404,21 +406,21 @@ TaggedPrecedence: "%prec" IDENT
 
 SymbolList: Symbol
         !{
-            let symbol = $1.symbol().unwrap();
+            let symbol = $1.symbol().clone().unwrap();
             $$ = AttributeData::SymbolList(vec![Rc::clone(&symbol)]);
         !}
     | SymbolList Symbol
         !{
-            let symbol = $2.symbol().unwrap();
-            let mut symbol_list = $2.symbol_list().clone();
-            symbol_list.push(Rc::clone(symbol));
+            let symbol = $2.symbol().clone().unwrap();
+            let mut symbol_list = $1.symbol_list().clone();
+            symbol_list.push(Rc::clone(&symbol));
             $$ = AttributeData::SymbolList(symbol_list);
         !}
     .
 
 Symbol: IDENT
         !{
-            let (name, location) = $1.text_and_location();
+            let (name, location) = $1.text_and_location().unwrap();
             if let Some(symbol) = self.symbol_table.use_symbol_named(name, location) {
                 $$ = AttributeData::Symbol(Some(Rc::clone(symbol)));
             } else {
@@ -428,12 +430,13 @@ Symbol: IDENT
         !}
     | LITERAL
         !{
-            let (lexeme, location) = $1.text_and_location();
+            let (lexeme, location) = $1.text_and_location().unwrap();
             if let Some(symbol) = self.symbol_table.get_literal_token(lexeme, location) {
                 $$ = AttributeData::Symbol(Some(Rc::clone(symbol)));
             } else {
                 self.error(location, &format!("{}: unknown literal)", lexeme));
-                $$ = AttributeData::Symbol(Some(SpecialSymbols::LexicalError));
+                let symbol = self.symbol_table.special_symbol(&SpecialSymbols::LexicalError);
+                $$ = AttributeData::Symbol(Some(symbol));
             }
         !}
     | "%error"

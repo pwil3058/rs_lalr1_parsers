@@ -2,6 +2,9 @@ use std::rc::Rc;
 
 use lexan;
 
+#[cfg(not(feature = "bootstrap"))]
+use crate::alapgen::AATerminal;
+#[cfg(feature = "bootstrap")]
 use crate::bootstrap::AATerminal;
 use crate::state::ProductionTail;
 use crate::symbols::*;

@@ -1,5 +1,5 @@
 
-use std::{fmt, fs::File, io::Read, rc::Rc};
+use std::{fs::File, io::Read, rc::Rc};
 
 use crate::{
     attributes::*,
@@ -58,6 +58,42 @@ impl std::fmt::Display for AATerminal {
         AATerminal::RUSTCODE => write!(f, r###"RUSTCODE"###),
         }
     }
+}
+
+lazy_static! {
+    static ref AALEXAN: lexan::LexicalAnalyzer<AATerminal> = {
+        use AATerminal::*;
+        lexan::LexicalAnalyzer::new(
+            &[
+                (TOKEN, r###"%token"###),
+                (LEFT, r###"%left"###),
+                (RIGHT, r###"%right"###),
+                (NONASSOC, r###"%nonassoc"###),
+                (PRECEDENCE, r###"%prec"###),
+                (SKIP, r###"%skip"###),
+                (ERROR, r###"%error"###),
+                (INJECT, r###"%inject"###),
+                (NEWSECTION, r###"%%"###),
+                (COLON, r###":"###),
+                (VBAR, r###"|"###),
+                (DOT, r###"."###),
+            ],
+            &[
+                (REGEX, r###"(\(.+\))"###),
+                (LITERAL, r###"("(\\"|[^"\t\r\n\v\f])*")"###),
+                (IDENT, r###"([a-zA-Z]+[a-zA-Z0-9_]*)"###),
+                (PREDICATE, r###"(\?\((.|[\n\r])*?\?\))"###),
+                (ACTION, r###"(!\{(.|[\n\r])*?!\})"###),
+                (RUSTCODE, r###"(%\{(.|[\n\r])*?%\})"###),
+            ],
+            &[
+                r###"(/\*(.|[\n\r])*?\*/)"###,
+                r###"(//[^\n\r]*)"###,
+                r###"(\s+)"###,
+            ],
+            AAEND,
+        )
+    };
 }
 
 #[derive(Debug, Clone, Copy, PartialOrd, Ord, PartialEq, Eq)]
@@ -131,733 +167,9 @@ impl std::fmt::Display for AANonTerminal {
     }
 }
 
-lazy_static! {
-    static ref AALEXAN: lexan::LexicalAnalyzer<AATerminal> = {
-        use AATerminal::*;
-        lexan::LexicalAnalyzer::new(
-            &[
-                (TOKEN, r###"%token"###),
-                (LEFT, r###"%left"###),
-                (RIGHT, r###"%right"###),
-                (NONASSOC, r###"%nonassoc"###),
-                (PRECEDENCE, r###"%prec"###),
-                (SKIP, r###"%skip"###),
-                (ERROR, r###"%error"###),
-                (INJECT, r###"%inject"###),
-                (NEWSECTION, r###"%%"###),
-                (COLON, r###":"###),
-                (VBAR, r###"|"###),
-                (DOT, r###"."###),
-            ],
-            &[
-                (REGEX, r###"(\(.+\)(?=\s))"###),
-                (LITERAL, r###"("(\\"|[^"\t\r\n\v\f])*")"###),
-                (IDENT, r###"([a-zA-Z]+[a-zA-Z0-9_]*)"###),
-                (PREDICATE, r###"(\?\((.|[\n\r])*?\?\))"###),
-                (ACTION, r###"(!\{(.|[\n\r])*?!\})"###),
-                (RUSTCODE, r###"(%\{(.|[\n\r])*?%\})"###),
-            ],
-            &[
-                r###"(/\*(.|[\n\r])*?\*/)"###,
-                r###"(//[^\n\r]*)"###,
-                r###"(\s+)"###,
-            ],
-            AAEND,
-        )
-    };
-}
-
 impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData> for GrammarSpecification {
     fn lexical_analyzer(&self) -> &lexan::LexicalAnalyzer<AATerminal> {
         &AALEXAN
-    }
-
-    fn production_data(production_id: u32) -> (AANonTerminal, usize) {
-        match production_id {
-            0 => (AANonTerminal::AASTART, 1),
-            1 => (AANonTerminal::Specification, 4),
-            2 => (AANonTerminal::OptionalInjection, 0),
-            3 => (AANonTerminal::OptionalInjection, 1),
-            4 => (AANonTerminal::InjectionHead, 2),
-            5 => (AANonTerminal::Injection, 2),
-            6 => (AANonTerminal::Preamble, 0),
-            7 => (AANonTerminal::Preamble, 3),
-            8 => (AANonTerminal::Definitions, 3),
-            9 => (AANonTerminal::TokenDefinitions, 2),
-            10 => (AANonTerminal::TokenDefinitions, 4),
-            11 => (AANonTerminal::TokenDefinition, 3),
-            12 => (AANonTerminal::NewTokenName, 1),
-            13 => (AANonTerminal::NewTokenName, 1),
-            14 => (AANonTerminal::Pattern, 1),
-            15 => (AANonTerminal::Pattern, 1),
-            16 => (AANonTerminal::SkipDefinitions, 0),
-            17 => (AANonTerminal::SkipDefinitions, 4),
-            18 => (AANonTerminal::SkipDefinition, 2),
-            19 => (AANonTerminal::PrecedenceDefinitions, 0),
-            20 => (AANonTerminal::PrecedenceDefinitions, 4),
-            21 => (AANonTerminal::PrecedenceDefinition, 2),
-            22 => (AANonTerminal::PrecedenceDefinition, 2),
-            23 => (AANonTerminal::PrecedenceDefinition, 2),
-            24 => (AANonTerminal::TagList, 1),
-            25 => (AANonTerminal::TagList, 2),
-            26 => (AANonTerminal::Tag, 1),
-            27 => (AANonTerminal::Tag, 1),
-            28 => (AANonTerminal::ProductionRules, 3),
-            29 => (AANonTerminal::ProductionRules, 3),
-            30 => (AANonTerminal::ProductionGroup, 3),
-            31 => (AANonTerminal::ProductionGroupHead, 2),
-            32 => (AANonTerminal::ProductionTailList, 1),
-            33 => (AANonTerminal::ProductionTailList, 3),
-            34 => (AANonTerminal::ProductionTail, 0),
-            35 => (AANonTerminal::ProductionTail, 1),
-            36 => (AANonTerminal::ProductionTail, 2),
-            37 => (AANonTerminal::ProductionTail, 1),
-            38 => (AANonTerminal::ProductionTail, 4),
-            39 => (AANonTerminal::ProductionTail, 3),
-            40 => (AANonTerminal::ProductionTail, 3),
-            41 => (AANonTerminal::ProductionTail, 2),
-            42 => (AANonTerminal::ProductionTail, 3),
-            43 => (AANonTerminal::ProductionTail, 2),
-            44 => (AANonTerminal::ProductionTail, 2),
-            45 => (AANonTerminal::ProductionTail, 1),
-            46 => (AANonTerminal::Action, 1),
-            47 => (AANonTerminal::Predicate, 1),
-            48 => (AANonTerminal::TaggedPrecedence, 2),
-            49 => (AANonTerminal::TaggedPrecedence, 2),
-            50 => (AANonTerminal::SymbolList, 1),
-            51 => (AANonTerminal::SymbolList, 2),
-            52 => (AANonTerminal::Symbol, 1),
-            53 => (AANonTerminal::Symbol, 1),
-            54 => (AANonTerminal::Symbol, 1),
-            _ => panic!("malformed production data table"),
-        }
-    }
-
-    fn do_semantic_action(
-        &mut self,
-        aa_production_id: u32,
-        aa_rhs: Vec<AttributeData>,
-        aa_token_stream: &mut lexan::TokenStream<AATerminal>,
-    ) -> AttributeData {
-        let mut aa_lhs = if let Some(a) = aa_rhs.first() {
-            a.clone()
-        } else {
-           AttributeData::default()
-        };
-        match aa_production_id {
-            2 => {
-                // OptionalInjection: <empty>
-                 // no injection so nothing to do 
-            }
-            4 => {
-                // InjectionHead: "%inject" LITERAL
-                
-            let (text, location) = aa_rhs[1].text_and_location().unwrap();
-            let file_path = text.trim_matches('"');
-            match File::open(&file_path) {
-                Ok(mut file) => {
-                    let mut text = String::new();
-                    if let Err(err) = file.read_to_string(&mut text) {
-                        self.error(&location, &format!("Injecting: {}", err));
-                    } else if text.len() == 0 {
-                        self.error(&location, &format!("Injected file \"{}\" is empty.", file_path));
-                    } else {
-                        aa_token_stream.inject(text, file_path.to_string());
-                    }
-                }
-                Err(err) => self.error(&location, &format!("Injecting: {}.", err)),
-            };
-        
-            }
-            6 => {
-                // Preamble: <empty>
-                
-            // no Preamble defined so there's nothing to do
-        
-            }
-            7 => {
-                // Preamble: OptionalInjection RUSTCODE OptionalInjection
-                
-            let text = aa_rhs[1].matched_text.unwrap();
-            self.set_preamble(&text[2..text.len() - 2]);
-        
-            }
-            11 => {
-                // TokenDefinition: "%token" NewTokenName Pattern
-                
-            let (name, location) = aa_rhs[1].text_and_location().unwrap();
-            let pattern = aa_rhs[2].matched_text().unwrap();
-            if let Err(err) = self.symbol_table.new_token(name, pattern, location) {
-                self.error(location, &err.to_string());
-            }
-        
-            }
-            12 => {
-                // NewTokenName: IDENT ?( !Self::is_allowable_name($1.matched_text().unwrap()) ?)
-                
-            let (name, location) = aa_rhs[0].text_and_location().unwrap();
-            self.warning(
-                location,
-                &format!("token name \"{}\" may clash with generated code", name),
-            );
-        
-            }
-            16 => {
-                // SkipDefinitions: <empty>
-                
-            // do nothing
-        
-            }
-            18 => {
-                // SkipDefinition: "%skip" REGEX
-                
-            let skip_rule = aa_rhs[1].matched_text().unwrap();
-            self.symbol_table.add_skip_rule(skip_rule);
-        
-            }
-            19 => {
-                // PrecedenceDefinitions: <empty>
-                
-            // do nothing
-        
-            }
-            21 => {
-                // PrecedenceDefinition: "%left" TagList
-                
-            let mut tag_list = aa_rhs[1].symbol_list().clone();
-            self.symbol_table
-                .set_precedences(Associativity::Left, &mut tag_list);
-        
-            }
-            22 => {
-                // PrecedenceDefinition: "%right" TagList
-                
-            let mut tag_list = aa_rhs[1].symbol_list().clone();
-            self.symbol_table
-                .set_precedences(Associativity::Right, &mut tag_list);
-        
-            }
-            23 => {
-                // PrecedenceDefinition: "%nonassoc" TagList
-                
-            let mut tag_list = aa_rhs[1].symbol_list().clone();
-            self.symbol_table
-                .set_precedences(Associativity::NonAssoc, &mut tag_list);
-        
-            }
-            24 => {
-                // TagList: Tag
-                
-            let tag = aa_rhs[0].symbol().unwrap();
-            aa_lhs = AttributeData::SymbolList(vec![Rc::clone(tag)]);
-        
-            }
-            25 => {
-                // TagList: TagList Tag
-                
-            let mut tag_list = aa_rhs[0].symbol_list().clone();
-            let tag = aa_rhs[1].symbol().unwrap();
-            tag_list.push(Rc::clone(tag));
-            aa_lhs = AttributeData::SymbolList(tag_list);
-        
-            }
-            26 => {
-                // Tag: LITERAL
-                
-            let (text, location) = aa_rhs[0].text_and_location().unwrap();
-            if let Some(symbol) = self.symbol_table.get_literal_token(text, location) {
-                aa_lhs = AttributeData::Symbol(Some(Rc::clone(symbol)));
-            } else {
-                let symbol = self.symbol_table.special_symbol(Some(SpecialSymbols::LexicalError));
-                aa_lhs = AttributeData::Symbol(Some(Rc::clone(symbol)));
-                let msg = format!("Literal token \"{}\" is not known", text);
-                self.error(location, &msg);
-            }
-        
-            }
-            27 => {
-                // Tag: IDENT
-                
-            let (name, location) = aa_rhs[0].text_and_location().unwrap();
-            if let Some(symbol) = self.symbol_table.use_symbol_named(name, location) {
-                aa_lhs = AttributeData::Symbol(Some(Rc::clone(symbol)));
-                if symbol.is_non_terminal() {
-                    self.error(
-                        location,
-                        &format!(
-                            "Non terminal \"{}\" cannot be used as precedence tag.",
-                            name
-                        ),
-                    )
-                }
-            } else {
-                if !Self::is_allowable_name(name) {
-                    self.warning(
-                        location,
-                        &format!("tag name \"{}\" may clash with generated code", name),
-                    );
-                };
-                match self.symbol_table.new_tag(name, location) {
-                    Ok(symbol) => aa_lhs = AttributeData::Symbol(Some(symbol)),
-                    Err(err) => self.error(location, &err.to_string()),
-                }
-            }
-        
-            }
-            30 => {
-                // ProductionGroup: ProductionGroupHead ProductionTailList "."
-                
-            let lhs = aa_rhs[0].left_hand_side();
-            let tails = aa_rhs[1].ProductionTailList();
-            for tail in tails.iter() {
-                self.new_production(Rc::clone(&lhs), tail.clone());
-            }
-        
-            }
-            31 => {
-                // ProductionGroupHead: IDENT ":"
-                
-            let (name, location) = aa_rhs[0].text_and_location().unwrap();
-            if let Some(symbol) = self.symbol_table.use_symbol_named(name, location) {
-                aa_lhs = AttributeData::LeftHandSide(Rc::clone(symbol));
-                if !symbol.is_non_terminal() {
-                    self.error(
-                        location,
-                        &format!(
-                            "Token/tag \"{}\" cannot be used as left hand side of production.",
-                            name
-                        ),
-                    )
-                }
-            } else {
-                if !Self::is_allowable_name(name) {
-                    self.warning(
-                        location,
-                        &format!("Non terminal name \"{}\" may clash with generated code", name),
-                    );
-                };
-                let non_terminal = self.symbol_table.define_non_terminal(name, location);
-                aa_lhs = AttributeData::LeftHandSide(non_terminal);
-            }
-        
-            }
-            32 => {
-                // ProductionTailList: ProductionTail
-                
-            let ProductionTail = aa_rhs[0].ProductionTail().clone();
-            aa_lhs = AttributeData::ProductionTailList(vec![ProductionTail]);
-        
-            }
-            33 => {
-                // ProductionTailList: ProductionTailList "|" ProductionTail
-                
-            let mut ProductionTailList = aa_rhs[0].ProductionTailList().clone();
-            let ProductionTail = aa_rhs[2].ProductionTail().clone();
-            ProductionTailList.push(ProductionTail);
-            aa_lhs = AttributeData::ProductionTailList(ProductionTailList);
-        
-            }
-            34 => {
-                // ProductionTail: <empty>
-                
-            let tail = ProductionTail::new(vec![], None, None, None);
-            aa_lhs = AttributeData::ProductionTail(tail)
-        
-            }
-            35 => {
-                // ProductionTail: Action
-                
-            let action = aa_rhs[0].action().to_string();
-            let tail = ProductionTail::new(vec![], None, None, Some(action));
-            aa_lhs = AttributeData::ProductionTail(tail)
-        
-            }
-            36 => {
-                // ProductionTail: Predicate Action
-                
-            let predicate = aa_rhs[0].predicate().to_string();
-            let action = aa_rhs[1].action().to_string();
-            let tail = ProductionTail::new(vec![], Some(predicate), None, Some(action));
-            aa_lhs = AttributeData::ProductionTail(tail)
-        
-            }
-            37 => {
-                // ProductionTail: Predicate
-                
-            let predicate = aa_rhs[0].predicate().to_string();
-            let tail = ProductionTail::new(vec![], Some(predicate), None, None);
-            aa_lhs = AttributeData::ProductionTail(tail)
-        
-            }
-            38 => {
-                // ProductionTail: SymbolList Predicate TaggedPrecedence Action
-                
-            let rhs = aa_rhs[0].symbol_list().clone();
-            let predicate = aa_rhs[1].predicate().to_string();
-            let tagged_precedence = aa_rhs[2].associative_precedence().clone();
-            let action = aa_rhs[3].action().to_string();
-            let tail = ProductionTail::new(rhs, Some(predicate), Some(tagged_precedence), Some(action));
-            aa_lhs = AttributeData::ProductionTail(tail)
-        
-            }
-            39 => {
-                // ProductionTail: SymbolList Predicate TaggedPrecedence
-                
-            let lhs = aa_rhs[0].symbol_list().clone();
-            let predicate = aa_rhs[1].predicate().to_string();
-            let tagged_precedence = aa_rhs[2].associative_precedence().clone();
-            let tail = ProductionTail::new(lhs, Some(predicate), Some(tagged_precedence), None);
-            aa_lhs = AttributeData::ProductionTail(tail)
-        
-            }
-            40 => {
-                // ProductionTail: SymbolList Predicate Action
-                
-            let lhs = aa_rhs[0].symbol_list().clone();
-            let predicate = aa_rhs[1].predicate().to_string();
-            let action = aa_rhs[2].action().to_string();
-            let tail = ProductionTail::new(lhs, Some(predicate), None, Some(action));
-            aa_lhs = AttributeData::ProductionTail(tail)
-        
-            }
-            41 => {
-                // ProductionTail: SymbolList Predicate
-                
-            let lhs = aa_rhs[0].symbol_list().clone();
-            let predicate = aa_rhs[1].predicate().to_string();
-            let tail = ProductionTail::new(lhs, Some(predicate), None, None);
-            aa_lhs = AttributeData::ProductionTail(tail)
-        
-            }
-            42 => {
-                // ProductionTail: SymbolList TaggedPrecedence Action
-                
-            let lhs = aa_rhs[0].symbol_list().clone();
-            let tagged_precedence = aa_rhs[1].associative_precedence().clone();
-            let action = aa_rhs[2].action().to_string();
-            let tail = ProductionTail::new(lhs, None, Some(tagged_precedence), Some(action));
-            aa_lhs = AttributeData::ProductionTail(tail)
-        
-            }
-            43 => {
-                // ProductionTail: SymbolList TaggedPrecedence
-                
-            let lhs = aa_rhs[0].symbol_list().clone();
-            let tagged_precedence = aa_rhs[1].associative_precedence().clone();
-            let tail = ProductionTail::new(lhs, None, Some(tagged_precedence), None);
-            aa_lhs = AttributeData::ProductionTail(tail)
-        
-            }
-            44 => {
-                // ProductionTail: SymbolList Action
-                
-            let lhs = aa_rhs[0].symbol_list().clone();
-            let action = aa_rhs[1].action().to_string();
-            let tail = ProductionTail::new(lhs, None, None, Some(action));
-            aa_lhs = AttributeData::ProductionTail(tail)
-        
-            }
-            45 => {
-                // ProductionTail: SymbolList
-                
-            let lhs = aa_rhs[0].symbol_list().clone();
-            let tail = ProductionTail::new(lhs, None, None, None);
-            aa_lhs = AttributeData::ProductionTail(tail)
-        
-            }
-            46 => {
-                // Action: ACTION
-                
-            let text = aa_rhs[0].matched_text().unwrap();
-            aa_lhs = AttributeData::Action(text[2..text.len() - 2].to_string());
-        
-            }
-            47 => {
-                // Predicate: PREDICATE
-                
-            let text = aa_rhs[0].matched_text().unwrap();
-            aa_lhs = AttributeData::Predicate(text[2..text.len() - 2].to_string());
-        
-            }
-            48 => {
-                // TaggedPrecedence: "%prec" IDENT
-                
-            let (name, location) = aa_rhs[1].text_and_location();
-            let mut ap = AssociativePrecedence::default();
-            if let Some(symbol) = self.symbol_table.use_symbol_named(name, location) {
-                if symbol.is_non_terminal() {
-                    self.error(
-                        location,
-                        &format!("{}: illegal precedence tag (must be token or tag)", name),
-                    );
-                } else {
-                    ap = symbol.associative_precedence();
-                }
-            } else {
-                self.error(location, &format!("{}: unknown symbol", name));
-            };
-            aa_lhs = AttributeData::AssociativePrecedence(ap);
-        
-            }
-            49 => {
-                // TaggedPrecedence: "%prec" LITERAL
-                
-            let (lexeme, location) = aa_rhs[1].text_and_location();
-            let mut ap = AssociativePrecedence::default();
-            if let Some(symbol) = self.symbol_table.get_literal_token(lexeme, location) {
-                if symbol.is_non_terminal() {
-                    self.error(
-                        location,
-                        &format!("{}: illegal precedence tag (must be token or tag)", lexeme),
-                    );
-                } else {
-                    ap = symbol.associative_precedence();
-                }
-            } else {
-                self.error(location, &format!("{}: unknown literal", lexeme));
-            };
-            aa_lhs = AttributeData::AssociativePrecedence(ap);
-        
-            }
-            50 => {
-                // SymbolList: Symbol
-                
-            let symbol = aa_rhs[0].symbol().unwrap();
-            aa_lhs = AttributeData::SymbolList(vec![Rc::clone(&symbol)]);
-        
-            }
-            51 => {
-                // SymbolList: SymbolList Symbol
-                
-            let symbol = aa_rhs[1].symbol().unwrap();
-            let mut symbol_list = aa_rhs[1].symbol_list().clone();
-            symbol_list.push(Rc::clone(symbol));
-            aa_lhs = AttributeData::SymbolList(symbol_list);
-        
-            }
-            52 => {
-                // Symbol: IDENT
-                
-            let (name, location) = aa_rhs[0].text_and_location();
-            if let Some(symbol) = self.symbol_table.use_symbol_named(name, location) {
-                aa_lhs = AttributeData::Symbol(Some(Rc::clone(symbol)));
-            } else {
-                let symbol = self.symbol_table.use_new_non_terminal(name, location);
-                aa_lhs = AttributeData::Symbol(Some(symbol));
-            }
-        
-            }
-            53 => {
-                // Symbol: LITERAL
-                
-            let (lexeme, location) = aa_rhs[0].text_and_location();
-            if let Some(symbol) = self.symbol_table.get_literal_token(lexeme, location) {
-                aa_lhs = AttributeData::Symbol(Some(Rc::clone(symbol)));
-            } else {
-                self.error(location, &format!("{}: unknown literal)", lexeme));
-                aa_lhs = AttributeData::Symbol(Some(SpecialSymbols::LexicalError));
-            }
-        
-            }
-            54 => {
-                // Symbol: "%error"
-                
-            let symbol = self
-                .symbol_table
-                .special_symbol(&SpecialSymbols::SyntaxError);
-            aa_lhs = AttributeData::Symbol(Some(symbol));
-        
-            }
-            _ => (),
-        };
-        aa_lhs
-    }
-
-    fn goto_state(lhs: &AANonTerminal, current_state: u32) -> u32 {
-        return match current_state {
-            0 => match lhs {
-                AANonTerminal::Specification => 1,
-                AANonTerminal::Preamble => 2,
-                AANonTerminal::OptionalInjection => 6,
-                AANonTerminal::Injection => 3,
-                AANonTerminal::InjectionHead => 5,
-                _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
-            },
-            2 => match lhs {
-                AANonTerminal::Definitions => 7,
-                AANonTerminal::OptionalInjection => 9,
-                AANonTerminal::Injection => 3,
-                AANonTerminal::InjectionHead => 5,
-                AANonTerminal::TokenDefinitions => 8,
-                _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
-            },
-            8 => match lhs {
-                AANonTerminal::OptionalInjection => 15,
-                AANonTerminal::Injection => 3,
-                AANonTerminal::InjectionHead => 5,
-                AANonTerminal::SkipDefinitions => 14,
-                _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
-            },
-            9 => match lhs {
-                AANonTerminal::TokenDefinition => 16,
-                _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
-            },
-            12 => match lhs {
-                AANonTerminal::OptionalInjection => 18,
-                AANonTerminal::Injection => 3,
-                AANonTerminal::InjectionHead => 5,
-                _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
-            },
-            13 => match lhs {
-                AANonTerminal::ProductionRules => 19,
-                AANonTerminal::OptionalInjection => 20,
-                AANonTerminal::Injection => 3,
-                AANonTerminal::InjectionHead => 5,
-                _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
-            },
-            14 => match lhs {
-                AANonTerminal::OptionalInjection => 22,
-                AANonTerminal::Injection => 3,
-                AANonTerminal::InjectionHead => 5,
-                AANonTerminal::PrecedenceDefinitions => 21,
-                _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
-            },
-            15 => match lhs {
-                AANonTerminal::TokenDefinition => 23,
-                _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
-            },
-            17 => match lhs {
-                AANonTerminal::NewTokenName => 24,
-                _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
-            },
-            19 => match lhs {
-                AANonTerminal::ProductionGroup => 26,
-                AANonTerminal::ProductionGroupHead => 27,
-                _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
-            },
-            20 => match lhs {
-                AANonTerminal::ProductionGroup => 29,
-                AANonTerminal::ProductionGroupHead => 27,
-                _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
-            },
-            21 => match lhs {
-                AANonTerminal::OptionalInjection => 30,
-                AANonTerminal::Injection => 3,
-                AANonTerminal::InjectionHead => 5,
-                _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
-            },
-            22 => match lhs {
-                AANonTerminal::SkipDefinition => 31,
-                _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
-            },
-            23 => match lhs {
-                AANonTerminal::OptionalInjection => 33,
-                AANonTerminal::Injection => 3,
-                AANonTerminal::InjectionHead => 5,
-                _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
-            },
-            24 => match lhs {
-                AANonTerminal::Pattern => 34,
-                _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
-            },
-            26 => match lhs {
-                AANonTerminal::OptionalInjection => 37,
-                AANonTerminal::Injection => 3,
-                AANonTerminal::InjectionHead => 5,
-                _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
-            },
-            27 => match lhs {
-                AANonTerminal::ProductionTailList => 38,
-                AANonTerminal::ProductionTail => 39,
-                AANonTerminal::Action => 40,
-                AANonTerminal::Predicate => 41,
-                AANonTerminal::SymbolList => 42,
-                AANonTerminal::Symbol => 45,
-                _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
-            },
-            29 => match lhs {
-                AANonTerminal::OptionalInjection => 50,
-                AANonTerminal::Injection => 3,
-                AANonTerminal::InjectionHead => 5,
-                _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
-            },
-            30 => match lhs {
-                AANonTerminal::PrecedenceDefinition => 51,
-                _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
-            },
-            31 => match lhs {
-                AANonTerminal::OptionalInjection => 55,
-                AANonTerminal::Injection => 3,
-                AANonTerminal::InjectionHead => 5,
-                _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
-            },
-            41 => match lhs {
-                AANonTerminal::Action => 59,
-                _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
-            },
-            42 => match lhs {
-                AANonTerminal::Action => 62,
-                AANonTerminal::Predicate => 60,
-                AANonTerminal::TaggedPrecedence => 61,
-                AANonTerminal::Symbol => 64,
-                _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
-            },
-            51 => match lhs {
-                AANonTerminal::OptionalInjection => 65,
-                AANonTerminal::Injection => 3,
-                AANonTerminal::InjectionHead => 5,
-                _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
-            },
-            52 => match lhs {
-                AANonTerminal::TagList => 66,
-                AANonTerminal::Tag => 67,
-                _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
-            },
-            53 => match lhs {
-                AANonTerminal::TagList => 70,
-                AANonTerminal::Tag => 67,
-                _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
-            },
-            54 => match lhs {
-                AANonTerminal::TagList => 71,
-                AANonTerminal::Tag => 67,
-                _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
-            },
-            58 => match lhs {
-                AANonTerminal::ProductionTail => 72,
-                AANonTerminal::Action => 40,
-                AANonTerminal::Predicate => 41,
-                AANonTerminal::SymbolList => 42,
-                AANonTerminal::Symbol => 45,
-                _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
-            },
-            60 => match lhs {
-                AANonTerminal::Action => 74,
-                AANonTerminal::TaggedPrecedence => 73,
-                _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
-            },
-            61 => match lhs {
-                AANonTerminal::Action => 75,
-                _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
-            },
-            66 => match lhs {
-                AANonTerminal::Tag => 78,
-                _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
-            },
-            70 => match lhs {
-                AANonTerminal::Tag => 78,
-                _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
-            },
-            71 => match lhs {
-                AANonTerminal::Tag => 78,
-                _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
-            },
-            73 => match lhs {
-                AANonTerminal::Action => 79,
-                _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
-            },
-            _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
-        }
     }
 
     fn viable_error_recovery_states(token: &AATerminal) -> Vec<u32> {
@@ -1328,6 +640,697 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData> for GrammarSpec
             },
             _ => panic!("illegal state: {}", state),
         }
+    }
+
+    fn production_data(production_id: u32) -> (AANonTerminal, usize) {
+        match production_id {
+            0 => (AANonTerminal::AASTART, 1),
+            1 => (AANonTerminal::Specification, 4),
+            2 => (AANonTerminal::OptionalInjection, 0),
+            3 => (AANonTerminal::OptionalInjection, 1),
+            4 => (AANonTerminal::InjectionHead, 2),
+            5 => (AANonTerminal::Injection, 2),
+            6 => (AANonTerminal::Preamble, 0),
+            7 => (AANonTerminal::Preamble, 3),
+            8 => (AANonTerminal::Definitions, 3),
+            9 => (AANonTerminal::TokenDefinitions, 2),
+            10 => (AANonTerminal::TokenDefinitions, 4),
+            11 => (AANonTerminal::TokenDefinition, 3),
+            12 => (AANonTerminal::NewTokenName, 1),
+            13 => (AANonTerminal::NewTokenName, 1),
+            14 => (AANonTerminal::Pattern, 1),
+            15 => (AANonTerminal::Pattern, 1),
+            16 => (AANonTerminal::SkipDefinitions, 0),
+            17 => (AANonTerminal::SkipDefinitions, 4),
+            18 => (AANonTerminal::SkipDefinition, 2),
+            19 => (AANonTerminal::PrecedenceDefinitions, 0),
+            20 => (AANonTerminal::PrecedenceDefinitions, 4),
+            21 => (AANonTerminal::PrecedenceDefinition, 2),
+            22 => (AANonTerminal::PrecedenceDefinition, 2),
+            23 => (AANonTerminal::PrecedenceDefinition, 2),
+            24 => (AANonTerminal::TagList, 1),
+            25 => (AANonTerminal::TagList, 2),
+            26 => (AANonTerminal::Tag, 1),
+            27 => (AANonTerminal::Tag, 1),
+            28 => (AANonTerminal::ProductionRules, 3),
+            29 => (AANonTerminal::ProductionRules, 3),
+            30 => (AANonTerminal::ProductionGroup, 3),
+            31 => (AANonTerminal::ProductionGroupHead, 2),
+            32 => (AANonTerminal::ProductionTailList, 1),
+            33 => (AANonTerminal::ProductionTailList, 3),
+            34 => (AANonTerminal::ProductionTail, 0),
+            35 => (AANonTerminal::ProductionTail, 1),
+            36 => (AANonTerminal::ProductionTail, 2),
+            37 => (AANonTerminal::ProductionTail, 1),
+            38 => (AANonTerminal::ProductionTail, 4),
+            39 => (AANonTerminal::ProductionTail, 3),
+            40 => (AANonTerminal::ProductionTail, 3),
+            41 => (AANonTerminal::ProductionTail, 2),
+            42 => (AANonTerminal::ProductionTail, 3),
+            43 => (AANonTerminal::ProductionTail, 2),
+            44 => (AANonTerminal::ProductionTail, 2),
+            45 => (AANonTerminal::ProductionTail, 1),
+            46 => (AANonTerminal::Action, 1),
+            47 => (AANonTerminal::Predicate, 1),
+            48 => (AANonTerminal::TaggedPrecedence, 2),
+            49 => (AANonTerminal::TaggedPrecedence, 2),
+            50 => (AANonTerminal::SymbolList, 1),
+            51 => (AANonTerminal::SymbolList, 2),
+            52 => (AANonTerminal::Symbol, 1),
+            53 => (AANonTerminal::Symbol, 1),
+            54 => (AANonTerminal::Symbol, 1),
+            _ => panic!("malformed production data table"),
+        }
+    }
+
+    fn goto_state(lhs: &AANonTerminal, current_state: u32) -> u32 {
+        return match current_state {
+            0 => match lhs {
+                AANonTerminal::Specification => 1,
+                AANonTerminal::Preamble => 2,
+                AANonTerminal::OptionalInjection => 6,
+                AANonTerminal::Injection => 3,
+                AANonTerminal::InjectionHead => 5,
+                _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
+            },
+            2 => match lhs {
+                AANonTerminal::Definitions => 7,
+                AANonTerminal::OptionalInjection => 9,
+                AANonTerminal::Injection => 3,
+                AANonTerminal::InjectionHead => 5,
+                AANonTerminal::TokenDefinitions => 8,
+                _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
+            },
+            8 => match lhs {
+                AANonTerminal::OptionalInjection => 15,
+                AANonTerminal::Injection => 3,
+                AANonTerminal::InjectionHead => 5,
+                AANonTerminal::SkipDefinitions => 14,
+                _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
+            },
+            9 => match lhs {
+                AANonTerminal::TokenDefinition => 16,
+                _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
+            },
+            12 => match lhs {
+                AANonTerminal::OptionalInjection => 18,
+                AANonTerminal::Injection => 3,
+                AANonTerminal::InjectionHead => 5,
+                _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
+            },
+            13 => match lhs {
+                AANonTerminal::ProductionRules => 19,
+                AANonTerminal::OptionalInjection => 20,
+                AANonTerminal::Injection => 3,
+                AANonTerminal::InjectionHead => 5,
+                _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
+            },
+            14 => match lhs {
+                AANonTerminal::OptionalInjection => 22,
+                AANonTerminal::Injection => 3,
+                AANonTerminal::InjectionHead => 5,
+                AANonTerminal::PrecedenceDefinitions => 21,
+                _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
+            },
+            15 => match lhs {
+                AANonTerminal::TokenDefinition => 23,
+                _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
+            },
+            17 => match lhs {
+                AANonTerminal::NewTokenName => 24,
+                _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
+            },
+            19 => match lhs {
+                AANonTerminal::ProductionGroup => 26,
+                AANonTerminal::ProductionGroupHead => 27,
+                _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
+            },
+            20 => match lhs {
+                AANonTerminal::ProductionGroup => 29,
+                AANonTerminal::ProductionGroupHead => 27,
+                _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
+            },
+            21 => match lhs {
+                AANonTerminal::OptionalInjection => 30,
+                AANonTerminal::Injection => 3,
+                AANonTerminal::InjectionHead => 5,
+                _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
+            },
+            22 => match lhs {
+                AANonTerminal::SkipDefinition => 31,
+                _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
+            },
+            23 => match lhs {
+                AANonTerminal::OptionalInjection => 33,
+                AANonTerminal::Injection => 3,
+                AANonTerminal::InjectionHead => 5,
+                _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
+            },
+            24 => match lhs {
+                AANonTerminal::Pattern => 34,
+                _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
+            },
+            26 => match lhs {
+                AANonTerminal::OptionalInjection => 37,
+                AANonTerminal::Injection => 3,
+                AANonTerminal::InjectionHead => 5,
+                _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
+            },
+            27 => match lhs {
+                AANonTerminal::ProductionTailList => 38,
+                AANonTerminal::ProductionTail => 39,
+                AANonTerminal::Action => 40,
+                AANonTerminal::Predicate => 41,
+                AANonTerminal::SymbolList => 42,
+                AANonTerminal::Symbol => 45,
+                _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
+            },
+            29 => match lhs {
+                AANonTerminal::OptionalInjection => 50,
+                AANonTerminal::Injection => 3,
+                AANonTerminal::InjectionHead => 5,
+                _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
+            },
+            30 => match lhs {
+                AANonTerminal::PrecedenceDefinition => 51,
+                _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
+            },
+            31 => match lhs {
+                AANonTerminal::OptionalInjection => 55,
+                AANonTerminal::Injection => 3,
+                AANonTerminal::InjectionHead => 5,
+                _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
+            },
+            41 => match lhs {
+                AANonTerminal::Action => 59,
+                _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
+            },
+            42 => match lhs {
+                AANonTerminal::Action => 62,
+                AANonTerminal::Predicate => 60,
+                AANonTerminal::TaggedPrecedence => 61,
+                AANonTerminal::Symbol => 64,
+                _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
+            },
+            51 => match lhs {
+                AANonTerminal::OptionalInjection => 65,
+                AANonTerminal::Injection => 3,
+                AANonTerminal::InjectionHead => 5,
+                _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
+            },
+            52 => match lhs {
+                AANonTerminal::TagList => 66,
+                AANonTerminal::Tag => 67,
+                _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
+            },
+            53 => match lhs {
+                AANonTerminal::TagList => 70,
+                AANonTerminal::Tag => 67,
+                _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
+            },
+            54 => match lhs {
+                AANonTerminal::TagList => 71,
+                AANonTerminal::Tag => 67,
+                _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
+            },
+            58 => match lhs {
+                AANonTerminal::ProductionTail => 72,
+                AANonTerminal::Action => 40,
+                AANonTerminal::Predicate => 41,
+                AANonTerminal::SymbolList => 42,
+                AANonTerminal::Symbol => 45,
+                _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
+            },
+            60 => match lhs {
+                AANonTerminal::Action => 74,
+                AANonTerminal::TaggedPrecedence => 73,
+                _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
+            },
+            61 => match lhs {
+                AANonTerminal::Action => 75,
+                _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
+            },
+            66 => match lhs {
+                AANonTerminal::Tag => 78,
+                _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
+            },
+            70 => match lhs {
+                AANonTerminal::Tag => 78,
+                _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
+            },
+            71 => match lhs {
+                AANonTerminal::Tag => 78,
+                _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
+            },
+            73 => match lhs {
+                AANonTerminal::Action => 79,
+                _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
+            },
+            _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
+        }
+    }
+
+    fn do_semantic_action(
+        &mut self,
+        aa_production_id: u32,
+        aa_rhs: Vec<AttributeData>,
+        aa_token_stream: &mut lexan::TokenStream<AATerminal>,
+    ) -> AttributeData {
+        let mut aa_lhs = if let Some(a) = aa_rhs.first() {
+            a.clone()
+        } else {
+           AttributeData::default()
+        };
+        match aa_production_id {
+            2 => {
+                // OptionalInjection: <empty>
+                 // no injection so nothing to do 
+            }
+            4 => {
+                // InjectionHead: "%inject" LITERAL
+                
+            let (text, location) = aa_rhs[1].text_and_location().unwrap();
+            let file_path = text.trim_matches('"');
+            match File::open(&file_path) {
+                Ok(mut file) => {
+                    let mut text = String::new();
+                    if let Err(err) = file.read_to_string(&mut text) {
+                        self.error(&location, &format!("Injecting: {}", err));
+                    } else if text.len() == 0 {
+                        self.error(&location, &format!("Injected file \"{}\" is empty.", file_path));
+                    } else {
+                        aa_token_stream.inject(text, file_path.to_string());
+                    }
+                }
+                Err(err) => self.error(&location, &format!("Injecting: {}.", err)),
+            };
+        
+            }
+            6 => {
+                // Preamble: <empty>
+                
+            // no Preamble defined so there's nothing to do
+        
+            }
+            7 => {
+                // Preamble: OptionalInjection RUSTCODE OptionalInjection
+                
+            let text = aa_rhs[1].matched_text().unwrap();
+            self.set_preamble(&text[2..text.len() - 2]);
+        
+            }
+            11 => {
+                // TokenDefinition: "%token" NewTokenName Pattern
+                
+            let (name, location) = aa_rhs[1].text_and_location().unwrap();
+            let pattern = aa_rhs[2].matched_text().unwrap();
+            if let Err(err) = self.symbol_table.new_token(name, pattern, location) {
+                self.error(location, &err.to_string());
+            }
+        
+            }
+            12 => {
+                // NewTokenName: IDENT ?( !Self::is_allowable_name($1.matched_text().unwrap()) ?)
+                
+            let (name, location) = aa_rhs[0].text_and_location().unwrap();
+            self.warning(
+                location,
+                &format!("token name \"{}\" may clash with generated code", name),
+            );
+        
+            }
+            16 => {
+                // SkipDefinitions: <empty>
+                
+            // do nothing
+        
+            }
+            18 => {
+                // SkipDefinition: "%skip" REGEX
+                
+            let skip_rule = aa_rhs[1].matched_text().unwrap();
+            self.symbol_table.add_skip_rule(skip_rule);
+        
+            }
+            19 => {
+                // PrecedenceDefinitions: <empty>
+                
+            // do nothing
+        
+            }
+            21 => {
+                // PrecedenceDefinition: "%left" TagList
+                
+            let mut tag_list = aa_rhs[1].symbol_list().clone();
+            self.symbol_table
+                .set_precedences(Associativity::Left, &mut tag_list);
+        
+            }
+            22 => {
+                // PrecedenceDefinition: "%right" TagList
+                
+            let mut tag_list = aa_rhs[1].symbol_list().clone();
+            self.symbol_table
+                .set_precedences(Associativity::Right, &mut tag_list);
+        
+            }
+            23 => {
+                // PrecedenceDefinition: "%nonassoc" TagList
+                
+            let mut tag_list = aa_rhs[1].symbol_list().clone();
+            self.symbol_table
+                .set_precedences(Associativity::NonAssoc, &mut tag_list);
+        
+            }
+            24 => {
+                // TagList: Tag
+                
+            let tag = aa_rhs[0].symbol().clone().unwrap();
+            aa_lhs = AttributeData::SymbolList(vec![Rc::clone(&tag)]);
+        
+            }
+            25 => {
+                // TagList: TagList Tag
+                
+            let mut tag_list = aa_rhs[0].symbol_list().clone();
+            let tag = aa_rhs[1].symbol().clone().unwrap();
+            tag_list.push(Rc::clone(&tag));
+            aa_lhs = AttributeData::SymbolList(tag_list);
+        
+            }
+            26 => {
+                // Tag: LITERAL
+                
+            let (text, location) = aa_rhs[0].text_and_location().unwrap();
+            if let Some(symbol) = self.symbol_table.get_literal_token(text, location) {
+                aa_lhs = AttributeData::Symbol(Some(Rc::clone(symbol)));
+            } else {
+                let symbol = self.symbol_table.special_symbol(&SpecialSymbols::LexicalError);
+                aa_lhs = AttributeData::Symbol(Some(symbol));
+                let msg = format!("Literal token \"{}\" is not known", text);
+                self.error(location, &msg);
+            }
+        
+            }
+            27 => {
+                // Tag: IDENT
+                
+            let (name, location) = aa_rhs[0].text_and_location().unwrap();
+            if let Some(symbol) = self.symbol_table.use_symbol_named(name, location) {
+                aa_lhs = AttributeData::Symbol(Some(Rc::clone(symbol)));
+                if symbol.is_non_terminal() {
+                    self.error(
+                        location,
+                        &format!(
+                            "Non terminal \"{}\" cannot be used as precedence tag.",
+                            name
+                        ),
+                    )
+                }
+            } else {
+                if !Self::is_allowable_name(name) {
+                    self.warning(
+                        location,
+                        &format!("tag name \"{}\" may clash with generated code", name),
+                    );
+                };
+                match self.symbol_table.new_tag(name, location) {
+                    Ok(symbol) => aa_lhs = AttributeData::Symbol(Some(symbol)),
+                    Err(err) => self.error(location, &err.to_string()),
+                }
+            }
+        
+            }
+            30 => {
+                // ProductionGroup: ProductionGroupHead ProductionTailList "."
+                
+            let lhs = aa_rhs[0].left_hand_side();
+            let tails = aa_rhs[1].production_tail_list();
+            for tail in tails.iter() {
+                self.new_production(Rc::clone(&lhs), tail.clone());
+            }
+        
+            }
+            31 => {
+                // ProductionGroupHead: IDENT ":"
+                
+            let (name, location) = aa_rhs[0].text_and_location().unwrap();
+            if let Some(symbol) = self.symbol_table.use_symbol_named(name, location) {
+                aa_lhs = AttributeData::LeftHandSide(Rc::clone(symbol));
+                if symbol.is_non_terminal() {
+                    symbol.set_defined_at(location);
+                } else {
+                    self.error(
+                        location,
+                        &format!(
+                            "Token/tag \"{}\" cannot be used as left hand side of production.",
+                            name
+                        ),
+                    );
+                }
+            } else {
+                if !Self::is_allowable_name(name) {
+                    self.warning(
+                        location,
+                        &format!("Non terminal name \"{}\" may clash with generated code", name),
+                    );
+                };
+                let non_terminal = self.symbol_table.define_non_terminal(name, location);
+                aa_lhs = AttributeData::LeftHandSide(non_terminal);
+            }
+        
+            }
+            32 => {
+                // ProductionTailList: ProductionTail
+                
+            let production_tail = aa_rhs[0].production_tail().clone();
+            aa_lhs = AttributeData::ProductionTailList(vec![production_tail]);
+        
+            }
+            33 => {
+                // ProductionTailList: ProductionTailList "|" ProductionTail
+                
+            let mut production_tail_list = aa_rhs[0].production_tail_list().clone();
+            let production_tail = aa_rhs[2].production_tail().clone();
+            production_tail_list.push(production_tail);
+            aa_lhs = AttributeData::ProductionTailList(production_tail_list);
+        
+            }
+            34 => {
+                // ProductionTail: <empty>
+                
+            let tail = ProductionTail::new(vec![], None, None, None);
+            aa_lhs = AttributeData::ProductionTail(tail)
+        
+            }
+            35 => {
+                // ProductionTail: Action
+                
+            let action = aa_rhs[0].action().to_string();
+            let tail = ProductionTail::new(vec![], None, None, Some(action));
+            aa_lhs = AttributeData::ProductionTail(tail)
+        
+            }
+            36 => {
+                // ProductionTail: Predicate Action
+                
+            let predicate = aa_rhs[0].predicate().to_string();
+            let action = aa_rhs[1].action().to_string();
+            let tail = ProductionTail::new(vec![], Some(predicate), None, Some(action));
+            aa_lhs = AttributeData::ProductionTail(tail)
+        
+            }
+            37 => {
+                // ProductionTail: Predicate
+                
+            let predicate = aa_rhs[0].predicate().to_string();
+            let tail = ProductionTail::new(vec![], Some(predicate), None, None);
+            aa_lhs = AttributeData::ProductionTail(tail)
+        
+            }
+            38 => {
+                // ProductionTail: SymbolList Predicate TaggedPrecedence Action
+                
+            let rhs = aa_rhs[0].symbol_list().clone();
+            let predicate = aa_rhs[1].predicate().to_string();
+            let tagged_precedence = aa_rhs[2].associative_precedence().clone();
+            let action = aa_rhs[3].action().to_string();
+            let tail = ProductionTail::new(rhs, Some(predicate), Some(tagged_precedence), Some(action));
+            aa_lhs = AttributeData::ProductionTail(tail)
+        
+            }
+            39 => {
+                // ProductionTail: SymbolList Predicate TaggedPrecedence
+                
+            let lhs = aa_rhs[0].symbol_list().clone();
+            let predicate = aa_rhs[1].predicate().to_string();
+            let tagged_precedence = aa_rhs[2].associative_precedence().clone();
+            let tail = ProductionTail::new(lhs, Some(predicate), Some(tagged_precedence), None);
+            aa_lhs = AttributeData::ProductionTail(tail)
+        
+            }
+            40 => {
+                // ProductionTail: SymbolList Predicate Action
+                
+            let lhs = aa_rhs[0].symbol_list().clone();
+            let predicate = aa_rhs[1].predicate().to_string();
+            let action = aa_rhs[2].action().to_string();
+            let tail = ProductionTail::new(lhs, Some(predicate), None, Some(action));
+            aa_lhs = AttributeData::ProductionTail(tail)
+        
+            }
+            41 => {
+                // ProductionTail: SymbolList Predicate
+                
+            let lhs = aa_rhs[0].symbol_list().clone();
+            let predicate = aa_rhs[1].predicate().to_string();
+            let tail = ProductionTail::new(lhs, Some(predicate), None, None);
+            aa_lhs = AttributeData::ProductionTail(tail)
+        
+            }
+            42 => {
+                // ProductionTail: SymbolList TaggedPrecedence Action
+                
+            let lhs = aa_rhs[0].symbol_list().clone();
+            let tagged_precedence = aa_rhs[1].associative_precedence().clone();
+            let action = aa_rhs[2].action().to_string();
+            let tail = ProductionTail::new(lhs, None, Some(tagged_precedence), Some(action));
+            aa_lhs = AttributeData::ProductionTail(tail)
+        
+            }
+            43 => {
+                // ProductionTail: SymbolList TaggedPrecedence
+                
+            let lhs = aa_rhs[0].symbol_list().clone();
+            let tagged_precedence = aa_rhs[1].associative_precedence().clone();
+            let tail = ProductionTail::new(lhs, None, Some(tagged_precedence), None);
+            aa_lhs = AttributeData::ProductionTail(tail)
+        
+            }
+            44 => {
+                // ProductionTail: SymbolList Action
+                
+            let lhs = aa_rhs[0].symbol_list().clone();
+            let action = aa_rhs[1].action().to_string();
+            let tail = ProductionTail::new(lhs, None, None, Some(action));
+            aa_lhs = AttributeData::ProductionTail(tail)
+        
+            }
+            45 => {
+                // ProductionTail: SymbolList
+                
+            let lhs = aa_rhs[0].symbol_list().clone();
+            let tail = ProductionTail::new(lhs, None, None, None);
+            aa_lhs = AttributeData::ProductionTail(tail)
+        
+            }
+            46 => {
+                // Action: ACTION
+                
+            let text = aa_rhs[0].matched_text().unwrap();
+            aa_lhs = AttributeData::Action(text[2..text.len() - 2].to_string());
+        
+            }
+            47 => {
+                // Predicate: PREDICATE
+                
+            let text = aa_rhs[0].matched_text().unwrap();
+            aa_lhs = AttributeData::Predicate(text[2..text.len() - 2].to_string());
+        
+            }
+            48 => {
+                // TaggedPrecedence: "%prec" IDENT
+                
+            let (name, location) = aa_rhs[1].text_and_location().unwrap();
+            let mut ap = AssociativePrecedence::default();
+            if let Some(symbol) = self.symbol_table.use_symbol_named(name, location) {
+                if symbol.is_non_terminal() {
+                    self.error(
+                        location,
+                        &format!("{}: illegal precedence tag (must be token or tag)", name),
+                    );
+                } else {
+                    ap = symbol.associative_precedence();
+                }
+            } else {
+                self.error(location, &format!("{}: unknown symbol", name));
+            };
+            aa_lhs = AttributeData::AssociativePrecedence(ap);
+        
+            }
+            49 => {
+                // TaggedPrecedence: "%prec" LITERAL
+                
+            let (lexeme, location) = aa_rhs[1].text_and_location().unwrap();
+            let mut ap = AssociativePrecedence::default();
+            if let Some(symbol) = self.symbol_table.get_literal_token(lexeme, location) {
+                if symbol.is_non_terminal() {
+                    self.error(
+                        location,
+                        &format!("{}: illegal precedence tag (must be token or tag)", lexeme),
+                    );
+                } else {
+                    ap = symbol.associative_precedence();
+                }
+            } else {
+                self.error(location, &format!("{}: unknown literal", lexeme));
+            };
+            aa_lhs = AttributeData::AssociativePrecedence(ap);
+        
+            }
+            50 => {
+                // SymbolList: Symbol
+                
+            let symbol = aa_rhs[0].symbol().clone().unwrap();
+            aa_lhs = AttributeData::SymbolList(vec![Rc::clone(&symbol)]);
+        
+            }
+            51 => {
+                // SymbolList: SymbolList Symbol
+                
+            let symbol = aa_rhs[1].symbol().clone().unwrap();
+            let mut symbol_list = aa_rhs[0].symbol_list().clone();
+            symbol_list.push(Rc::clone(&symbol));
+            aa_lhs = AttributeData::SymbolList(symbol_list);
+        
+            }
+            52 => {
+                // Symbol: IDENT
+                
+            let (name, location) = aa_rhs[0].text_and_location().unwrap();
+            if let Some(symbol) = self.symbol_table.use_symbol_named(name, location) {
+                aa_lhs = AttributeData::Symbol(Some(Rc::clone(symbol)));
+            } else {
+                let symbol = self.symbol_table.use_new_non_terminal(name, location);
+                aa_lhs = AttributeData::Symbol(Some(symbol));
+            }
+        
+            }
+            53 => {
+                // Symbol: LITERAL
+                
+            let (lexeme, location) = aa_rhs[0].text_and_location().unwrap();
+            if let Some(symbol) = self.symbol_table.get_literal_token(lexeme, location) {
+                aa_lhs = AttributeData::Symbol(Some(Rc::clone(symbol)));
+            } else {
+                self.error(location, &format!("{}: unknown literal)", lexeme));
+                let symbol = self.symbol_table.special_symbol(&SpecialSymbols::LexicalError);
+                aa_lhs = AttributeData::Symbol(Some(symbol));
+            }
+        
+            }
+            54 => {
+                // Symbol: "%error"
+                
+            let symbol = self
+                .symbol_table
+                .special_symbol(&SpecialSymbols::SyntaxError);
+            aa_lhs = AttributeData::Symbol(Some(symbol));
+        
+            }
+            _ => (),
+        };
+        aa_lhs
     }
 
 }

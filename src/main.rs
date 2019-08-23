@@ -34,8 +34,10 @@ use std::{
     path::{Path, PathBuf},
 };
 
-//mod alapgen;
+#[cfg(not(feature = "bootstrap"))]
+mod alapgen;
 mod attributes;
+#[cfg(feature = "bootstrap")]
 mod bootstrap;
 mod grammar;
 mod state;

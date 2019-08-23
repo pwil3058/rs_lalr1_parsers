@@ -12,6 +12,9 @@ use lexan;
 use crate::state::{GrammarItemKey, GrammarItemSet, ParserState, Production, ProductionTail};
 use crate::symbols::{FirstsData, SpecialSymbols, Symbol, SymbolTable};
 
+#[cfg(not(feature = "bootstrap"))]
+use crate::alapgen::*;
+#[cfg(feature = "bootstrap")]
 use crate::bootstrap::*;
 
 #[derive(Debug)]
@@ -349,7 +352,6 @@ impl Grammar {
         let mut file = std::fs::File::create(file_path)?;
         self.specification.write_preamble_text(&mut file)?;
         self.write_symbol_enum_code(&mut file)?;
-        self.write_lexical_analyzer_code(&mut file)?;
         self.write_parser_implementation_code(&mut file)?;
         Ok(())
     }
@@ -386,6 +388,7 @@ impl Grammar {
         wtr.write(b"        }\n")?;
         wtr.write(b"    }\n")?;
         wtr.write(b"}\n\n")?;
+        self.write_lexical_analyzer_code(wtr)?;
         wtr.write(b"#[derive(Debug, Clone, Copy, PartialOrd, Ord, PartialEq, Eq)]\n")?;
         wtr.write(b"pub enum AANonTerminal {\n")?;
         let non_terminal_symbols = self
@@ -460,11 +463,11 @@ impl Grammar {
         wtr.write(b"    fn lexical_analyzer(&self) -> &lexan::LexicalAnalyzer<AATerminal> {\n")?;
         wtr.write(b"        &AALEXAN\n")?;
         wtr.write(b"    }\n\n")?;
-        self.specification.write_production_data_code(wtr)?;
-        self.specification.write_semantic_action_code(wtr)?;
-        self.write_goto_table_code(wtr)?;
         self.write_error_recovery_code(wtr)?;
         self.write_next_action_code(wtr)?;
+        self.specification.write_production_data_code(wtr)?;
+        self.write_goto_table_code(wtr)?;
+        self.specification.write_semantic_action_code(wtr)?;
         wtr.write(b"}\n")?;
         Ok(())
     }
