@@ -162,10 +162,6 @@ where
         token_stream: &mut lexan::TokenStream<T>,
     ) -> A;
 
-    fn short_circuit() -> bool {
-        false
-    }
-
     fn viable_error_recovery_states(tag: &T) -> Vec<u32>;
 
     fn error_goto_state(state: u32) -> u32;
@@ -184,9 +180,6 @@ where
                     let err = Error::LexicalError(err);
                     self.report_error(&err);
                     result = Err(err);
-                    if Self::short_circuit() {
-                        return result;
-                    }
                     // TODO: think about some error recovery stuff here
                     tokens.advance();
                 }
@@ -212,9 +205,6 @@ where
                             let error = Error::SyntaxError(token.clone(), expected);
                             self.report_error(&error);
                             result = Err(error.clone());
-                            if Self::short_circuit() {
-                                return result;
-                            }
                             let viable_states = Self::viable_error_recovery_states(token.tag());
                             let mut distance = parse_stack.distance_to_viable_state(&viable_states);
                             while distance.is_none() && !tokens.is_empty() {
