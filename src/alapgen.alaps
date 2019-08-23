@@ -325,53 +325,53 @@ ProductionTail:
         !}
     | SymbolList Predicate TaggedPrecedence
         !{
-            let lhs = $1.symbol_list().clone();
+            let rhs = $1.symbol_list().clone();
             let predicate = $2.predicate().to_string();
             let tagged_precedence = $3.associative_precedence().clone();
-            let tail = ProductionTail::new(lhs, Some(predicate), Some(tagged_precedence), None);
+            let tail = ProductionTail::new(rhs, Some(predicate), Some(tagged_precedence), None);
             $$ = AttributeData::ProductionTail(tail)
         !}
     | SymbolList Predicate Action
         !{
-            let lhs = $1.symbol_list().clone();
+            let rhs = $1.symbol_list().clone();
             let predicate = $2.predicate().to_string();
             let action = $3.action().to_string();
-            let tail = ProductionTail::new(lhs, Some(predicate), None, Some(action));
+            let tail = ProductionTail::new(rhs, Some(predicate), None, Some(action));
             $$ = AttributeData::ProductionTail(tail)
         !}
     | SymbolList Predicate
         !{
-            let lhs = $1.symbol_list().clone();
+            let rhs = $1.symbol_list().clone();
             let predicate = $2.predicate().to_string();
-            let tail = ProductionTail::new(lhs, Some(predicate), None, None);
+            let tail = ProductionTail::new(rhs, Some(predicate), None, None);
             $$ = AttributeData::ProductionTail(tail)
         !}
     | SymbolList TaggedPrecedence Action
         !{
-            let lhs = $1.symbol_list().clone();
+            let rhs = $1.symbol_list().clone();
             let tagged_precedence = $2.associative_precedence().clone();
             let action = $3.action().to_string();
-            let tail = ProductionTail::new(lhs, None, Some(tagged_precedence), Some(action));
+            let tail = ProductionTail::new(rhs, None, Some(tagged_precedence), Some(action));
             $$ = AttributeData::ProductionTail(tail)
         !}
     | SymbolList TaggedPrecedence
         !{
-            let lhs = $1.symbol_list().clone();
+            let rhs = $1.symbol_list().clone();
             let tagged_precedence = $2.associative_precedence().clone();
-            let tail = ProductionTail::new(lhs, None, Some(tagged_precedence), None);
+            let tail = ProductionTail::new(rhs, None, Some(tagged_precedence), None);
             $$ = AttributeData::ProductionTail(tail)
         !}
     | SymbolList Action
         !{
-            let lhs = $1.symbol_list().clone();
+            let rhs = $1.symbol_list().clone();
             let action = $2.action().to_string();
-            let tail = ProductionTail::new(lhs, None, None, Some(action));
+            let tail = ProductionTail::new(rhs, None, None, Some(action));
             $$ = AttributeData::ProductionTail(tail)
         !}
     | SymbolList
         !{
-            let lhs = $1.symbol_list().clone();
-            let tail = ProductionTail::new(lhs, None, None, None);
+            let rhs = $1.symbol_list().clone();
+            let tail = ProductionTail::new(rhs, None, None, None);
             $$ = AttributeData::ProductionTail(tail)
         !}
     .
