@@ -356,11 +356,11 @@ impl std::fmt::Display for SpecialSymbols {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         use SpecialSymbols::*;
         match self {
-            Start => write!(f, "{}", AANonTerminal::AASTART),
-            End => write!(f, "{}", AATerminal::AAEND),
-            LexicalError => write!(f, "{}", AANonTerminal::AALEXICALERROR),
-            SyntaxError => write!(f, "{}", AANonTerminal::AASYNTAXERROR),
-            SemanticError => write!(f, "{}", AANonTerminal::AASEMANTICERROR),
+            Start => write!(f, "{}", AANonTerminal::AAStart),
+            End => write!(f, "{}", AATerminal::AAEnd),
+            LexicalError => write!(f, "{}", AANonTerminal::AALexicalError),
+            SyntaxError => write!(f, "{}", AANonTerminal::AASyntaxError),
+            SemanticError => write!(f, "{}", AANonTerminal::AASemanticError),
         }
     }
 }

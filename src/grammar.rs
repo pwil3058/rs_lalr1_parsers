@@ -445,7 +445,7 @@ impl Grammar {
             wtr.write_fmt(format_args!("r###\"{}\"###,\n", skip_rule))?;
         }
         wtr.write(b"            ],\n")?;
-        wtr.write(b"            AAEND,\n")?;
+        wtr.write_fmt(format_args!("            {},\n", AATerminal::AAEnd))?;
         wtr.write(b"        )\n")?;
         wtr.write(b"    };\n")?;
         wtr.write(b"}\n\n")?;

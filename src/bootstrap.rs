@@ -12,7 +12,7 @@ use lexan;
 
 #[derive(Debug, Clone, Copy, PartialOrd, Ord, PartialEq, Eq)]
 pub enum AATerminal {
-    AAEND,
+    AAEnd,
     REGEX,
     LITERAL,
     TOKEN,
@@ -36,7 +36,7 @@ pub enum AATerminal {
 impl std::fmt::Display for AATerminal {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
-            AATerminal::AAEND => write!(f, r###"AAEND"###),
+            AATerminal::AAEnd => write!(f, r###"AAEnd"###),
             AATerminal::REGEX => write!(f, r###"REGEX"###),
             AATerminal::LITERAL => write!(f, r###"LITERAL"###),
             AATerminal::TOKEN => write!(f, r###""%token""###),
@@ -90,17 +90,17 @@ lazy_static! {
                 r###"(//[^\n\r]*)"###,
                 r###"(\s+)"###,
             ],
-            AAEND,
+            AAEnd,
         )
     };
 }
 
 #[derive(Debug, Clone, Copy, PartialOrd, Ord, PartialEq, Eq)]
 pub enum AANonTerminal {
-    AASTART,
-    AALEXICALERROR,
-    AASYNTAXERROR,
-    AASEMANTICERROR,
+    AAStart,
+    AALexicalError,
+    AASyntaxError,
+    AASemanticError,
     Specification,
     Preamble,
     Definitions,
@@ -132,10 +132,10 @@ pub enum AANonTerminal {
 impl std::fmt::Display for AANonTerminal {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
-            AANonTerminal::AASTART => write!(f, r"AASTART"),
-            AANonTerminal::AALEXICALERROR => write!(f, r"AALEXICALERROR"),
-            AANonTerminal::AASYNTAXERROR => write!(f, r"AASYNTAXERROR"),
-            AANonTerminal::AASEMANTICERROR => write!(f, r"AASEMANTICERROR"),
+            AANonTerminal::AAStart => write!(f, r"AAStart"),
+            AANonTerminal::AALexicalError => write!(f, r"AALexicalError"),
+            AANonTerminal::AASyntaxError => write!(f, r"AASyntaxError"),
+            AANonTerminal::AASemanticError => write!(f, r"AASemanticError"),
             AANonTerminal::Specification => write!(f, r"Specification"),
             AANonTerminal::Preamble => write!(f, r"Preamble"),
             AANonTerminal::Definitions => write!(f, r"Definitions"),
@@ -202,9 +202,9 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData> for GrammarSpec
                 _ => Action::SyntaxError(vec![TOKEN, INJECT, RUSTCODE]),
             },
             1 => match aa_tag {
-                // AASTART: Specification
-                AAEND => Action::Accept,
-                _ => Action::SyntaxError(vec![AAEND]),
+                // AAStart: Specification
+                AAEnd => Action::Accept,
+                _ => Action::SyntaxError(vec![AAEnd]),
             },
             2 => match aa_tag {
                 INJECT => Action::Shift(4),
@@ -214,10 +214,10 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData> for GrammarSpec
             },
             3 => match aa_tag {
                 // OptionalInjection: Injection
-                AAEND | TOKEN | LEFT | RIGHT | NONASSOC | SKIP | INJECT | NEWSECTION | IDENT
+                AAEnd | TOKEN | LEFT | RIGHT | NONASSOC | SKIP | INJECT | NEWSECTION | IDENT
                 | RUSTCODE => Action::Reduce(3),
                 _ => Action::SyntaxError(vec![
-                    AAEND, TOKEN, LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION, IDENT, RUSTCODE,
+                    AAEnd, TOKEN, LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION, IDENT, RUSTCODE,
                 ]),
             },
             4 => match aa_tag {
@@ -256,10 +256,10 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData> for GrammarSpec
             },
             11 => match aa_tag {
                 // Injection: InjectionHead "."
-                AAEND | TOKEN | LEFT | RIGHT | NONASSOC | SKIP | INJECT | NEWSECTION | IDENT
+                AAEnd | TOKEN | LEFT | RIGHT | NONASSOC | SKIP | INJECT | NEWSECTION | IDENT
                 | RUSTCODE => Action::Reduce(5),
                 _ => Action::SyntaxError(vec![
-                    AAEND, TOKEN, LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION, IDENT, RUSTCODE,
+                    AAEnd, TOKEN, LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION, IDENT, RUSTCODE,
                 ]),
             },
             12 => match aa_tag {
@@ -305,8 +305,8 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData> for GrammarSpec
             19 => match aa_tag {
                 IDENT => Action::Shift(28),
                 // Specification: Preamble Definitions "%%" ProductionRules
-                AAEND => Action::Reduce(1),
-                _ => Action::SyntaxError(vec![AAEND, IDENT]),
+                AAEnd => Action::Reduce(1),
+                _ => Action::SyntaxError(vec![AAEnd, IDENT]),
             },
             20 => match aa_tag {
                 IDENT => Action::Shift(28),
@@ -354,8 +354,8 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData> for GrammarSpec
             26 => match aa_tag {
                 INJECT => Action::Shift(4),
                 // OptionalInjection: <empty>
-                AAEND | IDENT => Action::Reduce(2),
-                _ => Action::SyntaxError(vec![AAEND, INJECT, IDENT]),
+                AAEnd | IDENT => Action::Reduce(2),
+                _ => Action::SyntaxError(vec![AAEnd, INJECT, IDENT]),
             },
             27 => match aa_tag {
                 LITERAL => Action::Shift(47),
@@ -374,8 +374,8 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData> for GrammarSpec
             29 => match aa_tag {
                 INJECT => Action::Shift(4),
                 // OptionalInjection: <empty>
-                AAEND | IDENT => Action::Reduce(2),
-                _ => Action::SyntaxError(vec![AAEND, INJECT, IDENT]),
+                AAEnd | IDENT => Action::Reduce(2),
+                _ => Action::SyntaxError(vec![AAEnd, INJECT, IDENT]),
             },
             30 => match aa_tag {
                 LEFT => Action::Shift(52),
@@ -423,8 +423,8 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData> for GrammarSpec
             },
             37 => match aa_tag {
                 // ProductionRules: ProductionRules ProductionGroup OptionalInjection
-                AAEND | IDENT => Action::Reduce(29),
-                _ => Action::SyntaxError(vec![AAEND, IDENT]),
+                AAEnd | IDENT => Action::Reduce(29),
+                _ => Action::SyntaxError(vec![AAEnd, IDENT]),
             },
             38 => match aa_tag {
                 VBAR => Action::Shift(58),
@@ -513,8 +513,8 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData> for GrammarSpec
             },
             50 => match aa_tag {
                 // ProductionRules: OptionalInjection ProductionGroup OptionalInjection
-                AAEND | IDENT => Action::Reduce(28),
-                _ => Action::SyntaxError(vec![AAEND, IDENT]),
+                AAEnd | IDENT => Action::Reduce(28),
+                _ => Action::SyntaxError(vec![AAEnd, IDENT]),
             },
             51 => match aa_tag {
                 INJECT => Action::Shift(4),
@@ -549,8 +549,8 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData> for GrammarSpec
             },
             57 => match aa_tag {
                 // ProductionGroup: ProductionGroupHead ProductionTailList "."
-                AAEND | INJECT | IDENT => Action::Reduce(30),
-                _ => Action::SyntaxError(vec![AAEND, INJECT, IDENT]),
+                AAEnd | INJECT | IDENT => Action::Reduce(30),
+                _ => Action::SyntaxError(vec![AAEnd, INJECT, IDENT]),
             },
             58 => match aa_tag {
                 LITERAL => Action::Shift(47),
@@ -709,7 +709,7 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData> for GrammarSpec
 
     fn production_data(production_id: u32) -> (AANonTerminal, usize) {
         match production_id {
-            0 => (AANonTerminal::AASTART, 1),
+            0 => (AANonTerminal::AAStart, 1),
             1 => (AANonTerminal::Specification, 4),
             2 => (AANonTerminal::OptionalInjection, 0),
             3 => (AANonTerminal::OptionalInjection, 1),
