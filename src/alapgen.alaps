@@ -184,10 +184,8 @@ TagList: Tag
         !}
     | TagList Tag
         !{
-            let mut tag_list = $1.symbol_list().clone();
             let tag = $2.symbol();
-            tag_list.push(Rc::clone(&tag));
-            $$ = AttributeData::SymbolList(tag_list);
+            $$.symbol_list_mut().push(Rc::clone(tag));
         !}
     .
 
@@ -436,9 +434,7 @@ SymbolList: Symbol
     | SymbolList Symbol
         !{
             let symbol = $2.symbol();
-            let mut symbol_list = $1.symbol_list().clone();
-            symbol_list.push(Rc::clone(&symbol));
-            $$ = AttributeData::SymbolList(symbol_list);
+            $$.symbol_list_mut().push(Rc::clone(&symbol));
         !}
     .
 

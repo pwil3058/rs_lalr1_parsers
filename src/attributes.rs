@@ -72,6 +72,13 @@ impl AttributeData {
         }
     }
 
+    pub fn symbol_list_mut<'a>(&'a mut self) -> &'a mut Vec<Rc<Symbol>> {
+        match self {
+            AttributeData::SymbolList(list) => list,
+            _ => panic!("Wrong attribute variant."),
+        }
+    }
+
     pub fn left_hand_side<'a>(&'a self) -> &'a Rc<Symbol> {
         match self {
             AttributeData::LeftHandSide(lhs) => lhs,

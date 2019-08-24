@@ -1205,10 +1205,8 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData> for GrammarSpec
             29 => {
                 // TagList: TagList Tag
 
-                let mut tag_list = aa_rhs[0].symbol_list().clone();
                 let tag = aa_rhs[1].symbol();
-                tag_list.push(Rc::clone(&tag));
-                aa_lhs = AttributeData::SymbolList(tag_list);
+                aa_lhs.symbol_list_mut().push(Rc::clone(tag));
             }
             30 => {
                 // Tag: LITERAL
@@ -1468,9 +1466,7 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData> for GrammarSpec
                 // SymbolList: SymbolList Symbol
 
                 let symbol = aa_rhs[1].symbol();
-                let mut symbol_list = aa_rhs[0].symbol_list().clone();
-                symbol_list.push(Rc::clone(&symbol));
-                aa_lhs = AttributeData::SymbolList(symbol_list);
+                aa_lhs.symbol_list_mut().push(Rc::clone(&symbol));
             }
             56 => {
                 // Symbol: IDENT
