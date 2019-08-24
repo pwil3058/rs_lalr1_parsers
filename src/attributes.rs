@@ -32,29 +32,29 @@ impl Default for AttributeData {
 }
 
 impl AttributeData {
-    pub fn matched_text<'a>(&'a self) -> Option<&'a String> {
+    pub fn matched_text<'a>(&'a self) -> &'a String {
         match self {
-            AttributeData::Token(token) => Some(token.lexeme()),
-            AttributeData::SyntaxError(token, _) => Some(token.lexeme()),
+            AttributeData::Token(token) => token.lexeme(),
+            AttributeData::SyntaxError(token, _) => token.lexeme(),
             AttributeData::LexicalError(error) => match error {
-                lexan::Error::UnexpectedText(text, _) => Some(text),
-                lexan::Error::AmbiguousMatches(_, text, _) => Some(text),
-                lexan::Error::AdvancedWhenEmpty(_) => None,
+                lexan::Error::UnexpectedText(text, _) => text,
+                lexan::Error::AmbiguousMatches(_, text, _) => text,
+                lexan::Error::AdvancedWhenEmpty(_) => panic!("Wrong attribute variant."),
             },
-            _ => None, //panic!("Wrong attribute variant."),
+            _ => panic!("Wrong attribute variant."),
         }
     }
 
-    pub fn text_and_location<'a>(&'a self) -> Option<(&'a String, &'a lexan::Location)> {
+    pub fn text_and_location<'a>(&'a self) -> (&'a String, &'a lexan::Location) {
         match self {
-            AttributeData::Token(token) => Some((token.lexeme(), token.location())),
-            AttributeData::SyntaxError(token, _) => Some((token.lexeme(), token.location())),
+            AttributeData::Token(token) => (token.lexeme(), token.location()),
+            AttributeData::SyntaxError(token, _) => (token.lexeme(), token.location()),
             AttributeData::LexicalError(error) => match error {
-                lexan::Error::UnexpectedText(text, location) => Some((text, location)),
-                lexan::Error::AmbiguousMatches(_, text, location) => Some((text, location)),
-                lexan::Error::AdvancedWhenEmpty(_) => None,
+                lexan::Error::UnexpectedText(text, location) => (text, location),
+                lexan::Error::AmbiguousMatches(_, text, location) => (text, location),
+                lexan::Error::AdvancedWhenEmpty(_) => panic!("Wrong attribute variant."),
             },
-            _ => None, // panic!("Wrong attribute variant."),
+            _ => panic!("Wrong attribute variant."),
         }
     }
 

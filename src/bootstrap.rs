@@ -423,10 +423,8 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData> for GrammarSpec
             },
             39 => match aa_tag {
                 REGEX | LITERAL => {
-                    if !Self::is_allowable_name(
-                        aa_attributes.at_len_minus_n(1).matched_text().unwrap(),
-                    ) {
-                        // NewTokenName: IDENT ?( !Self::is_allowable_name($1.matched_text().unwrap()) ?)
+                    if !Self::is_allowable_name(aa_attributes.at_len_minus_n(1).matched_text()) {
+                        // NewTokenName: IDENT ?( !Self::is_allowable_name($1.matched_text()) ?)
                         Action::Reduce(16)
                     } else {
                         // NewTokenName: IDENT
@@ -1100,7 +1098,7 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData> for GrammarSpec
             4 => {
                 // InjectionHead: "%inject" LITERAL
 
-                let (text, location) = aa_rhs[1].text_and_location().unwrap();
+                let (text, location) = aa_rhs[1].text_and_location();
                 let file_path = text.trim_matches('"');
                 match File::open(&file_path) {
                     Ok(mut file) => {
@@ -1128,32 +1126,32 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData> for GrammarSpec
             7 => {
                 // Preamble: OptionalInjection RUSTCODE OptionalInjection
 
-                let text = aa_rhs[1].matched_text().unwrap();
+                let text = aa_rhs[1].matched_text();
                 self.set_preamble(&text[2..text.len() - 2]);
             }
             10 => {
                 // AttributeType: "%attr" IDENT
 
-                self.attribute_type = aa_rhs[1].matched_text().unwrap().to_string();
+                self.attribute_type = aa_rhs[1].matched_text().to_string();
             }
             11 => {
                 // TargetType: "%target" IDENT
 
-                self.target_type = aa_rhs[1].matched_text().unwrap().to_string();
+                self.target_type = aa_rhs[1].matched_text().to_string();
             }
             15 => {
                 // TokenDefinition: "%token" NewTokenName Pattern
 
-                let (name, location) = aa_rhs[1].text_and_location().unwrap();
-                let pattern = aa_rhs[2].matched_text().unwrap();
+                let (name, location) = aa_rhs[1].text_and_location();
+                let pattern = aa_rhs[2].matched_text();
                 if let Err(err) = self.symbol_table.new_token(name, pattern, location) {
                     self.error(location, &err.to_string());
                 }
             }
             16 => {
-                // NewTokenName: IDENT ?( !Self::is_allowable_name($1.matched_text().unwrap()) ?)
+                // NewTokenName: IDENT ?( !Self::is_allowable_name($1.matched_text()) ?)
 
-                let (name, location) = aa_rhs[0].text_and_location().unwrap();
+                let (name, location) = aa_rhs[0].text_and_location();
                 self.warning(
                     location,
                     &format!("token name \"{}\" may clash with generated code", name),
@@ -1168,7 +1166,7 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData> for GrammarSpec
             22 => {
                 // SkipDefinition: "%skip" REGEX
 
-                let skip_rule = aa_rhs[1].matched_text().unwrap();
+                let skip_rule = aa_rhs[1].matched_text();
                 self.symbol_table.add_skip_rule(skip_rule);
             }
             23 => {
@@ -1215,7 +1213,7 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData> for GrammarSpec
             30 => {
                 // Tag: LITERAL
 
-                let (text, location) = aa_rhs[0].text_and_location().unwrap();
+                let (text, location) = aa_rhs[0].text_and_location();
                 if let Some(symbol) = self.symbol_table.get_literal_token(text, location) {
                     aa_lhs = AttributeData::Symbol(Rc::clone(symbol));
                 } else {
@@ -1230,7 +1228,7 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData> for GrammarSpec
             31 => {
                 // Tag: IDENT
 
-                let (name, location) = aa_rhs[0].text_and_location().unwrap();
+                let (name, location) = aa_rhs[0].text_and_location();
                 if let Some(symbol) = self.symbol_table.use_symbol_named(name, location) {
                     aa_lhs = AttributeData::Symbol(Rc::clone(symbol));
                     if symbol.is_non_terminal() {
@@ -1267,7 +1265,7 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData> for GrammarSpec
             35 => {
                 // ProductionGroupHead: IDENT ":"
 
-                let (name, location) = aa_rhs[0].text_and_location().unwrap();
+                let (name, location) = aa_rhs[0].text_and_location();
                 if let Some(symbol) = self.symbol_table.use_symbol_named(name, location) {
                     aa_lhs = AttributeData::LeftHandSide(Rc::clone(symbol));
                     if symbol.is_non_terminal() {
@@ -1413,19 +1411,19 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData> for GrammarSpec
             50 => {
                 // Action: ACTION
 
-                let text = aa_rhs[0].matched_text().unwrap();
+                let text = aa_rhs[0].matched_text();
                 aa_lhs = AttributeData::Action(text[2..text.len() - 2].to_string());
             }
             51 => {
                 // Predicate: PREDICATE
 
-                let text = aa_rhs[0].matched_text().unwrap();
+                let text = aa_rhs[0].matched_text();
                 aa_lhs = AttributeData::Predicate(text[2..text.len() - 2].to_string());
             }
             52 => {
                 // TaggedPrecedence: "%prec" IDENT
 
-                let (name, location) = aa_rhs[1].text_and_location().unwrap();
+                let (name, location) = aa_rhs[1].text_and_location();
                 let mut ap = AssociativePrecedence::default();
                 if let Some(symbol) = self.symbol_table.use_symbol_named(name, location) {
                     if symbol.is_non_terminal() {
@@ -1444,7 +1442,7 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData> for GrammarSpec
             53 => {
                 // TaggedPrecedence: "%prec" LITERAL
 
-                let (lexeme, location) = aa_rhs[1].text_and_location().unwrap();
+                let (lexeme, location) = aa_rhs[1].text_and_location();
                 let mut ap = AssociativePrecedence::default();
                 if let Some(symbol) = self.symbol_table.get_literal_token(lexeme, location) {
                     if symbol.is_non_terminal() {
@@ -1477,7 +1475,7 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData> for GrammarSpec
             56 => {
                 // Symbol: IDENT
 
-                let (name, location) = aa_rhs[0].text_and_location().unwrap();
+                let (name, location) = aa_rhs[0].text_and_location();
                 if let Some(symbol) = self.symbol_table.use_symbol_named(name, location) {
                     aa_lhs = AttributeData::Symbol(Rc::clone(symbol));
                 } else {
@@ -1488,7 +1486,7 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData> for GrammarSpec
             57 => {
                 // Symbol: LITERAL
 
-                let (lexeme, location) = aa_rhs[0].text_and_location().unwrap();
+                let (lexeme, location) = aa_rhs[0].text_and_location();
                 if let Some(symbol) = self.symbol_table.get_literal_token(lexeme, location) {
                     aa_lhs = AttributeData::Symbol(Rc::clone(symbol));
                 } else {

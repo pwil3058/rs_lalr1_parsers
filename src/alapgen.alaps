@@ -51,7 +51,7 @@ OptionalInjection: !{ // no injection so nothing to do !} | Injection .
 
 InjectionHead: "%inject" LITERAL
         !{
-            let (text, location) = $2.text_and_location().unwrap();
+            let (text, location) = $2.text_and_location();
             let file_path = text.trim_matches('"');
             match File::open(&file_path) {
                 Ok(mut file) => {
@@ -80,7 +80,7 @@ Preamble:
         !}
     | OptionalInjection RUSTCODE OptionalInjection
         !{
-            let text = $2.matched_text().unwrap();
+            let text = $2.matched_text();
             self.set_preamble(&text[2..text.len() - 2]);
         !}
     .
@@ -92,13 +92,13 @@ Configuration: AttributeType OptionalInjection TargetType OptionalInjection
 
 AttributeType: "%attr" IDENT
     !{
-        self.attribute_type = $2.matched_text().unwrap().to_string();
+        self.attribute_type = $2.matched_text().to_string();
     !}
     .
 
 TargetType: "%target" IDENT
     !{
-        self.target_type = $2.matched_text().unwrap().to_string();
+        self.target_type = $2.matched_text().to_string();
     !}
     .
 
@@ -111,17 +111,17 @@ TokenDefinitions : OptionalInjection TokenDefinition
 
 TokenDefinition: "%token" NewTokenName Pattern
         !{
-            let (name, location) = $2.text_and_location().unwrap();
-            let pattern = $3.matched_text().unwrap();
+            let (name, location) = $2.text_and_location();
+            let pattern = $3.matched_text();
             if let Err(err) = self.symbol_table.new_token(name, pattern, location) {
                 self.error(location, &err.to_string());
             }
         !}
     .
 
-NewTokenName: IDENT ?( !Self::is_allowable_name($1.matched_text().unwrap()) ?)
+NewTokenName: IDENT ?( !Self::is_allowable_name($1.matched_text()) ?)
         !{
-            let (name, location) = $1.text_and_location().unwrap();
+            let (name, location) = $1.text_and_location();
             self.warning(
                 location,
                 &format!("token name \"{}\" may clash with generated code", name),
@@ -144,7 +144,7 @@ SkipDefinitions : // empty production
 
 SkipDefinition: "%skip" REGEX
         !{
-            let skip_rule = $2.matched_text().unwrap();
+            let skip_rule = $2.matched_text();
             self.symbol_table.add_skip_rule(skip_rule);
         !}
     .
@@ -193,7 +193,7 @@ TagList: Tag
 
 Tag: LITERAL
         !{
-            let (text, location) = $1.text_and_location().unwrap();
+            let (text, location) = $1.text_and_location();
             if let Some(symbol) = self.symbol_table.get_literal_token(text, location) {
                 $$ = AttributeData::Symbol(Rc::clone(symbol));
             } else {
@@ -205,7 +205,7 @@ Tag: LITERAL
         !}
     | IDENT
         !{
-            let (name, location) = $1.text_and_location().unwrap();
+            let (name, location) = $1.text_and_location();
             if let Some(symbol) = self.symbol_table.use_symbol_named(name, location) {
                 $$ = AttributeData::Symbol(Rc::clone(symbol));
                 if symbol.is_non_terminal() {
@@ -249,7 +249,7 @@ ProductionGroup: ProductionGroupHead ProductionTailList "."
 
 ProductionGroupHead: IDENT ":"
         !{
-            let (name, location) = $1.text_and_location().unwrap();
+            let (name, location) = $1.text_and_location();
             if let Some(symbol) = self.symbol_table.use_symbol_named(name, location) {
                 $$ = AttributeData::LeftHandSide(Rc::clone(symbol));
                 if symbol.is_non_terminal() {
@@ -378,21 +378,21 @@ ProductionTail:
 
 Action: ACTION
         !{
-            let text = $1.matched_text().unwrap();
+            let text = $1.matched_text();
             $$ = AttributeData::Action(text[2..text.len() - 2].to_string());
         !}
     .
 
 Predicate: PREDICATE
         !{
-            let text = $1.matched_text().unwrap();
+            let text = $1.matched_text();
             $$ = AttributeData::Predicate(text[2..text.len() - 2].to_string());
         !}
     .
 
 TaggedPrecedence: "%prec" IDENT
         !{
-            let (name, location) = $2.text_and_location().unwrap();
+            let (name, location) = $2.text_and_location();
             let mut ap = AssociativePrecedence::default();
             if let Some(symbol) = self.symbol_table.use_symbol_named(name, location) {
                 if symbol.is_non_terminal() {
@@ -410,7 +410,7 @@ TaggedPrecedence: "%prec" IDENT
         !}
     | "%prec" LITERAL
         !{
-            let (lexeme, location) = $2.text_and_location().unwrap();
+            let (lexeme, location) = $2.text_and_location();
             let mut ap = AssociativePrecedence::default();
             if let Some(symbol) = self.symbol_table.get_literal_token(lexeme, location) {
                 if symbol.is_non_terminal() {
@@ -444,7 +444,7 @@ SymbolList: Symbol
 
 Symbol: IDENT
         !{
-            let (name, location) = $1.text_and_location().unwrap();
+            let (name, location) = $1.text_and_location();
             if let Some(symbol) = self.symbol_table.use_symbol_named(name, location) {
                 $$ = AttributeData::Symbol(Rc::clone(symbol));
             } else {
@@ -454,7 +454,7 @@ Symbol: IDENT
         !}
     | LITERAL
         !{
-            let (lexeme, location) = $1.text_and_location().unwrap();
+            let (lexeme, location) = $1.text_and_location();
             if let Some(symbol) = self.symbol_table.get_literal_token(lexeme, location) {
                 $$ = AttributeData::Symbol(Rc::clone(symbol));
             } else {
