@@ -1,26 +1,44 @@
-use std::{
+pub use std::{
     convert::From,
     default::Default,
-    fmt::{Debug, Display},
+    fmt::{self, Debug, Display},
+    io::Write,
 };
 
 use lexan;
-use std::io::Write;
 
 #[derive(Debug, Clone)]
-pub enum Error<T: Copy + Debug + Eq> {
+pub enum Error<T: Copy + Debug + Display + Eq> {
     LexicalError(lexan::Error<T>),
     SyntaxError(lexan::Token<T>, Vec<T>),
 }
 
-impl<T: Copy + Debug + Eq> std::fmt::Display for Error<T> {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+fn format_vec<T: Display>(vec: &Vec<T>) -> String {
+    let mut string = String::new();
+    let last = vec.len() - 1;
+    for (index, item) in vec.iter().enumerate() {
+        if index == 0 {
+            string += &item.to_string();
+        } else {
+            if index == last {
+                string += " or ";
+            } else {
+                string += ", ";
+            };
+            string += &item.to_string()
+        }
+    }
+    string
+}
+
+impl<T: Copy + Debug + Display + Eq> Display for Error<T> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Error::LexicalError(lex_err) => write!(f, "Lexical Error: {}.", lex_err),
             Error::SyntaxError(found, expected) => write!(
                 f,
-                "Syntax Error: expected: {:?} found: {:?} at: {}.",
-                expected,
+                "Syntax Error: expected: {} found: {} at: {}.",
+                format_vec(&expected),
                 found.tag(),
                 found.location()
             ),
@@ -28,7 +46,7 @@ impl<T: Copy + Debug + Eq> std::fmt::Display for Error<T> {
     }
 }
 
-pub trait ReportError<T: Copy + Debug + Eq> {
+pub trait ReportError<T: Copy + Debug + Display + Eq> {
     fn report_error(&mut self, error: &Error<T>) {
         let message = error.to_string();
         std::io::stderr()
@@ -50,7 +68,7 @@ pub enum Symbol<T, N> {
 #[derive(Debug)]
 pub struct ParseStack<T, N, A>
 where
-    T: Copy + Ord + Debug,
+    T: Copy + Ord + Debug + Display,
     A: From<lexan::Token<T>> + From<Error<T>>,
 {
     states: Vec<(Symbol<T, N>, u32)>,
@@ -60,7 +78,7 @@ where
 
 impl<T, N, A> ParseStack<T, N, A>
 where
-    T: Copy + Ord + Debug,
+    T: Copy + Ord + Debug + Display,
     A: From<lexan::Token<T>> + From<Error<T>>,
 {
     fn new() -> Self {
@@ -75,11 +93,6 @@ where
         self.states.last().unwrap().1
     }
 
-    pub fn attribute_n_from_end<'a>(&'a self, n: usize) -> &'a A {
-        let len = self.attributes.len();
-        &self.attributes[len - n]
-    }
-
     pub fn at_len_minus_n<'a>(&'a self, n: usize) -> &'a A {
         let len = self.attributes.len();
         &self.attributes[len - n]
@@ -90,10 +103,6 @@ where
         self.states.truncate(len - n);
         let len = self.attributes.len();
         self.attributes.split_off(len - n)
-    }
-
-    fn push_attribute(&mut self, attribute: A) {
-        self.attributes.push(attribute);
     }
 
     fn push_error(&mut self, state: u32, error: Error<T>) {
@@ -107,7 +116,8 @@ where
         self.attributes.push(A::from(token));
     }
 
-    fn push_non_terminal(&mut self, non_terminal: N, new_state: u32) {
+    fn push_non_terminal(&mut self, non_terminal: N, attribute: A, new_state: u32) {
+        self.attributes.push(attribute);
         self.states
             .push((Symbol::NonTerminal(non_terminal), new_state));
     }
@@ -141,7 +151,7 @@ pub enum Action<T: Copy + Debug> {
 
 pub trait Parser<T: Ord + Copy + Debug, N, A>
 where
-    T: Ord + Copy + Debug,
+    T: Ord + Copy + Debug + Display,
     N: Ord + Display + Debug,
     A: Default + From<lexan::Token<T>> + From<Error<T>>,
     Self: ReportError<T>,
@@ -174,12 +184,10 @@ where
         loop {
             match tokens.front() {
                 Err(err) => {
-                    if err.is_ambiguous_match() {
-                        panic!("Fatal Error: {}", err);
-                    }
                     let err = Error::LexicalError(err);
                     self.report_error(&err);
                     result = Err(err);
+                    // Sensible thing is to just skip the bad data but ...
                     // TODO: think about some error recovery stuff here
                     tokens.advance();
                 }
@@ -194,12 +202,9 @@ where
                             let (lhs, rhs_len) = Self::production_data(production_id);
                             let rhs = parse_stack.pop_n(rhs_len);
                             let next_state = Self::goto_state(&lhs, parse_stack.current_state());
-                            parse_stack.push_attribute(self.do_semantic_action(
-                                production_id,
-                                rhs,
-                                &mut tokens,
-                            ));
-                            parse_stack.push_non_terminal(lhs, next_state);
+                            let attribute =
+                                self.do_semantic_action(production_id, rhs, &mut tokens);
+                            parse_stack.push_non_terminal(lhs, attribute, next_state);
                         }
                         Action::SyntaxError(expected) => {
                             let error = Error::SyntaxError(token.clone(), expected);

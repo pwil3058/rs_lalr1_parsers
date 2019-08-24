@@ -234,7 +234,7 @@ mod tests {
                     EndMarker | EOL | Plus | Minus | Times | Divide => {
                         if self
                             .variables
-                            .contains_key(&attributes.attribute_n_from_end(2 - 1).id)
+                            .contains_key(&attributes.at_len_minus_n(2 - 1).id)
                         {
                             Action::Reduce(26)
                         } else {
@@ -279,7 +279,7 @@ mod tests {
                     EndMarker | EOL | Plus | Minus | Times | Divide | RPR => {
                         if self
                             .variables
-                            .contains_key(&attributes.attribute_n_from_end(2 - 1).id)
+                            .contains_key(&attributes.at_len_minus_n(2 - 1).id)
                         {
                             Action::Reduce(26)
                         } else {
@@ -296,9 +296,9 @@ mod tests {
                     Times => Action::Shift(13),
                     Divide => Action::Shift(14),
                     EndMarker | EOL | Plus | Minus | RPR => {
-                        if attributes.attribute_n_from_end(4 - 1).value == 0.0 {
+                        if attributes.at_len_minus_n(4 - 1).value == 0.0 {
                             Action::Reduce(9)
-                        } else if attributes.attribute_n_from_end(4 - 3).value == 0.0 {
+                        } else if attributes.at_len_minus_n(4 - 3).value == 0.0 {
                             Action::Reduce(10)
                         } else {
                             Action::Reduce(11)
@@ -310,9 +310,9 @@ mod tests {
                     Times => Action::Shift(13),
                     Divide => Action::Shift(14),
                     EndMarker | EOL | Plus | Minus | RPR => {
-                        if attributes.attribute_n_from_end(4 - 1).value == 0.0 {
+                        if attributes.at_len_minus_n(4 - 1).value == 0.0 {
                             Action::Reduce(12)
-                        } else if attributes.attribute_n_from_end(4 - 3).value == 0.0 {
+                        } else if attributes.at_len_minus_n(4 - 3).value == 0.0 {
                             Action::Reduce(13)
                         } else {
                             Action::Reduce(14)
@@ -322,13 +322,13 @@ mod tests {
                 },
                 21 => match tag {
                     EndMarker | EOL | Plus | Minus | Times | Divide | RPR => {
-                        if attributes.attribute_n_from_end(4 - 1).value == 0.0
-                            || attributes.attribute_n_from_end(4 - 3).value == 0.0
+                        if attributes.at_len_minus_n(4 - 1).value == 0.0
+                            || attributes.at_len_minus_n(4 - 3).value == 0.0
                         {
                             Action::Reduce(15)
-                        } else if attributes.attribute_n_from_end(4 - 1).value == 1.0 {
+                        } else if attributes.at_len_minus_n(4 - 1).value == 1.0 {
                             Action::Reduce(16)
-                        } else if attributes.attribute_n_from_end(4 - 3).value == 1.0 {
+                        } else if attributes.at_len_minus_n(4 - 3).value == 1.0 {
                             Action::Reduce(17)
                         } else {
                             Action::Reduce(18)
@@ -338,13 +338,13 @@ mod tests {
                 },
                 22 => match tag {
                     EndMarker | EOL | Plus | Minus | Times | Divide | RPR => {
-                        if attributes.attribute_n_from_end(4 - 1).value == 0.0
-                            || attributes.attribute_n_from_end(4 - 3).value == 0.0
+                        if attributes.at_len_minus_n(4 - 1).value == 0.0
+                            || attributes.at_len_minus_n(4 - 3).value == 0.0
                         {
                             Action::Reduce(19)
-                        } else if attributes.attribute_n_from_end(4 - 1).value == 1.0 {
+                        } else if attributes.at_len_minus_n(4 - 1).value == 1.0 {
                             Action::Reduce(20)
-                        } else if attributes.attribute_n_from_end(4 - 3).value == 1.0 {
+                        } else if attributes.at_len_minus_n(4 - 3).value == 1.0 {
                             Action::Reduce(21)
                         } else {
                             Action::Reduce(22)
