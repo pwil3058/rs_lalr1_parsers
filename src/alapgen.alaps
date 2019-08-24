@@ -159,21 +159,21 @@ PrecedenceDefinitions : // empty production
 
 PrecedenceDefinition: "%left" TagList
         !{
-            let mut tag_list = $2.symbol_list().clone();
+            let tag_list = $2.symbol_list();
             self.symbol_table
-                .set_precedences(Associativity::Left, &mut tag_list);
+                .set_precedences(Associativity::Left, tag_list);
         !}
     | "%right" TagList
         !{
-            let mut tag_list = $2.symbol_list().clone();
+            let tag_list = $2.symbol_list();
             self.symbol_table
-                .set_precedences(Associativity::Right, &mut tag_list);
+                .set_precedences(Associativity::Right, tag_list);
         !}
     | "%nonassoc" TagList
         !{
-            let mut tag_list = $2.symbol_list().clone();
+            let tag_list = $2.symbol_list();
             self.symbol_table
-                .set_precedences(Associativity::NonAssoc, &mut tag_list);
+                .set_precedences(Associativity::NonAssoc, tag_list);
         !}
     .
 

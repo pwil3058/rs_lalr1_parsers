@@ -1178,23 +1178,23 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData> for GrammarSpec
             25 => {
                 // PrecedenceDefinition: "%left" TagList
 
-                let mut tag_list = aa_rhs[1].symbol_list().clone();
+                let tag_list = aa_rhs[1].symbol_list();
                 self.symbol_table
-                    .set_precedences(Associativity::Left, &mut tag_list);
+                    .set_precedences(Associativity::Left, tag_list);
             }
             26 => {
                 // PrecedenceDefinition: "%right" TagList
 
-                let mut tag_list = aa_rhs[1].symbol_list().clone();
+                let tag_list = aa_rhs[1].symbol_list();
                 self.symbol_table
-                    .set_precedences(Associativity::Right, &mut tag_list);
+                    .set_precedences(Associativity::Right, tag_list);
             }
             27 => {
                 // PrecedenceDefinition: "%nonassoc" TagList
 
-                let mut tag_list = aa_rhs[1].symbol_list().clone();
+                let tag_list = aa_rhs[1].symbol_list();
                 self.symbol_table
-                    .set_precedences(Associativity::NonAssoc, &mut tag_list);
+                    .set_precedences(Associativity::NonAssoc, tag_list);
             }
             28 => {
                 // TagList: Tag
