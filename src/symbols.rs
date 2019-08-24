@@ -248,11 +248,11 @@ impl Symbol {
     }
 
     pub fn is_start_symbol(&self) -> bool {
-        self.name == "AASTART"
+        self.name == AANonTerminal::AAStart.to_string()
     }
 
     pub fn is_syntax_error(&self) -> bool {
-        self.name == "AASYNTAXERROR"
+        self.name == AANonTerminal::AASyntaxError.to_string()
     }
 
     fn is_special_symbol(&self) -> bool {

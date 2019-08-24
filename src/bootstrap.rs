@@ -1355,59 +1355,59 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData> for GrammarSpec
             43 => {
                 // ProductionTail: SymbolList Predicate TaggedPrecedence
 
-                let lhs = aa_rhs[0].symbol_list().clone();
+                let rhs = aa_rhs[0].symbol_list().clone();
                 let predicate = aa_rhs[1].predicate().to_string();
                 let tagged_precedence = aa_rhs[2].associative_precedence().clone();
-                let tail = ProductionTail::new(lhs, Some(predicate), Some(tagged_precedence), None);
+                let tail = ProductionTail::new(rhs, Some(predicate), Some(tagged_precedence), None);
                 aa_lhs = AttributeData::ProductionTail(tail)
             }
             44 => {
                 // ProductionTail: SymbolList Predicate Action
 
-                let lhs = aa_rhs[0].symbol_list().clone();
+                let rhs = aa_rhs[0].symbol_list().clone();
                 let predicate = aa_rhs[1].predicate().to_string();
                 let action = aa_rhs[2].action().to_string();
-                let tail = ProductionTail::new(lhs, Some(predicate), None, Some(action));
+                let tail = ProductionTail::new(rhs, Some(predicate), None, Some(action));
                 aa_lhs = AttributeData::ProductionTail(tail)
             }
             45 => {
                 // ProductionTail: SymbolList Predicate
 
-                let lhs = aa_rhs[0].symbol_list().clone();
+                let rhs = aa_rhs[0].symbol_list().clone();
                 let predicate = aa_rhs[1].predicate().to_string();
-                let tail = ProductionTail::new(lhs, Some(predicate), None, None);
+                let tail = ProductionTail::new(rhs, Some(predicate), None, None);
                 aa_lhs = AttributeData::ProductionTail(tail)
             }
             46 => {
                 // ProductionTail: SymbolList TaggedPrecedence Action
 
-                let lhs = aa_rhs[0].symbol_list().clone();
+                let rhs = aa_rhs[0].symbol_list().clone();
                 let tagged_precedence = aa_rhs[1].associative_precedence().clone();
                 let action = aa_rhs[2].action().to_string();
-                let tail = ProductionTail::new(lhs, None, Some(tagged_precedence), Some(action));
+                let tail = ProductionTail::new(rhs, None, Some(tagged_precedence), Some(action));
                 aa_lhs = AttributeData::ProductionTail(tail)
             }
             47 => {
                 // ProductionTail: SymbolList TaggedPrecedence
 
-                let lhs = aa_rhs[0].symbol_list().clone();
+                let rhs = aa_rhs[0].symbol_list().clone();
                 let tagged_precedence = aa_rhs[1].associative_precedence().clone();
-                let tail = ProductionTail::new(lhs, None, Some(tagged_precedence), None);
+                let tail = ProductionTail::new(rhs, None, Some(tagged_precedence), None);
                 aa_lhs = AttributeData::ProductionTail(tail)
             }
             48 => {
                 // ProductionTail: SymbolList Action
 
-                let lhs = aa_rhs[0].symbol_list().clone();
+                let rhs = aa_rhs[0].symbol_list().clone();
                 let action = aa_rhs[1].action().to_string();
-                let tail = ProductionTail::new(lhs, None, None, Some(action));
+                let tail = ProductionTail::new(rhs, None, None, Some(action));
                 aa_lhs = AttributeData::ProductionTail(tail)
             }
             49 => {
                 // ProductionTail: SymbolList
 
-                let lhs = aa_rhs[0].symbol_list().clone();
-                let tail = ProductionTail::new(lhs, None, None, None);
+                let rhs = aa_rhs[0].symbol_list().clone();
+                let tail = ProductionTail::new(rhs, None, None, None);
                 aa_lhs = AttributeData::ProductionTail(tail)
             }
             50 => {

@@ -88,6 +88,8 @@ impl GrammarSpecification {
 
     pub fn new_production(&mut self, left_hand_side: Rc<Symbol>, tail: ProductionTail) {
         if self.productions.len() == 0 {
+            let location = left_hand_side.defined_at().expect("should be defined");
+            left_hand_side.add_used_at(&location);
             let start_symbol = self.symbol_table.special_symbol(&SpecialSymbols::Start);
             let start_tail =
                 ProductionTail::new(vec![Rc::clone(&left_hand_side)], None, None, None);
