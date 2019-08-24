@@ -1,6 +1,6 @@
 extern crate regex;
 
-use std::fmt::Debug;
+pub use std::fmt::{Debug, Display};
 use std::sync::Arc;
 
 mod analyzer;
@@ -13,14 +13,14 @@ use lexicon::Lexicon;
 
 pub struct LexicalAnalyzer<T>
 where
-    T: Ord + Copy + PartialEq + Debug,
+    T: Ord + Copy + PartialEq + Debug + Display,
 {
     lexicon: Arc<Lexicon<T>>,
 }
 
 impl<T> LexicalAnalyzer<T>
 where
-    T: Ord + Copy + PartialEq + Debug,
+    T: Ord + Copy + PartialEq + Debug + Display,
 {
     pub fn new<'a>(
         literal_lexemes: &[(T, &'a str)],
@@ -44,7 +44,7 @@ where
 mod tests {
     use crate::analyzer::Error;
 
-    #[derive(PartialEq, Eq, Clone, Copy, Hash, Debug, PartialOrd, Ord)]
+    #[derive(PartialEq, Eq, Clone, Copy, Hash, PartialOrd, Ord, Debug)]
     enum Handle {
         If,
         When,
@@ -56,6 +56,24 @@ mod tests {
         Predicate,
         Code,
         End,
+    }
+
+    impl std::fmt::Display for Handle {
+        fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+            use Handle::*;
+            match self {
+                If => write!(f, "\"if\""),
+                When => write!(f, "\"when\""),
+                Ident => write!(f, "Ident"),
+                Btextl => write!(f, "Btextl"),
+                Pred => write!(f, "Pred"),
+                Literal => write!(f, "Literal"),
+                Action => write!(f, "Action"),
+                Predicate => write!(f, "Predicate"),
+                Code => write!(f, "Code"),
+                End => write!(f, "End"),
+            }
+        }
     }
 
     #[test]

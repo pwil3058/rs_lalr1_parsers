@@ -1,12 +1,12 @@
-use std::fmt::Debug;
+pub use std::fmt::{Debug, Display};
 
 use crate::error::LexanError;
 use crate::matcher::{LiteralMatcher, RegexMatcher, SkipMatcher};
 
-#[derive(Default, Debug)]
+#[derive(Default)]
 pub struct Lexicon<T>
 where
-    T: Copy + PartialEq + Debug,
+    T: Copy + PartialEq + Debug + Display,
 {
     literal_matcher: LiteralMatcher<T>,
     regex_matcher: RegexMatcher<T>,
@@ -16,7 +16,7 @@ where
 
 impl<T> Lexicon<T>
 where
-    T: Copy + Eq + Debug + Ord,
+    T: Copy + Eq + Debug + Display + Ord,
 {
     pub fn new<'a>(
         literal_lexemes: &[(T, &'a str)],
@@ -94,7 +94,7 @@ where
 mod tests {
     use super::*;
 
-    #[derive(PartialEq, Eq, Clone, Copy, Hash, Debug, PartialOrd, Ord)]
+    #[derive(PartialEq, Eq, Clone, Copy, Hash, PartialOrd, Ord, Debug)]
     enum Tag {
         If,
         When,
@@ -106,6 +106,24 @@ mod tests {
         Predicate,
         Code,
         End,
+    }
+
+    impl std::fmt::Display for Tag {
+        fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+            use Tag::*;
+            match self {
+                If => write!(f, "\"if\""),
+                When => write!(f, "\"when\""),
+                Ident => write!(f, "Ident"),
+                Btextl => write!(f, "Btextl"),
+                Pred => write!(f, "Pred"),
+                Literal => write!(f, "Literal"),
+                Action => write!(f, "Action"),
+                Predicate => write!(f, "Predicate"),
+                Code => write!(f, "Code"),
+                End => write!(f, "End"),
+            }
+        }
     }
 
     #[test]

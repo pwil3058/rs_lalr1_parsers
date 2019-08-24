@@ -1,5 +1,5 @@
-use std::{
-    fmt::{self, Debug},
+pub use std::{
+    fmt::{self, Debug, Display},
     sync::Arc,
 };
 
@@ -56,14 +56,14 @@ impl fmt::Display for Location {
     }
 }
 
-#[derive(Debug, Clone)]
-pub enum Error<T: Debug + Copy> {
+#[derive(Clone, Debug)]
+pub enum Error<T: Display + Copy> {
     UnexpectedText(String, Location),
     AmbiguousMatches(Vec<T>, String, Location),
     AdvancedWhenEmpty(Location),
 }
 
-impl<T: Debug + Copy> Error<T> {
+impl<T: Display + Copy> Error<T> {
     pub fn is_unexpected_text(&self) -> bool {
         match self {
             Error::UnexpectedText(_, _) => true,
@@ -86,7 +86,7 @@ impl<T: Debug + Copy> Error<T> {
     }
 }
 
-impl<T: Debug + Copy> fmt::Display for Error<T> {
+impl<T: Debug + Display + Copy> fmt::Display for Error<T> {
     fn fmt(&self, dest: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Error::UnexpectedText(text, location) => {
@@ -94,7 +94,7 @@ impl<T: Debug + Copy> fmt::Display for Error<T> {
             }
             Error::AmbiguousMatches(tags, text, location) => write!(
                 dest,
-                "Ambiguous matches {:?} \"{}\" at: {}.",
+                "Ambiguous matches {:#?} \"{}\" at: {}.",
                 tags, text, location
             ),
             Error::AdvancedWhenEmpty(location) => write!(
@@ -106,16 +106,16 @@ impl<T: Debug + Copy> fmt::Display for Error<T> {
     }
 }
 
-impl<T: Debug + Copy> std::error::Error for Error<T> {}
+impl<T: Debug + Display + Copy> std::error::Error for Error<T> {}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Token<T: Debug + Copy + Eq> {
+pub struct Token<T: Display + Copy + Eq> {
     tag: T,
     lexeme: String,
     location: Location,
 }
 
-impl<T: Debug + Copy + Eq> Token<T> {
+impl<T: Display + Copy + Eq> Token<T> {
     pub fn tag<'a>(&'a self) -> &'a T {
         &self.tag
     }
@@ -131,7 +131,7 @@ impl<T: Debug + Copy + Eq> Token<T> {
 
 struct BasicTokenStream<T>
 where
-    T: Debug + Copy + Eq + Ord,
+    T: Debug + Display + Copy + Eq + Ord,
 {
     lexicon: Arc<Lexicon<T>>,
     text: String,
@@ -142,7 +142,7 @@ where
 
 impl<T> BasicTokenStream<T>
 where
-    T: Debug + Copy + Eq + Ord,
+    T: Debug + Display + Copy + Eq + Ord,
 {
     pub fn new(lexicon: &Arc<Lexicon<T>>, text: String, label: String) -> Self {
         let location = Location::new(label);
@@ -255,7 +255,7 @@ where
 
 pub struct TokenStream<T>
 where
-    T: Debug + Copy + Eq + Ord,
+    T: Debug + Display + Copy + Eq + Ord,
 {
     lexicon: Arc<Lexicon<T>>,
     token_stream_stack: Vec<BasicTokenStream<T>>,
@@ -264,7 +264,7 @@ where
 
 impl<'a, T> TokenStream<T>
 where
-    T: Debug + Copy + Eq + Ord,
+    T: Debug + Display + Copy + Eq + Ord,
 {
     pub fn new(lexicon: &Arc<Lexicon<T>>, text: String, label: String) -> Self {
         let mut stream = Self {
@@ -382,6 +382,18 @@ mod tests {
             When,
             Ident,
             End,
+        }
+
+        impl std::fmt::Display for Handle {
+            fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+                use Handle::*;
+                match self {
+                    If => write!(f, "\"if\""),
+                    When => write!(f, "\"when\""),
+                    Ident => write!(f, "Ident"),
+                    End => write!(f, "End"),
+                }
+            }
         }
         use Handle::*;
         let lexicon = Lexicon::new(
