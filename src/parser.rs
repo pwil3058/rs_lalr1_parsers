@@ -165,12 +165,18 @@ where
     ) -> Action<T>;
     fn production_data(production_id: u32) -> (N, usize);
     fn goto_state(lhs: &N, current_state: u32) -> u32;
-    fn do_semantic_action(
+    fn do_semantic_action<F: FnMut(String, String)>(
         &mut self,
-        production_id: u32,
-        attributes: Vec<A>,
-        token_stream: &mut lexan::TokenStream<T>,
-    ) -> A;
+        _production_id: u32,
+        _attributes: Vec<A>,
+        mut inject: F,
+    ) -> A {
+        // NB: required in order to cop with issue #35203
+        inject(String::new(), String::new());
+        // confirm multiple injects OK.
+        inject(String::new(), String::new());
+        A::default()
+    }
 
     fn viable_error_recovery_states(tag: &T) -> Vec<u32>;
 
@@ -202,8 +208,8 @@ where
                             let (lhs, rhs_len) = Self::production_data(production_id);
                             let rhs = parse_stack.pop_n(rhs_len);
                             let next_state = Self::goto_state(&lhs, parse_stack.current_state());
-                            let attribute =
-                                self.do_semantic_action(production_id, rhs, &mut tokens);
+                            let attribute = self
+                                .do_semantic_action(production_id, rhs, |s, l| tokens.inject(s, l));
                             parse_stack.push_non_terminal(lhs, attribute, next_state);
                         }
                         Action::SyntaxError(expected) => {

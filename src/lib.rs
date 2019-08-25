@@ -455,16 +455,16 @@ mod tests {
             }
         }
 
-        fn do_semantic_action(
+        fn do_semantic_action<F: FnMut(String, String)>(
             &mut self,
             production_id: u32,
             rhs: Vec<AttributeData>,
-            token_stream: &mut lexan::TokenStream<Terminal>,
+            mut inject: F,
         ) -> AttributeData {
             let mut lhs = AttributeData::default();
-            let text = String::new();
-            let name = String::new();
-            token_stream.inject(text, name);
+            // test that multiple injects are OK
+            inject(String::new(), String::new());
+            inject(String::new(), String::new());
             match production_id {
                 1 | 4 => {
                     self.report_errors();
