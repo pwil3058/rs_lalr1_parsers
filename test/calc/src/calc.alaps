@@ -42,6 +42,8 @@ struct Calc {
     variables: HashMap<String, f64>,
 }
 
+impl lalr1plus::ReportError<AATerminal> for Calc {}
+
 impl Calc {
     fn report_errors(&self) {
         if self.errors & UNDEFINED_VARIABLE != 0 {

@@ -61,7 +61,7 @@ InjectionHead: "%inject" LITERAL
                     } else if text.len() == 0 {
                         self.error(&location, &format!("Injected file \"{}\" is empty.", file_path));
                     } else {
-                        aa_token_stream.inject(text, file_path.to_string());
+                        aa_inject(text, file_path.to_string());
                     }
                 }
                 Err(err) => self.error(&location, &format!("Injecting: {}.", err)),

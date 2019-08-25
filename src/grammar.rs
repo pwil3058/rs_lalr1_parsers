@@ -213,14 +213,14 @@ impl GrammarSpecification {
     }
 
     pub fn write_semantic_action_code<W: Write>(&self, wtr: &mut W) -> io::Result<()> {
-        wtr.write(b"    fn do_semantic_action(\n")?;
+        wtr.write(b"    fn do_semantic_action<F: FnMut(String, String)>(\n")?;
         wtr.write(b"        &mut self,\n")?;
         wtr.write(b"        aa_production_id: u32,\n")?;
         wtr.write_fmt(format_args!(
             "        aa_rhs: Vec<{}>,\n",
             self.attribute_type
         ))?;
-        wtr.write(b"        aa_token_stream: &mut lexan::TokenStream<AATerminal>,\n")?;
+        wtr.write(b"        mut aa_inject: F,\n")?;
         wtr.write_fmt(format_args!("    ) -> {} {{\n", self.attribute_type))?;
         wtr.write(b"        let mut aa_lhs = if let Some(a) = aa_rhs.first() {\n")?;
         wtr.write(b"            a.clone()\n")?;
@@ -239,7 +239,7 @@ impl GrammarSpecification {
                 wtr.write(b"            }\n")?;
             }
         }
-        wtr.write(b"            _ => (),\n")?;
+        wtr.write(b"            _ => aa_inject(String::new(), String::new()),\n")?;
         wtr.write(b"        };\n")?;
         wtr.write(b"        aa_lhs\n")?;
         wtr.write(b"    }\n\n")?;
@@ -540,21 +540,21 @@ impl Grammar {
     fn write_next_action_code<W: Write>(&self, wtr: &mut W) -> io::Result<()> {
         wtr.write(b"    fn next_action(\n")?;
         wtr.write(b"        &self,\n")?;
-        wtr.write(b"        state: u32,\n")?;
+        wtr.write(b"        aa_state: u32,\n")?;
         wtr.write_fmt(format_args!(
             "        aa_attributes: &lalr1plus::ParseStack<AATerminal, AANonTerminal, {}>,\n",
             self.specification.attribute_type
         ))?;
-        wtr.write(b"        token: &lexan::Token<AATerminal>,\n")?;
+        wtr.write(b"        aa_token: &lexan::Token<AATerminal>,\n")?;
         wtr.write(b"    ) -> lalr1plus::Action<AATerminal> {\n")?;
         wtr.write(b"        use lalr1plus::Action;\n")?;
         wtr.write(b"        use AATerminal::*;\n")?;
-        wtr.write(b"        let aa_tag = *token.tag();\n")?;
-        wtr.write(b"        return match state {\n")?;
+        wtr.write(b"        let aa_tag = *aa_token.tag();\n")?;
+        wtr.write(b"        return match aa_state {\n")?;
         for parser_state in self.parser_states.iter() {
             parser_state.write_next_action_code(wtr, "            ")?;
         }
-        wtr.write(b"            _ => panic!(\"illegal state: {}\", state),\n")?;
+        wtr.write(b"            _ => panic!(\"illegal state: {}\", aa_state),\n")?;
         wtr.write(b"        }\n")?;
         wtr.write(b"    }\n\n")?;
         Ok(())

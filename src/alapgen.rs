@@ -197,14 +197,14 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData> for GrammarSpec
 
     fn next_action(
         &self,
-        state: u32,
+        aa_state: u32,
         aa_attributes: &lalr1plus::ParseStack<AATerminal, AANonTerminal, AttributeData>,
-        token: &lexan::Token<AATerminal>,
+        aa_token: &lexan::Token<AATerminal>,
     ) -> lalr1plus::Action<AATerminal> {
         use lalr1plus::Action;
         use AATerminal::*;
-        let aa_tag = *token.tag();
-        return match state {
+        let aa_tag = *aa_token.tag();
+        return match aa_state {
             0 => match aa_tag {
                 INJECT => Action::Shift(4),
                 // OptionalInjection: <empty>
@@ -785,7 +785,7 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData> for GrammarSpec
                 VBAR | DOT => Action::Reduce(42),
                 _ => Action::SyntaxError(vec![VBAR, DOT]),
             },
-            _ => panic!("illegal state: {}", state),
+            _ => panic!("illegal state: {}", aa_state),
         };
     }
 
@@ -1079,11 +1079,11 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData> for GrammarSpec
         };
     }
 
-    fn do_semantic_action(
+    fn do_semantic_action<F: FnMut(String, String)>(
         &mut self,
         aa_production_id: u32,
         aa_rhs: Vec<AttributeData>,
-        aa_token_stream: &mut lexan::TokenStream<AATerminal>,
+        mut aa_inject: F,
     ) -> AttributeData {
         let mut aa_lhs = if let Some(a) = aa_rhs.first() {
             a.clone()
@@ -1111,7 +1111,7 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData> for GrammarSpec
                                 &format!("Injected file \"{}\" is empty.", file_path),
                             );
                         } else {
-                            aa_token_stream.inject(text, file_path.to_string());
+                            aa_inject(text, file_path.to_string());
                         }
                     }
                     Err(err) => self.error(&location, &format!("Injecting: {}.", err)),
@@ -1501,7 +1501,7 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData> for GrammarSpec
                     .special_symbol(&SpecialSymbols::SyntaxError);
                 aa_lhs = AttributeData::Symbol(symbol);
             }
-            _ => (),
+            _ => aa_inject(String::new(), String::new()),
         };
         aa_lhs
     }
