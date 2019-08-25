@@ -190,11 +190,12 @@ where
         loop {
             match tokens.front() {
                 Err(err) => {
-                    let err = Error::LexicalError(err);
-                    self.report_error(&err);
-                    result = Err(err);
+                    let error = Error::LexicalError(err);
+                    self.report_error(&error);
+                    result = Err(error.clone());
                     // Sensible thing is to just skip the bad data but ...
                     // TODO: think about some error recovery stuff here
+                    parse_stack.push_error(parse_stack.current_state(), error);
                     tokens.advance();
                 }
                 Ok(token) => {
