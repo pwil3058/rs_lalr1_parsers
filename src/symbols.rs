@@ -3,11 +3,6 @@ use std::{cell::RefCell, fmt, rc::Rc};
 use lexan;
 use ordered_collections::{OrderedMap, OrderedSet};
 
-#[cfg(not(feature = "bootstrap"))]
-use crate::alapgen::{AANonTerminal, AATerminal};
-#[cfg(feature = "bootstrap")]
-use crate::bootstrap::{AANonTerminal, AATerminal};
-
 #[derive(Debug)]
 pub enum Error {
     AlreadyDefined(Rc<Symbol>),
@@ -71,7 +66,7 @@ impl Default for AssociativePrecedence {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct FirstsData {
     pub token_set: OrderedSet<Rc<Symbol>>,
     pub transparent: bool,
@@ -248,11 +243,11 @@ impl Symbol {
     }
 
     pub fn is_start_symbol(&self) -> bool {
-        self.name == AANonTerminal::AAStart.to_string()
+        self.name == SpecialSymbols::Start.to_string()
     }
 
     pub fn is_syntax_error(&self) -> bool {
-        self.name == AANonTerminal::AASyntaxError.to_string()
+        self.name == SpecialSymbols::SyntaxError.to_string()
     }
 
     fn is_special_symbol(&self) -> bool {
@@ -369,15 +364,17 @@ pub enum SpecialSymbols {
     SemanticError,
 }
 
+const NUM_SPECIAL_SYMBOLS: u32 = 5;
+
 impl std::fmt::Display for SpecialSymbols {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         use SpecialSymbols::*;
         match self {
-            Start => write!(f, "{}", AANonTerminal::AAStart),
-            End => write!(f, "{}", AATerminal::AAEnd),
-            LexicalError => write!(f, "{}", AANonTerminal::AALexicalError),
-            SyntaxError => write!(f, "{}", AANonTerminal::AASyntaxError),
-            SemanticError => write!(f, "{}", AANonTerminal::AASemanticError),
+            Start => write!(f, "AAStart"),
+            End => write!(f, "AAEnd"),
+            LexicalError => write!(f, "AALexicalError"),
+            SyntaxError => write!(f, "AASyntaxError"),
+            SemanticError => write!(f, "AASemanticError"),
         }
     }
 }
@@ -393,8 +390,6 @@ pub struct SymbolTable {
     next_precedence: u32,
     next_ident: u32,
 }
-
-const NUM_SPECIAL_SYMBOLS: u32 = 5;
 
 impl SymbolTable {
     pub fn new() -> Self {
