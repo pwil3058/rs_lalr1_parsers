@@ -359,8 +359,8 @@ pub fn format_as_or_list(symbol_set: &OrderedSet<Rc<Symbol>>) -> String {
 pub enum SpecialSymbols {
     Start,
     End,
-    LexicalError,
     SyntaxError,
+    LexicalError,
     SemanticError,
 }
 
@@ -372,8 +372,8 @@ impl std::fmt::Display for SpecialSymbols {
         match self {
             Start => write!(f, "AAStart"),
             End => write!(f, "AAEnd"),
-            LexicalError => write!(f, "AALexicalError"),
             SyntaxError => write!(f, "AASyntaxError"),
+            LexicalError => write!(f, "AALexicalError"),
             SemanticError => write!(f, "AASemanticError"),
         }
     }
@@ -413,14 +413,14 @@ impl SymbolTable {
             .insert(SpecialSymbols::End, token.unwrap());
 
         let symbol =
-            st.define_non_terminal(&SpecialSymbols::LexicalError.to_string(), &start_location);
-        st.special_symbols
-            .insert(SpecialSymbols::LexicalError, symbol);
-
-        let symbol =
             st.define_non_terminal(&SpecialSymbols::SyntaxError.to_string(), &start_location);
         st.special_symbols
             .insert(SpecialSymbols::SyntaxError, symbol);
+
+        let symbol =
+            st.define_non_terminal(&SpecialSymbols::LexicalError.to_string(), &start_location);
+        st.special_symbols
+            .insert(SpecialSymbols::LexicalError, symbol);
 
         let symbol =
             st.define_non_terminal(&SpecialSymbols::SemanticError.to_string(), &start_location);
@@ -470,6 +470,12 @@ impl SymbolTable {
 
     pub fn special_symbol(&self, t: &SpecialSymbols) -> Rc<Symbol> {
         Rc::clone(self.special_symbols.get(t).unwrap())
+    }
+
+    pub fn use_special_symbol(&self, t: &SpecialSymbols, location: &lexan::Location) -> Rc<Symbol> {
+        let symbol = self.special_symbols.get(t).unwrap();
+        symbol.add_used_at(location);
+        Rc::clone(symbol)
     }
 
     pub fn use_symbol_named(

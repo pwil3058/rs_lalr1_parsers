@@ -461,9 +461,10 @@ Symbol: IDENT
         !}
     | "%error"
         !{
+            let location = aa_rhs[0].location();
             let symbol = self
                 .symbol_table
-                .special_symbol(&SpecialSymbols::SyntaxError);
+                .use_special_symbol(&SpecialSymbols::SyntaxError, location);
             $$ = AttributeData::Symbol(symbol);
         !}
     .

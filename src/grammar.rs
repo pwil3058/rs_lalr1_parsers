@@ -90,7 +90,9 @@ impl GrammarSpecification {
         if self.productions.len() == 0 {
             let location = left_hand_side.defined_at().expect("should be defined");
             left_hand_side.add_used_at(&location);
-            let start_symbol = self.symbol_table.special_symbol(&SpecialSymbols::Start);
+            let start_symbol = self
+                .symbol_table
+                .use_special_symbol(&SpecialSymbols::Start, &location);
             let start_tail =
                 ProductionTail::new(vec![Rc::clone(&left_hand_side)], None, None, None);
             let start_production = Production::new(0, start_symbol, start_tail);

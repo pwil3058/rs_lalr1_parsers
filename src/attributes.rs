@@ -45,6 +45,19 @@ impl AttributeData {
         }
     }
 
+    pub fn location<'a>(&'a self) -> &'a lexan::Location {
+        match self {
+            AttributeData::Token(token) => token.location(),
+            AttributeData::SyntaxError(token, _) => token.location(),
+            AttributeData::LexicalError(error) => match error {
+                lexan::Error::UnexpectedText(_, location) => location,
+                lexan::Error::AmbiguousMatches(_, _, location) => location,
+                lexan::Error::AdvancedWhenEmpty(location) => location,
+            },
+            _ => panic!("Wrong attribute variant."),
+        }
+    }
+
     pub fn text_and_location<'a>(&'a self) -> (&'a String, &'a lexan::Location) {
         match self {
             AttributeData::Token(token) => (token.lexeme(), token.location()),

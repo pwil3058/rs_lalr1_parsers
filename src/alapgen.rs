@@ -104,8 +104,8 @@ lazy_static! {
 #[derive(Debug, Clone, Copy, PartialOrd, Ord, PartialEq, Eq)]
 pub enum AANonTerminal {
     AAStart,
-    AALexicalError,
     AASyntaxError,
+    AALexicalError,
     AASemanticError,
     Specification,
     Preamble,
@@ -142,8 +142,8 @@ impl std::fmt::Display for AANonTerminal {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
             AANonTerminal::AAStart => write!(f, r"AAStart"),
-            AANonTerminal::AALexicalError => write!(f, r"AALexicalError"),
             AANonTerminal::AASyntaxError => write!(f, r"AASyntaxError"),
+            AANonTerminal::AALexicalError => write!(f, r"AALexicalError"),
             AANonTerminal::AASemanticError => write!(f, r"AASemanticError"),
             AANonTerminal::Specification => write!(f, r"Specification"),
             AANonTerminal::Preamble => write!(f, r"Preamble"),
@@ -1496,9 +1496,10 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData> for GrammarSpec
             58 => {
                 // Symbol: "%error"
 
+                let location = aa_rhs[0].location();
                 let symbol = self
                     .symbol_table
-                    .special_symbol(&SpecialSymbols::SyntaxError);
+                    .use_special_symbol(&SpecialSymbols::SyntaxError, location);
                 aa_lhs = AttributeData::Symbol(symbol);
             }
             _ => aa_inject(String::new(), String::new()),
