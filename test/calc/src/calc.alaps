@@ -4,7 +4,7 @@ use std::convert::From;
 use std::str::FromStr;
 
 #[derive(Debug, Clone)]
-enum AttributeData {
+pub enum AttributeData {
     Token(lexan::Token<AATerminal>),
     Error(lalr1plus::Error<AATerminal>),
     Value(f64),
@@ -62,7 +62,7 @@ const SYNTAX_ERROR: u32 = 1 << 2;
 const LEXICAL_ERROR: u32 = 1 << 3;
 
 
-struct Calc {
+pub struct Calc {
     errors: u32,
     variables: HashMap<String, f64>,
 }
@@ -70,6 +70,18 @@ struct Calc {
 impl lalr1plus::ReportError<AATerminal> for Calc {}
 
 impl Calc {
+    pub fn new() -> Self {
+        Self { errors: 0, variables: HashMap::new() }
+    }
+
+    pub fn variable(&self, name: &str) -> Option<f64> {
+        if let Some(value) = self.variables.get(name) {
+            Some(*value)
+        } else {
+            None
+        }
+    }
+
     fn report_errors(&self) {
         if self.errors & UNDEFINED_VARIABLE != 0 {
             println!("Undefined variable(s).")
