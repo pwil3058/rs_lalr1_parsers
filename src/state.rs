@@ -57,7 +57,6 @@ impl_ident_cmp!(Production);
 
 lazy_static! {
     static ref RHS_CRE: regex::Regex = regex::Regex::new(r"\$(\d+)").unwrap();
-    static ref NEXT_TOKEN_CRE: regex::Regex = regex::Regex::new(r"\$#").unwrap();
 }
 
 fn rhs_associated_precedence(symbols: &[Rc<Symbol>]) -> Option<AssociativePrecedence> {
@@ -122,7 +121,7 @@ impl Production {
                     )
                 })
                 .to_string();
-            let string = NEXT_TOKEN_CRE.replace_all(&string, "aa_tag").to_string();
+            let string = string.replace("$?", "aa_tag");
             Some(string)
         } else {
             None
@@ -131,8 +130,10 @@ impl Production {
 
     pub fn expanded_action(&self) -> Option<String> {
         if let Some(action) = &self.tail.action {
+            let string = action.replace("$$", "aa_lhs");
+            let string = string.replace("$INJECT", "aa_inject");
             let string = RHS_CRE
-                .replace_all(&action.replace("$$", "aa_lhs"), |caps: &regex::Captures| {
+                .replace_all(&string, |caps: &regex::Captures| {
                     format!("aa_rhs[{}]", usize::from_str(&caps[1]).unwrap() - 1)
                 })
                 .to_string();
