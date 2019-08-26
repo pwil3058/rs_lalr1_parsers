@@ -3,31 +3,56 @@ use std::collections::HashMap;
 use std::convert::From;
 use std::str::FromStr;
 
-#[derive(Debug, Default, Clone)]
-struct AttributeData {
-    id: String,
-    value: f64,
+#[derive(Debug, Clone)]
+enum AttributeData {
+    Token(lexan::Token<AATerminal>),
+    Error(lalr1plus::Error<AATerminal>),
+    Value(f64),
+    Id(String),
+    Default
+}
+
+impl Default for AttributeData {
+    fn default() -> Self {
+        AttributeData::Default
+    }
+}
+
+impl AttributeData {
+    fn id(&self) -> &String {
+        match self {
+            AttributeData::Id(id) => id,
+            _ => panic!("invalid variant"),
+        }
+    }
+
+    fn value(&self) -> f64 {
+        match self {
+            AttributeData::Value(value) => *value,
+            _ => panic!("invalid variant"),
+        }
+    }
 }
 
 impl From<lexan::Token<AATerminal>> for AttributeData {
     fn from(input: lexan::Token<AATerminal>) -> Self {
-        let mut attr = AttributeData::default();
         match input.tag() {
             AATerminal::NUMBER => {
-                attr.value = f64::from_str(input.lexeme()).unwrap();
+                let value = f64::from_str(input.lexeme()).unwrap();
+                AttributeData::Value(value)
             }
             AATerminal::ID => {
-                attr.id = input.lexeme().to_string();
+                let id = input.lexeme().to_string();
+                AttributeData::Id(id)
             }
-            _ => (),
-        };
-        attr
+            _ => AttributeData::Token(input.clone()),
+        }
     }
 }
 
 impl From<lalr1plus::Error<AATerminal>> for AttributeData {
-    fn from(_error: lalr1plus::Error<AATerminal>) -> Self {
-        AttributeData::default()
+    fn from(error: lalr1plus::Error<AATerminal>) -> Self {
+        AttributeData::Error(error.clone())
     }
 }
 
@@ -87,8 +112,8 @@ impl Calc {
 
 %%
 Line: SetUp Expr ?(self.errors > 0?) !{self.report_errors();!}
-    | SetUp Expr !{println!("{}", $2.value);!}
-    | SetUp ID "=" Expr ?(self.errors == 0?) !{self.variables.insert($2.id.clone(), $4.value);!}
+    | SetUp Expr !{println!("{}", $2.value());!}
+    | SetUp ID "=" Expr ?(self.errors == 0?) !{self.variables.insert($2.id().clone(), $4.value());!}
     | SetUp ID "=" Expr !{self.report_errors();!}
     | Line EOL Line
     | Line EOL
@@ -97,23 +122,23 @@ Line: SetUp Expr ?(self.errors > 0?) !{self.report_errors();!}
 
 SetUp: !{self.errors = 0;!}.
 
-Expr: Expr "+" Expr ?($1.value == 0.0?) !{$$.value = $3.value;!}
-    | Expr "+" Expr ?($3.value == 0.0?) !{$$.value = $1.value;!}
-    | Expr "+" Expr !{$$.value = $1.value + $3.value;!}
-    | Expr "-" Expr ?($1.value == 0.0?) !{$$.value = -$3.value;!}
-    | Expr "-" Expr ?($3.value == 0.0?) !{$$.value = $1.value;!}
-    | Expr "-" Expr !{$$.value = $1.value - $3.value;!}
-    | Expr "*" Expr ?($1.value == 0.0 || $3.value == 0.0?) !{$$.value = -$3.value;!}
-    | Expr "*" Expr ?($1.value == 1.0?) !{$$.value = $3.value;!}
-    | Expr "*" Expr ?($3.value == 1.0?) !{$$.value = $1.value;!}
-    | Expr "*" Expr !{$$.value = $1.value * $3.value;!}
-    | Expr "/" Expr ?($3.value == 1.0?) !{$$.value = $1.value;!}
-    | Expr "/" Expr ?($3.value == 0.0?) !{self.errors |= DIVIDE_BY_ZERO;!}
-    | Expr "/" Expr ?($1.value == 0.0?) !{$$.value = 0.0;!}
-    | Expr "/" Expr !{$$.value = $1.value / $3.value;!}
-    | "(" Expr ")" !{$$.value = $2.value;!}
-    | "-" Expr %prec UMINUS !{$$.value = -$2.value;!}
-    | NUMBER !{$$.value = $1.value;!}
-    | ID ?(self.variables.contains_key(&$1.id)?) !{$$.value = self.variables[&$1.id];!}
-    | ID !{self.errors |= UNDEFINED_VARIABLE; $$.value = 0.0;!}
+Expr: Expr "+" Expr ?($1.value() == 0.0?) !{$$ = AttributeData::Value($3.value());!}
+    | Expr "+" Expr ?($3.value() == 0.0?) !{$$ = AttributeData::Value($1.value());!}
+    | Expr "+" Expr !{$$ = AttributeData::Value($1.value() + $3.value());!}
+    | Expr "-" Expr ?($1.value() == 0.0?) !{$$ = AttributeData::Value(-$3.value());!}
+    | Expr "-" Expr ?($3.value() == 0.0?) !{$$ = AttributeData::Value($1.value());!}
+    | Expr "-" Expr !{$$ = AttributeData::Value($1.value() - $3.value());!}
+    | Expr "*" Expr ?($1.value() == 0.0 || $3.value() == 0.0?) !{$$ = AttributeData::Value(-$3.value());!}
+    | Expr "*" Expr ?($1.value() == 1.0?) !{$$ = AttributeData::Value($3.value());!}
+    | Expr "*" Expr ?($3.value() == 1.0?) !{$$ = AttributeData::Value($1.value());!}
+    | Expr "*" Expr !{$$ = AttributeData::Value($1.value() * $3.value());!}
+    | Expr "/" Expr ?($3.value() == 1.0?) !{$$ = AttributeData::Value($1.value());!}
+    | Expr "/" Expr ?($3.value() == 0.0?) !{self.errors |= DIVIDE_BY_ZERO;!}
+    | Expr "/" Expr ?($1.value() == 0.0?) !{$$ = AttributeData::Value(0.0);!}
+    | Expr "/" Expr !{$$ = AttributeData::Value($1.value() / $3.value());!}
+    | "(" Expr ")" !{$$ = AttributeData::Value($2.value());!}
+    | "-" Expr %prec UMINUS !{$$ = AttributeData::Value(-$2.value());!}
+    | NUMBER !{$$ = AttributeData::Value($1.value());!}
+    | ID ?(self.variables.contains_key($1.id())?) !{$$ = AttributeData::Value(self.variables[$1.id()]);!}
+    | ID !{self.errors |= UNDEFINED_VARIABLE; $$ = AttributeData::Value(0.0);!}
     .
