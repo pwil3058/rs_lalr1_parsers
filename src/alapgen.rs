@@ -4,7 +4,7 @@ use crate::{
     attributes::*,
     grammar::GrammarSpecification,
     state::ProductionTail,
-    symbols::{AssociativePrecedence, Associativity, SpecialSymbols},
+    symbols::{AssociativePrecedence, Associativity},
 };
 
 use lalr1plus;
@@ -1217,7 +1217,8 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData> for GrammarSpec
                 } else {
                     let symbol = self
                         .symbol_table
-                        .special_symbol(&SpecialSymbols::LexicalError);
+                        .use_symbol_named(&AANonTerminal::AALexicalError.to_string(), location)
+                        .unwrap();
                     aa_lhs = AttributeData::Symbol(symbol);
                     let msg = format!("Literal token \"{}\" is not known", text);
                     self.error(location, &msg);
@@ -1228,7 +1229,6 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData> for GrammarSpec
 
                 let (name, location) = aa_rhs[0].text_and_location();
                 if let Some(symbol) = self.symbol_table.use_symbol_named(name, location) {
-                    aa_lhs = AttributeData::Symbol(Rc::clone(symbol));
                     if symbol.is_non_terminal() {
                         self.error(
                             location,
@@ -1238,6 +1238,7 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData> for GrammarSpec
                             ),
                         )
                     }
+                    aa_lhs = AttributeData::Symbol(symbol);
                 } else {
                     if !Self::is_allowable_name(name) {
                         self.warning(
@@ -1265,7 +1266,6 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData> for GrammarSpec
 
                 let (name, location) = aa_rhs[0].text_and_location();
                 if let Some(symbol) = self.symbol_table.use_symbol_named(name, location) {
-                    aa_lhs = AttributeData::LeftHandSide(Rc::clone(symbol));
                     if symbol.is_non_terminal() {
                         symbol.set_defined_at(location);
                     } else {
@@ -1277,6 +1277,7 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData> for GrammarSpec
                             ),
                         );
                     }
+                    aa_lhs = AttributeData::LeftHandSide(symbol);
                 } else {
                     if !Self::is_allowable_name(name) {
                         self.warning(
@@ -1473,7 +1474,7 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData> for GrammarSpec
 
                 let (name, location) = aa_rhs[0].text_and_location();
                 if let Some(symbol) = self.symbol_table.use_symbol_named(name, location) {
-                    aa_lhs = AttributeData::Symbol(Rc::clone(symbol));
+                    aa_lhs = AttributeData::Symbol(symbol);
                 } else {
                     let symbol = self.symbol_table.use_new_non_terminal(name, location);
                     aa_lhs = AttributeData::Symbol(symbol);
@@ -1489,7 +1490,8 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData> for GrammarSpec
                     self.error(location, &format!("{}: unknown literal)", lexeme));
                     let symbol = self
                         .symbol_table
-                        .special_symbol(&SpecialSymbols::LexicalError);
+                        .use_symbol_named(&AANonTerminal::AALexicalError.to_string(), location)
+                        .unwrap();
                     aa_lhs = AttributeData::Symbol(symbol);
                 }
             }
@@ -1499,7 +1501,8 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData> for GrammarSpec
                 let location = aa_rhs[0].location();
                 let symbol = self
                     .symbol_table
-                    .use_special_symbol(&SpecialSymbols::SyntaxError, location);
+                    .use_symbol_named(&AANonTerminal::AASyntaxError.to_string(), location)
+                    .unwrap();
                 aa_lhs = AttributeData::Symbol(symbol);
             }
             _ => aa_inject(String::new(), String::new()),

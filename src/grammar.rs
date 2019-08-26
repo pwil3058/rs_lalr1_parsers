@@ -10,7 +10,7 @@ use lalr1plus::{self, parser::Parser, parser::ReportError};
 use lexan;
 
 use crate::state::{GrammarItemKey, GrammarItemSet, ParserState, Production, ProductionTail};
-use crate::symbols::{FirstsData, SpecialSymbols, Symbol, SymbolTable};
+use crate::symbols::{FirstsData, Symbol, SymbolTable};
 
 #[cfg(not(feature = "bootstrap"))]
 use crate::alapgen::*;
@@ -92,7 +92,8 @@ impl GrammarSpecification {
             left_hand_side.add_used_at(&location);
             let start_symbol = self
                 .symbol_table
-                .use_special_symbol(&SpecialSymbols::Start, &location);
+                .use_symbol_named(&AANonTerminal::AAStart.to_string(), &location)
+                .unwrap();
             let start_tail =
                 ProductionTail::new(vec![Rc::clone(&left_hand_side)], None, None, None);
             let start_production = Production::new(0, start_symbol, start_tail);
@@ -270,7 +271,8 @@ impl Grammar {
             grammar
                 .specification
                 .symbol_table
-                .special_symbol(&SpecialSymbols::End),
+                .use_symbol_named(&AATerminal::AAEnd.to_string(), &lexan::Location::default())
+                .unwrap(),
         );
         let mut map: OrderedMap<Rc<GrammarItemKey>, OrderedSet<Rc<Symbol>>> = OrderedMap::new();
         map.insert(start_item_key, start_look_ahead_set);

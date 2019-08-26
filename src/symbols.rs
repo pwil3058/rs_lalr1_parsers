@@ -3,6 +3,11 @@ use std::{cell::RefCell, fmt, rc::Rc};
 use lexan;
 use ordered_collections::{OrderedMap, OrderedSet};
 
+#[cfg(not(feature = "bootstrap"))]
+use crate::alapgen::{AANonTerminal, AATerminal};
+#[cfg(feature = "bootstrap")]
+use crate::bootstrap::{AANonTerminal, AATerminal};
+
 #[derive(Debug)]
 pub enum Error {
     AlreadyDefined(Rc<Symbol>),
@@ -243,11 +248,11 @@ impl Symbol {
     }
 
     pub fn is_start_symbol(&self) -> bool {
-        self.name == SpecialSymbols::Start.to_string()
+        self.name == AANonTerminal::AAStart.to_string()
     }
 
     pub fn is_syntax_error(&self) -> bool {
-        self.name == SpecialSymbols::SyntaxError.to_string()
+        self.name == AANonTerminal::AASyntaxError.to_string()
     }
 
     fn is_special_symbol(&self) -> bool {
@@ -355,33 +360,10 @@ pub fn format_as_or_list(symbol_set: &OrderedSet<Rc<Symbol>>) -> String {
     string
 }
 
-#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]
-pub enum SpecialSymbols {
-    Start,
-    End,
-    SyntaxError,
-    LexicalError,
-    SemanticError,
-}
-
 const NUM_SPECIAL_SYMBOLS: u32 = 5;
-
-impl std::fmt::Display for SpecialSymbols {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        use SpecialSymbols::*;
-        match self {
-            Start => write!(f, "AAStart"),
-            End => write!(f, "AAEnd"),
-            SyntaxError => write!(f, "AASyntaxError"),
-            LexicalError => write!(f, "AALexicalError"),
-            SemanticError => write!(f, "AASemanticError"),
-        }
-    }
-}
 
 #[derive(Debug, Default, Clone)]
 pub struct SymbolTable {
-    special_symbols: OrderedMap<SpecialSymbols, Rc<Symbol>>,
     tokens: OrderedMap<String, Rc<Symbol>>, // indexed by token name
     literal_tokens: OrderedMap<String, Rc<Symbol>>, // indexed by token name
     tags: OrderedMap<String, Rc<Symbol>>,   // indexed by tag name
@@ -394,7 +376,6 @@ pub struct SymbolTable {
 impl SymbolTable {
     pub fn new() -> Self {
         let mut st = Self {
-            special_symbols: OrderedMap::new(),
             tokens: OrderedMap::new(),
             literal_tokens: OrderedMap::new(),
             tags: OrderedMap::new(),
@@ -405,27 +386,12 @@ impl SymbolTable {
         };
         let start_location = lexan::Location::default();
 
-        let symbol = st.define_non_terminal(&SpecialSymbols::Start.to_string(), &start_location);
-        st.special_symbols.insert(SpecialSymbols::Start, symbol);
-
-        let token = st.new_token(&SpecialSymbols::End.to_string(), "", &start_location);
-        st.special_symbols
-            .insert(SpecialSymbols::End, token.unwrap());
-
-        let symbol =
-            st.define_non_terminal(&SpecialSymbols::SyntaxError.to_string(), &start_location);
-        st.special_symbols
-            .insert(SpecialSymbols::SyntaxError, symbol);
-
-        let symbol =
-            st.define_non_terminal(&SpecialSymbols::LexicalError.to_string(), &start_location);
-        st.special_symbols
-            .insert(SpecialSymbols::LexicalError, symbol);
-
-        let symbol =
-            st.define_non_terminal(&SpecialSymbols::SemanticError.to_string(), &start_location);
-        st.special_symbols
-            .insert(SpecialSymbols::SemanticError, symbol);
+        st.define_non_terminal(&AANonTerminal::AAStart.to_string(), &start_location);
+        st.new_token(&AATerminal::AAEnd.to_string(), "", &start_location)
+            .expect("There should be no naming conflicts yet.");
+        st.define_non_terminal(&AANonTerminal::AASyntaxError.to_string(), &start_location);
+        st.define_non_terminal(&AANonTerminal::AALexicalError.to_string(), &start_location);
+        st.define_non_terminal(&AANonTerminal::AASemanticError.to_string(), &start_location);
 
         assert_eq!(NUM_SPECIAL_SYMBOLS, st.next_ident);
 
@@ -468,30 +434,20 @@ impl SymbolTable {
         self.skip_rules.iter()
     }
 
-    pub fn special_symbol(&self, t: &SpecialSymbols) -> Rc<Symbol> {
-        Rc::clone(self.special_symbols.get(t).unwrap())
-    }
-
-    pub fn use_special_symbol(&self, t: &SpecialSymbols, location: &lexan::Location) -> Rc<Symbol> {
-        let symbol = self.special_symbols.get(t).unwrap();
-        symbol.add_used_at(location);
-        Rc::clone(symbol)
-    }
-
     pub fn use_symbol_named(
         &mut self,
         symbol_name: &String,
         location: &lexan::Location,
-    ) -> Option<&Rc<Symbol>> {
+    ) -> Option<Rc<Symbol>> {
         if let Some(token) = self.tokens.get(symbol_name) {
             token.add_used_at(location);
-            Some(token)
+            Some(Rc::clone(token))
         } else if let Some(tag) = self.tags.get(symbol_name) {
             tag.add_used_at(location);
-            Some(tag)
+            Some(Rc::clone(tag))
         } else if let Some(non_terminal) = self.non_terminals.get(symbol_name) {
             non_terminal.add_used_at(location);
-            Some(non_terminal)
+            Some(Rc::clone(non_terminal))
         } else {
             None
         }

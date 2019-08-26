@@ -8,7 +8,7 @@ use crate::{
     attributes::*,
     grammar::GrammarSpecification,
     state::ProductionTail,
-    symbols::{AssociativePrecedence, Associativity, SpecialSymbols},
+    symbols::{AssociativePrecedence, Associativity},
 };
 %}
 
@@ -195,7 +195,7 @@ Tag: LITERAL
             if let Some(symbol) = self.symbol_table.get_literal_token(text, location) {
                 $$ = AttributeData::Symbol(Rc::clone(symbol));
             } else {
-                let symbol = self.symbol_table.special_symbol(&SpecialSymbols::LexicalError);
+                let symbol = self.symbol_table.use_symbol_named(&AANonTerminal::AALexicalError.to_string(), location).unwrap();
                 $$ = AttributeData::Symbol(symbol);
                 let msg = format!("Literal token \"{}\" is not known", text);
                 self.error(location, &msg);
@@ -205,7 +205,6 @@ Tag: LITERAL
         !{
             let (name, location) = $1.text_and_location();
             if let Some(symbol) = self.symbol_table.use_symbol_named(name, location) {
-                $$ = AttributeData::Symbol(Rc::clone(symbol));
                 if symbol.is_non_terminal() {
                     self.error(
                         location,
@@ -215,6 +214,7 @@ Tag: LITERAL
                         ),
                     )
                 }
+                $$ = AttributeData::Symbol(symbol);
             } else {
                 if !Self::is_allowable_name(name) {
                     self.warning(
@@ -249,7 +249,6 @@ ProductionGroupHead: IDENT ":"
         !{
             let (name, location) = $1.text_and_location();
             if let Some(symbol) = self.symbol_table.use_symbol_named(name, location) {
-                $$ = AttributeData::LeftHandSide(Rc::clone(symbol));
                 if symbol.is_non_terminal() {
                     symbol.set_defined_at(location);
                 } else {
@@ -261,6 +260,7 @@ ProductionGroupHead: IDENT ":"
                         ),
                     );
                 }
+                $$ = AttributeData::LeftHandSide(symbol);
             } else {
                 if !Self::is_allowable_name(name) {
                     self.warning(
@@ -442,7 +442,7 @@ Symbol: IDENT
         !{
             let (name, location) = $1.text_and_location();
             if let Some(symbol) = self.symbol_table.use_symbol_named(name, location) {
-                $$ = AttributeData::Symbol(Rc::clone(symbol));
+                $$ = AttributeData::Symbol(symbol);
             } else {
                 let symbol = self.symbol_table.use_new_non_terminal(name, location);
                 $$ = AttributeData::Symbol(symbol);
@@ -455,8 +455,11 @@ Symbol: IDENT
                 $$ = AttributeData::Symbol(Rc::clone(symbol));
             } else {
                 self.error(location, &format!("{}: unknown literal)", lexeme));
-                let symbol = self.symbol_table.special_symbol(&SpecialSymbols::LexicalError);
-                $$ = AttributeData::Symbol(symbol);
+                let symbol = self
+                    .symbol_table
+                    .use_symbol_named(&AANonTerminal::AALexicalError.to_string(), location)
+                    .unwrap();
+                aa_lhs = AttributeData::Symbol(symbol);
             }
         !}
     | "%error"
@@ -464,7 +467,8 @@ Symbol: IDENT
             let location = aa_rhs[0].location();
             let symbol = self
                 .symbol_table
-                .use_special_symbol(&SpecialSymbols::SyntaxError, location);
-            $$ = AttributeData::Symbol(symbol);
+                .use_symbol_named(&AANonTerminal::AASyntaxError.to_string(), location)
+                .unwrap();
+            aa_lhs = AttributeData::Symbol(symbol);
         !}
     .
