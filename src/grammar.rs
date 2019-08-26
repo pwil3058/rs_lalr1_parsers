@@ -54,6 +54,21 @@ impl GrammarSpecification {
             warning_count: 0,
         };
         spec.parse_text(text, label)?;
+        let location = lexan::Location::default();
+        for error in &[
+            AANonTerminal::AASyntaxError,
+            AANonTerminal::AALexicalError,
+            AANonTerminal::AASemanticError,
+        ] {
+            let symbol = spec
+                .symbol_table
+                .use_symbol_named(&error.to_string(), &location)
+                .unwrap();
+            let ident = spec.productions.len() as u32;
+            let tail = ProductionTail::default();
+            spec.productions
+                .push(Rc::new(Production::new(ident, symbol, tail)));
+        }
         for symbol in spec.symbol_table.non_terminal_symbols() {
             if symbol.firsts_data_is_none() {
                 spec.set_firsts_data(symbol)

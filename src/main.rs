@@ -3,6 +3,8 @@ extern crate lazy_static;
 extern crate clap;
 extern crate regex;
 
+use std::str::FromStr;
+
 #[macro_export]
 macro_rules! impl_ident_cmp {
     ( $ident:ident ) => {
@@ -61,6 +63,12 @@ fn main() {
                 .long("force")
                 .takes_value(false),
         )
+        .arg(
+            clap::Arg::with_name("expect")
+                .short("e")
+                .long("expect")
+                .takes_value(true),
+        )
         .arg(clap::Arg::with_name("input").required(true))
         .get_matches();
     let force = matches.is_present("force");
@@ -77,7 +85,22 @@ fn main() {
         .unwrap();
         std::process::exit(1);
     }
-    let expected_number_of_conflicts = 0;
+    let expected_number_of_conflicts = if let Some(expect) = matches.value_of("expect") {
+        let number = if let Ok(number) = usize::from_str(expect) {
+            number
+        } else {
+            writeln!(
+                std::io::stderr(),
+                "--expect expected number found: {}",
+                expect
+            )
+            .unwrap();
+            std::process::exit(2);
+        };
+        number
+    } else {
+        0
+    };
     let mut file = fs::File::open(file_name).unwrap();
     let mut input = String::new();
     file.read_to_string(&mut input).unwrap();

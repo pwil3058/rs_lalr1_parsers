@@ -850,6 +850,9 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData> for GrammarSpec
             56 => (AANonTerminal::Symbol, 1),
             57 => (AANonTerminal::Symbol, 1),
             58 => (AANonTerminal::Symbol, 1),
+            59 => (AANonTerminal::AASyntaxError, 0),
+            60 => (AANonTerminal::AALexicalError, 0),
+            61 => (AANonTerminal::AASemanticError, 0),
             _ => panic!("malformed production data table"),
         }
     }
