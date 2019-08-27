@@ -125,20 +125,31 @@ where
             .push((Symbol::NonTerminal(non_terminal), new_state));
     }
 
-    fn distance_to_viable_state(&mut self, viable_states: &[u32]) -> Option<usize> {
-        if viable_states.len() > 0 {
-            for sub in 1..self.states.len() {
-                let candidate = self.states[self.states.len() - 1].1;
-                if viable_states.contains(&candidate) {
-                    if let Some(last_error_state) = self.last_error_state {
-                        if candidate == last_error_state {
-                            continue;
-                        }
+    fn is_last_error_state(&self, state: u32) -> bool {
+        if let Some(last_error_state) = self.last_error_state {
+            state == last_error_state
+        } else {
+            false
+        }
+    }
+
+    fn distance_to_viable_state<F: Fn(&T) -> Vec<u32>>(
+        &mut self,
+        tokens: &mut lexan::TokenStream<T>,
+        viable_error_recovery_states: F,
+    ) -> Option<usize> {
+        while !tokens.is_empty() {
+            if let Ok(token) = tokens.front() {
+                let viable_states = viable_error_recovery_states(token.tag());
+                for sub in 1..self.states.len() {
+                    let candidate = self.states[self.states.len() - sub].1;
+                    if !self.is_last_error_state(candidate) && viable_states.contains(&candidate) {
+                        self.last_error_state = Some(candidate);
+                        return Some(sub - 1);
                     }
-                    self.last_error_state = Some(candidate);
-                    return Some(sub - 1);
                 }
-            }
+            };
+            tokens.advance();
         }
         None
     }
@@ -220,16 +231,11 @@ where
                             let error = Error::SyntaxError(token.clone(), expected);
                             self.report_error(&error);
                             result = Err(error.clone());
-                            let viable_states = Self::viable_error_recovery_states(token.tag());
-                            let mut distance = parse_stack.distance_to_viable_state(&viable_states);
-                            while distance.is_none() && !tokens.is_empty() {
-                                if let Ok(token) = tokens.advance_front() {
-                                    let viable_states =
-                                        Self::viable_error_recovery_states(token.tag());
-                                    distance = parse_stack.distance_to_viable_state(&viable_states);
-                                }
-                            }
-                            if let Some(distance) = distance {
+                            if let Some(distance) = parse_stack
+                                .distance_to_viable_state(&mut tokens, |t| {
+                                    Self::viable_error_recovery_states(t)
+                                })
+                            {
                                 parse_stack.pop_n(distance);
                                 let next_state =
                                     Self::error_goto_state(parse_stack.current_state());
