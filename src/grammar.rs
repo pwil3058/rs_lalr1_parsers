@@ -4,7 +4,7 @@ use std::{
     rc::Rc,
 };
 
-use ordered_collections::{ordered_set::ord_set_iterators::ToSet, OrderedMap, OrderedSet};
+use ordered_collections::{OrderedMap, OrderedSet};
 
 use lalr1plus::{self, Parser};
 use lexan;
@@ -127,7 +127,7 @@ impl GrammarSpecification {
         let mut token_set: OrderedSet<Rc<Symbol>> = OrderedSet::new();
         for symbol in symbol_string.iter() {
             let firsts_data = symbol.firsts_data();
-            token_set = token_set.union(&firsts_data.token_set).to_set();
+            token_set |= &firsts_data.token_set;
             if !firsts_data.transparent {
                 return token_set;
             }
@@ -163,13 +163,8 @@ impl GrammarSpecification {
                     if rhs_symbol.firsts_data_is_none() {
                         self.set_firsts_data(rhs_symbol)
                     }
-                    let firsts_data = rhs_symbol
-                        .mutable_data
-                        .borrow()
-                        .firsts_data
-                        .clone()
-                        .unwrap();
-                    token_set = token_set.union(&firsts_data.token_set).to_set();
+                    let firsts_data = rhs_symbol.firsts_data();
+                    token_set |= &firsts_data.token_set;
                     if !firsts_data.transparent {
                         transparent_production = false;
                         break;
@@ -200,7 +195,7 @@ impl GrammarSpecification {
                         let prospective_key = GrammarItemKey::new(Rc::clone(production));
                         if let Some(set) = closure_set.get_mut(&prospective_key) {
                             let len = set.len();
-                            *set = set.union(&firsts).to_set();
+                            *set |= &firsts;
                             additions_made = additions_made || set.len() > len;
                         } else {
                             closure_set.insert(prospective_key, firsts.clone());

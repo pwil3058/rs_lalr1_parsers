@@ -19,7 +19,8 @@ resolve conflicts, and
 3. extra text may be injected into the parser's input stream from within productions'
 action code.
 
-##Synopsis
+## Synopsis
+
 ```
 Augmented Lexical Analyzer and Parser Generator 
 
@@ -38,7 +39,8 @@ ARGS:
     <specification>    the path of the file containing the grammar specification
 ```
 
-##Example Specification
+## Example Specification
+
 ```bash
 %{
 use std::collections::HashMap;

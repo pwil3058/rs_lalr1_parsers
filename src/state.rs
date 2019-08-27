@@ -389,7 +389,7 @@ impl GrammarItemSet {
     fn reducible_look_ahead_set(&self) -> OrderedSet<Rc<Symbol>> {
         let mut set = OrderedSet::new();
         for (_, look_ahead_set) in self.0.iter().filter(|x| x.0.is_reducible()) {
-            set = set.union(look_ahead_set).to_set();
+            set |= look_ahead_set;
         }
         set
     }
@@ -497,7 +497,7 @@ impl ParserState {
         for (key, other_look_ahead_set) in item_set.0.iter().filter(|(k, _)| k.is_kernel_item()) {
             if let Some(look_ahead_set) = self.grammar_items.borrow_mut().0.get_mut(key) {
                 let current_len = look_ahead_set.len();
-                *look_ahead_set = look_ahead_set.union(other_look_ahead_set).to_set();
+                *look_ahead_set |= other_look_ahead_set;
                 additions += look_ahead_set.len() - current_len;
             } else {
                 panic!("key sets should be identical to get here")
