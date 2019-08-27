@@ -61,20 +61,26 @@ fn main() {
             clap::Arg::with_name("force")
                 .short("f")
                 .long("force")
-                .takes_value(false),
+                .takes_value(false)
+                .help("overwrite the output files (if they exist)"),
         )
         .arg(
             clap::Arg::with_name("expect")
                 .short("e")
                 .long("expect")
-                .takes_value(true),
+                .takes_value(true)
+                .help("the exact number of shift/reduce and/or reduce/reduce conflicts to expect"),
         )
-        .arg(clap::Arg::with_name("input").required(true))
+        .arg(
+            clap::Arg::with_name("specification")
+                .required(true)
+                .help("the path of the file containing the grammar specification"),
+        )
         .get_matches();
     let force = matches.is_present("force");
     let file_name = matches
-        .value_of("input")
-        .expect("\"input\" is a required argument");
+        .value_of("specification")
+        .expect("\"specification\" is a required argument");
     let output_path = with_changed_extension(Path::new(file_name), "rs");
     if output_path.exists() && !force {
         writeln!(
@@ -102,10 +108,10 @@ fn main() {
         0
     };
     let mut file = fs::File::open(file_name).unwrap();
-    let mut input = String::new();
-    file.read_to_string(&mut input).unwrap();
+    let mut specification = String::new();
+    file.read_to_string(&mut specification).unwrap();
     let grammar_specification =
-        match grammar::GrammarSpecification::new(input, file_name.to_string()) {
+        match grammar::GrammarSpecification::new(specification, file_name.to_string()) {
             Ok(spec) => spec,
             Err(error) => {
                 writeln!(std::io::stderr(), "Parse failed: {:?}", error).unwrap();
