@@ -457,7 +457,7 @@ Symbol: IDENT
                 self.error(location, &format!("{}: unknown literal)", lexeme));
                 let symbol = self
                     .symbol_table
-                    .use_symbol_named(&AANonTerminal::AASyntaxError.to_string(), location)
+                    .use_symbol_named(&AANonTerminal::AAError.to_string(), location)
                     .unwrap();
                 aa_lhs = AttributeData::Symbol(symbol);
             }
@@ -467,7 +467,7 @@ Symbol: IDENT
             let location = aa_rhs[0].location();
             let symbol = self
                 .symbol_table
-                .use_symbol_named(&AANonTerminal::AASyntaxError.to_string(), location)
+                .use_symbol_named(&AANonTerminal::AAError.to_string(), location)
                 .unwrap();
             aa_lhs = AttributeData::Symbol(symbol);
         !}

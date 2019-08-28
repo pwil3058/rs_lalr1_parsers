@@ -55,16 +55,15 @@ impl GrammarSpecification {
         };
         spec.parse_text(text, label)?;
         let location = lexan::Location::default();
-        for error in &[AANonTerminal::AASyntaxError] {
-            let symbol = spec
-                .symbol_table
-                .use_symbol_named(&error.to_string(), &location)
-                .unwrap();
-            let ident = spec.productions.len() as u32;
-            let tail = ProductionTail::default();
-            spec.productions
-                .push(Rc::new(Production::new(ident, symbol, tail)));
-        }
+        // Add dummy error production last so that it has lowest precedence during conflict resolution
+        let symbol = spec
+            .symbol_table
+            .use_symbol_named(&AANonTerminal::AAError.to_string(), &location)
+            .unwrap();
+        let ident = spec.productions.len() as u32;
+        let tail = ProductionTail::default();
+        spec.productions
+            .push(Rc::new(Production::new(ident, symbol, tail)));
         for symbol in spec.symbol_table.non_terminal_symbols() {
             if symbol.firsts_data_is_none() {
                 spec.set_firsts_data(symbol)
@@ -304,7 +303,7 @@ impl Grammar {
                         grammar.new_parser_state(item_set_x)
                     };
                 if first_time {
-                    if symbol_x.is_syntax_error() {
+                    if symbol_x.is_error_symbol() {
                         unprocessed_state.set_error_recovery_state(&goto_state)
                     };
                     if symbol_x.is_token() {

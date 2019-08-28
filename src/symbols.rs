@@ -251,8 +251,8 @@ impl Symbol {
         self.name == AANonTerminal::AAStart.to_string()
     }
 
-    pub fn is_syntax_error(&self) -> bool {
-        self.name == AANonTerminal::AASyntaxError.to_string()
+    pub fn is_error_symbol(&self) -> bool {
+        self.name == AANonTerminal::AAError.to_string()
     }
 
     fn is_special_symbol(&self) -> bool {
@@ -391,7 +391,7 @@ impl SymbolTable {
             .expect("There should be no naming conflicts yet.");
         st.new_tag("AAInvalidTag", &start_location)
             .expect("There should be no naming conflicts yet.");
-        st.define_non_terminal(&AANonTerminal::AASyntaxError.to_string(), &start_location);
+        st.define_non_terminal(&AANonTerminal::AAError.to_string(), &start_location);
 
         assert_eq!(NUM_SPECIAL_SYMBOLS, st.next_ident);
 

@@ -143,7 +143,7 @@ impl Production {
 
     pub fn has_error_recovery_tail(&self) -> bool {
         if let Some(symbol) = self.tail.right_hand_side.last() {
-            symbol.is_syntax_error()
+            symbol.is_error_symbol()
         } else {
             false
         }
