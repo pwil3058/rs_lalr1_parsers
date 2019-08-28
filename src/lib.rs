@@ -20,24 +20,6 @@ pub enum Error<T: Ord + Copy + Debug + Display + Eq> {
     SyntaxError(lexan::Token<T>, OrderedSet<T>),
 }
 
-fn format_vec<T: Display>(vec: &Vec<T>) -> String {
-    let mut string = String::new();
-    let last = vec.len() - 1;
-    for (index, item) in vec.iter().enumerate() {
-        if index == 0 {
-            string += &item.to_string();
-        } else {
-            if index == last {
-                string += " or ";
-            } else {
-                string += ", ";
-            };
-            string += &item.to_string()
-        }
-    }
-    string
-}
-
 fn format_set<T: Ord + Display>(set: &OrderedSet<T>) -> String {
     let mut string = String::new();
     let last = set.len() - 1;
@@ -76,6 +58,11 @@ impl<T: Ord + Copy + Debug + Display + Eq> Display for Error<T> {
 pub trait ReportError<T: Ord + Copy + Debug + Display + Eq> {
     fn report_error(&mut self, error: &Error<T>) {
         let message = error.to_string();
+        if let Error::LexicalError(lex_err, _) = error {
+            if let lexan::Error::AmbiguousMatches(_, _, _) = lex_err {
+                panic!("Fatal Error: {}!!", message);
+            }
+        };
         std::io::stderr()
             .write_all(message.as_bytes())
             .expect("Nowhere to go here!!!");
