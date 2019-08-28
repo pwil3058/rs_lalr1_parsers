@@ -3,6 +3,7 @@
 extern crate lazy_static;
 extern crate lexan;
 
+use lexan::TokenStream;
 pub use std::{
     convert::From,
     default::Default,
@@ -196,6 +197,23 @@ where
 
     fn error_goto_state(state: u32) -> u32;
 
+    fn recover_from_error(
+        error: Error<T>,
+        parse_stack: &mut ParseStack<T, N, A>,
+        tokens: &mut TokenStream<T>,
+    ) -> bool {
+        if let Some(distance) =
+            parse_stack.distance_to_viable_state(tokens, |t| Self::viable_error_recovery_states(t))
+        {
+            parse_stack.pop_n(distance);
+            let next_state = Self::error_goto_state(parse_stack.current_state());
+            parse_stack.push_error(next_state, error);
+            true
+        } else {
+            false
+        }
+    }
+
     fn parse_text(&mut self, text: String, label: String) -> Result<(), Error<T>> {
         let mut tokens = self.lexical_analyzer().token_stream(text, label);
         let mut parse_stack = ParseStack::<T, N, A>::new();
@@ -207,10 +225,9 @@ where
                     let error = Error::LexicalError(err);
                     self.report_error(&error);
                     result = Err(error.clone());
-                    // Sensible thing is to just skip the bad data but ...
-                    // TODO: think about some error recovery stuff here
-                    parse_stack.push_error(parse_stack.current_state(), error);
-                    tokens.advance();
+                    if !Self::recover_from_error(error, &mut parse_stack, &mut tokens) {
+                        return result;
+                    }
                 }
                 Ok(token) => {
                     match self.next_action(parse_stack.current_state(), &parse_stack, &token) {
@@ -231,16 +248,7 @@ where
                             let error = Error::SyntaxError(token.clone(), expected);
                             self.report_error(&error);
                             result = Err(error.clone());
-                            if let Some(distance) = parse_stack
-                                .distance_to_viable_state(&mut tokens, |t| {
-                                    Self::viable_error_recovery_states(t)
-                                })
-                            {
-                                parse_stack.pop_n(distance);
-                                let next_state =
-                                    Self::error_goto_state(parse_stack.current_state());
-                                parse_stack.push_error(next_state, error);
-                            } else {
+                            if !Self::recover_from_error(error, &mut parse_stack, &mut tokens) {
                                 return result;
                             }
                         }
