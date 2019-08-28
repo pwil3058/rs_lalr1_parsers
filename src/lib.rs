@@ -74,9 +74,7 @@ pub enum Symbol<T, N> {
     Terminal(T),
     NonTerminal(N),
     Start,
-    End,
     Error,
-    Invalid,
 }
 
 #[derive(Debug)]
