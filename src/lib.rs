@@ -2,8 +2,8 @@
 #[macro_use]
 extern crate lazy_static;
 extern crate lexan;
+extern crate ordered_collections;
 
-use lexan::TokenStream;
 pub use std::{
     convert::From,
     default::Default,
@@ -11,10 +11,13 @@ pub use std::{
     io::Write,
 };
 
+use lexan::TokenStream;
+use ordered_collections::OrderedSet;
+
 #[derive(Debug, Clone)]
-pub enum Error<T: Copy + Debug + Display + Eq> {
-    LexicalError(lexan::Error<T>),
-    SyntaxError(lexan::Token<T>, Vec<T>),
+pub enum Error<T: Ord + Copy + Debug + Display + Eq> {
+    LexicalError(lexan::Error<T>, OrderedSet<T>),
+    SyntaxError(lexan::Token<T>, OrderedSet<T>),
 }
 
 fn format_vec<T: Display>(vec: &Vec<T>) -> String {
@@ -35,14 +38,34 @@ fn format_vec<T: Display>(vec: &Vec<T>) -> String {
     string
 }
 
-impl<T: Copy + Debug + Display + Eq> Display for Error<T> {
+fn format_set<T: Ord + Display>(set: &OrderedSet<T>) -> String {
+    let mut string = String::new();
+    let last = set.len() - 1;
+    for (index, item) in set.iter().enumerate() {
+        if index == 0 {
+            string += &item.to_string();
+        } else {
+            if index == last {
+                string += " or ";
+            } else {
+                string += ", ";
+            };
+            string += &item.to_string()
+        }
+    }
+    string
+}
+
+impl<T: Ord + Copy + Debug + Display + Eq> Display for Error<T> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Error::LexicalError(lex_err) => write!(f, "Lexical Error: {}.", lex_err),
+            Error::LexicalError(lex_err, expected) => {
+                write!(f, "Lexical Error: {}: expected: {}.", lex_err, expected)
+            }
             Error::SyntaxError(found, expected) => write!(
                 f,
                 "Syntax Error: expected: {} found: {} at: {}.",
-                format_vec(&expected),
+                format_set(&expected),
                 found.tag(),
                 found.location()
             ),
@@ -50,7 +73,7 @@ impl<T: Copy + Debug + Display + Eq> Display for Error<T> {
     }
 }
 
-pub trait ReportError<T: Copy + Debug + Display + Eq> {
+pub trait ReportError<T: Ord + Copy + Debug + Display + Eq> {
     fn report_error(&mut self, error: &Error<T>) {
         let message = error.to_string();
         std::io::stderr()
@@ -157,11 +180,11 @@ where
 }
 
 #[derive(Debug, Clone)]
-pub enum Action<T: Copy + Debug> {
+pub enum Action {
     Shift(u32),
     Reduce(u32),
     Accept,
-    SyntaxError(Vec<T>),
+    SyntaxError,
 }
 
 pub trait Parser<T: Ord + Copy + Debug, N, A>
@@ -177,7 +200,7 @@ where
         state: u32,
         attributes: &ParseStack<T, N, A>,
         o_token: &lexan::Token<T>,
-    ) -> Action<T>;
+    ) -> Action;
     fn production_data(production_id: u32) -> (N, usize);
     fn goto_state(lhs: &N, current_state: u32) -> u32;
     fn do_semantic_action<F: FnMut(String, String)>(
@@ -196,6 +219,8 @@ where
     fn viable_error_recovery_states(tag: &T) -> Vec<u32>;
 
     fn error_goto_state(state: u32) -> u32;
+
+    fn look_ahead_set(state: u32) -> OrderedSet<T>;
 
     fn recover_from_error(
         error: Error<T>,
@@ -222,7 +247,8 @@ where
         loop {
             match tokens.front() {
                 Err(err) => {
-                    let error = Error::LexicalError(err);
+                    let expected_tokens = Self::look_ahead_set(parse_stack.current_state());
+                    let error = Error::LexicalError(err, expected_tokens);
                     self.report_error(&error);
                     result = Err(error.clone());
                     if !Self::recover_from_error(error, &mut parse_stack, &mut tokens) {
@@ -244,8 +270,9 @@ where
                                 .do_semantic_action(production_id, rhs, |s, l| tokens.inject(s, l));
                             parse_stack.push_non_terminal(lhs, attribute, next_state);
                         }
-                        Action::SyntaxError(expected) => {
-                            let error = Error::SyntaxError(token.clone(), expected);
+                        Action::SyntaxError => {
+                            let expected_tokens = Self::look_ahead_set(parse_stack.current_state());
+                            let error = Error::SyntaxError(token.clone(), expected_tokens);
                             self.report_error(&error);
                             result = Err(error.clone());
                             if !Self::recover_from_error(error, &mut parse_stack, &mut tokens) {
@@ -262,6 +289,7 @@ where
 #[cfg(test)]
 mod tests {
     use crate::ReportError;
+    use ordered_collections::OrderedSet;
     use std::collections::HashMap;
     use std::convert::From;
     use std::fmt;
@@ -430,40 +458,67 @@ mod tests {
             }
         }
 
+        fn look_ahead_set(state: u32) -> OrderedSet<Terminal> {
+            use Terminal::*;
+            return match state {
+                0 => vec![Minus, LPR, Number, Id].into(),
+                1 => vec![EndMarker, EOL].into(),
+                2 => vec![Minus, LPR, Number, Id].into(),
+                3 => vec![EndMarker, EOL].into(),
+                4 => vec![EndMarker, EOL, Minus, Number, Id, LPR].into(),
+                5 => vec![EndMarker, EOL, Plus, Minus, Times, Divide].into(),
+                6 => vec![EndMarker, EOL, Plus, Minus, Times, Divide, Assign].into(),
+                7 | 8 => vec![Minus, Number, Id, LPR].into(),
+                9 => vec![EndMarker, EOL, Plus, Minus, Times, Divide, RPR].into(),
+                10 => vec![EndMarker, EOL].into(),
+                11 | 12 | 13 | 14 | 15 => vec![Minus, Number, Id, LPR].into(),
+                16 => vec![Plus, Minus, Times, Divide, RPR].into(),
+                17 => vec![EndMarker, EOL, Plus, Minus, Times, Divide, RPR].into(),
+                18 => vec![EndMarker, EOL, Plus, Minus, Times, Divide, RPR].into(),
+                19 => vec![EndMarker, EOL, Plus, Minus, Times, Divide, RPR].into(),
+                20 => vec![EndMarker, EOL, Plus, Minus, Times, Divide, RPR].into(),
+                21 => vec![EndMarker, EOL, Plus, Minus, Times, Divide, RPR].into(),
+                22 => vec![EndMarker, EOL, Plus, Minus, Times, Divide, RPR].into(),
+                23 => vec![EndMarker, EOL, Plus, Minus, Times, Divide, RPR].into(),
+                24 => vec![EndMarker, EOL, Plus, Minus, Times, Divide, RPR].into(),
+                _ => panic!("illegal state: {}", state),
+            };
+        }
+
         fn next_action(
             &self,
             state: u32,
             attributes: &crate::ParseStack<Terminal, NonTerminal, AttributeData>,
             token: &lexan::Token<Terminal>,
-        ) -> crate::Action<Terminal> {
+        ) -> crate::Action {
             use crate::Action;
             use Terminal::*;
             let tag = *token.tag();
             return match state {
                 0 => match tag {
                     Minus | LPR | Number | Id => Action::Reduce(8),
-                    _ => Action::SyntaxError(vec![Minus, LPR, Number, Id]),
+                    _ => Action::SyntaxError,
                 },
                 1 => match tag {
                     EndMarker => Action::Accept,
                     EOL => Action::Shift(4),
-                    _ => Action::SyntaxError(vec![EndMarker, EOL]),
+                    _ => Action::SyntaxError,
                 },
                 2 => match tag {
                     Minus => Action::Shift(8),
                     LPR => Action::Shift(7),
                     Number => Action::Shift(9),
                     Id => Action::Shift(6),
-                    _ => Action::SyntaxError(vec![Minus, LPR, Number, Id]),
+                    _ => Action::SyntaxError,
                 },
                 3 => match tag {
                     EndMarker | EOL => Action::Reduce(7),
-                    _ => Action::SyntaxError(vec![EndMarker, EOL]),
+                    _ => Action::SyntaxError,
                 },
                 4 => match tag {
                     EndMarker | EOL => Action::Reduce(6),
                     Minus | Number | Id | LPR => Action::Reduce(8),
-                    _ => Action::SyntaxError(vec![EndMarker, EOL, Minus, Number, Id, LPR]),
+                    _ => Action::SyntaxError,
                 },
                 5 => match tag {
                     Plus => Action::Shift(11),
@@ -477,7 +532,7 @@ mod tests {
                             Action::Reduce(2)
                         }
                     }
-                    _ => Action::SyntaxError(vec![EndMarker, EOL, Plus, Minus, Times, Divide]),
+                    _ => Action::SyntaxError,
                 },
                 6 => match tag {
                     Assign => Action::Shift(15),
@@ -491,31 +546,29 @@ mod tests {
                             Action::Reduce(27)
                         }
                     }
-                    _ => Action::SyntaxError(vec![
-                        EndMarker, EOL, Plus, Minus, Times, Divide, Assign,
-                    ]),
+                    _ => Action::SyntaxError,
                 },
                 7 | 8 => match tag {
                     Minus => Action::Shift(8),
                     LPR => Action::Shift(7),
                     Number => Action::Shift(9),
                     Id => Action::Shift(17),
-                    _ => Action::SyntaxError(vec![Minus, Number, Id, LPR]),
+                    _ => Action::SyntaxError,
                 },
                 9 => match tag {
                     EndMarker | EOL | Plus | Minus | Times | Divide | RPR => Action::Reduce(25),
-                    _ => Action::SyntaxError(vec![EndMarker, EOL, Plus, Minus, Times, Divide, RPR]),
+                    _ => Action::SyntaxError,
                 },
                 10 => match tag {
                     EndMarker | EOL => Action::Reduce(5),
-                    _ => Action::SyntaxError(vec![EndMarker, EOL]),
+                    _ => Action::SyntaxError,
                 },
                 11 | 12 | 13 | 14 | 15 => match tag {
                     Minus => Action::Shift(8),
                     LPR => Action::Shift(7),
                     Number => Action::Shift(9),
                     Id => Action::Shift(17),
-                    _ => Action::SyntaxError(vec![Minus, Number, Id, LPR]),
+                    _ => Action::SyntaxError,
                 },
                 16 => match tag {
                     Plus => Action::Shift(11),
@@ -523,7 +576,7 @@ mod tests {
                     Times => Action::Shift(13),
                     Divide => Action::Shift(14),
                     RPR => Action::Shift(24),
-                    _ => Action::SyntaxError(vec![Plus, Minus, Times, Divide, RPR]),
+                    _ => Action::SyntaxError,
                 },
                 17 => match tag {
                     EndMarker | EOL | Plus | Minus | Times | Divide | RPR => {
@@ -536,11 +589,11 @@ mod tests {
                             Action::Reduce(27)
                         }
                     }
-                    _ => Action::SyntaxError(vec![EndMarker, EOL, Plus, Minus, Times, Divide, RPR]),
+                    _ => Action::SyntaxError,
                 },
                 18 => match tag {
                     EndMarker | EOL | Plus | Minus | Times | Divide | RPR => Action::Reduce(24),
-                    _ => Action::SyntaxError(vec![EndMarker, EOL, Plus, Minus, Times, Divide, RPR]),
+                    _ => Action::SyntaxError,
                 },
                 19 => match tag {
                     Times => Action::Shift(13),
@@ -554,7 +607,7 @@ mod tests {
                             Action::Reduce(11)
                         }
                     }
-                    _ => Action::SyntaxError(vec![EndMarker, EOL, Plus, Minus, Times, Divide, RPR]),
+                    _ => Action::SyntaxError,
                 },
                 20 => match tag {
                     Times => Action::Shift(13),
@@ -568,7 +621,7 @@ mod tests {
                             Action::Reduce(14)
                         }
                     }
-                    _ => Action::SyntaxError(vec![EndMarker, EOL, Plus, Minus, Times, Divide, RPR]),
+                    _ => Action::SyntaxError,
                 },
                 21 => match tag {
                     EndMarker | EOL | Plus | Minus | Times | Divide | RPR => {
@@ -584,7 +637,7 @@ mod tests {
                             Action::Reduce(18)
                         }
                     }
-                    _ => Action::SyntaxError(vec![EndMarker, EOL, Plus, Minus, Times, Divide, RPR]),
+                    _ => Action::SyntaxError,
                 },
                 22 => match tag {
                     EndMarker | EOL | Plus | Minus | Times | Divide | RPR => {
@@ -600,7 +653,7 @@ mod tests {
                             Action::Reduce(22)
                         }
                     }
-                    _ => Action::SyntaxError(vec![EndMarker, EOL, Plus, Minus, Times, Divide, RPR]),
+                    _ => Action::SyntaxError,
                 },
                 23 => match tag {
                     Plus => Action::Shift(11),
@@ -614,11 +667,11 @@ mod tests {
                             Action::Reduce(4)
                         }
                     }
-                    _ => Action::SyntaxError(vec![EndMarker, EOL, Plus, Minus, Times, Divide, RPR]),
+                    _ => Action::SyntaxError,
                 },
                 24 => match tag {
                     EndMarker | EOL | Plus | Minus | Times | Divide | RPR => Action::Reduce(23),
-                    _ => Action::SyntaxError(vec![EndMarker, EOL, Plus, Minus, Times, Divide, RPR]),
+                    _ => Action::SyntaxError,
                 },
                 _ => panic!("illegal state: {}", state),
             };
