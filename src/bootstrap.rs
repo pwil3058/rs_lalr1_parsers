@@ -107,7 +107,6 @@ pub enum AANonTerminal {
     AAStart,
     AASyntaxError,
     AALexicalError,
-    AASemanticError,
     Specification,
     Preamble,
     Configuration,
@@ -145,7 +144,6 @@ impl std::fmt::Display for AANonTerminal {
             AANonTerminal::AAStart => write!(f, r"AAStart"),
             AANonTerminal::AASyntaxError => write!(f, r"AASyntaxError"),
             AANonTerminal::AALexicalError => write!(f, r"AALexicalError"),
-            AANonTerminal::AASemanticError => write!(f, r"AASemanticError"),
             AANonTerminal::Specification => write!(f, r"Specification"),
             AANonTerminal::Preamble => write!(f, r"Preamble"),
             AANonTerminal::Configuration => write!(f, r"Configuration"),
@@ -934,7 +932,6 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData> for GrammarSpec
             58 => (AANonTerminal::Symbol, 1),
             59 => (AANonTerminal::AASyntaxError, 0),
             60 => (AANonTerminal::AALexicalError, 0),
-            61 => (AANonTerminal::AASemanticError, 0),
             _ => panic!("malformed production data table"),
         }
     }

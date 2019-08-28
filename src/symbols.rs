@@ -360,7 +360,7 @@ pub fn format_as_or_list(symbol_set: &OrderedSet<Rc<Symbol>>) -> String {
     string
 }
 
-const NUM_SPECIAL_SYMBOLS: u32 = 5;
+const NUM_SPECIAL_SYMBOLS: u32 = 4;
 
 #[derive(Debug, Default, Clone)]
 pub struct SymbolTable {
@@ -391,7 +391,6 @@ impl SymbolTable {
             .expect("There should be no naming conflicts yet.");
         st.define_non_terminal(&AANonTerminal::AASyntaxError.to_string(), &start_location);
         st.define_non_terminal(&AANonTerminal::AALexicalError.to_string(), &start_location);
-        st.define_non_terminal(&AANonTerminal::AASemanticError.to_string(), &start_location);
 
         assert_eq!(NUM_SPECIAL_SYMBOLS, st.next_ident);
 
