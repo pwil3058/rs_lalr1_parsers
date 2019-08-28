@@ -8,12 +8,13 @@ use crate::alapgen::AATerminal;
 use crate::bootstrap::AATerminal;
 use crate::state::ProductionTail;
 use crate::symbols::*;
+use ordered_collections::OrderedSet;
 
 #[derive(Debug, Clone)]
 pub enum AttributeData {
     Token(lexan::Token<AATerminal>),
-    SyntaxError(lexan::Token<AATerminal>, Vec<AATerminal>),
-    LexicalError(lexan::Error<AATerminal>),
+    SyntaxError(lexan::Token<AATerminal>, OrderedSet<AATerminal>),
+    LexicalError(lexan::Error<AATerminal>, OrderedSet<AATerminal>),
     SymbolList(Vec<Rc<Symbol>>),
     Symbol(Rc<Symbol>),
     LeftHandSide(Rc<Symbol>),
@@ -36,7 +37,7 @@ impl AttributeData {
         match self {
             AttributeData::Token(token) => token.lexeme(),
             AttributeData::SyntaxError(token, _) => token.lexeme(),
-            AttributeData::LexicalError(error) => match error {
+            AttributeData::LexicalError(error, _) => match error {
                 lexan::Error::UnexpectedText(text, _) => text,
                 lexan::Error::AmbiguousMatches(_, text, _) => text,
                 lexan::Error::AdvancedWhenEmpty(_) => panic!("Wrong attribute variant."),
@@ -49,7 +50,7 @@ impl AttributeData {
         match self {
             AttributeData::Token(token) => token.location(),
             AttributeData::SyntaxError(token, _) => token.location(),
-            AttributeData::LexicalError(error) => match error {
+            AttributeData::LexicalError(error, _) => match error {
                 lexan::Error::UnexpectedText(_, location) => location,
                 lexan::Error::AmbiguousMatches(_, _, location) => location,
                 lexan::Error::AdvancedWhenEmpty(location) => location,
@@ -62,7 +63,7 @@ impl AttributeData {
         match self {
             AttributeData::Token(token) => (token.lexeme(), token.location()),
             AttributeData::SyntaxError(token, _) => (token.lexeme(), token.location()),
-            AttributeData::LexicalError(error) => match error {
+            AttributeData::LexicalError(error, _) => match error {
                 lexan::Error::UnexpectedText(text, location) => (text, location),
                 lexan::Error::AmbiguousMatches(_, text, location) => (text, location),
                 lexan::Error::AdvancedWhenEmpty(_) => panic!("Wrong attribute variant."),
@@ -144,7 +145,9 @@ impl From<lexan::Token<AATerminal>> for AttributeData {
 impl From<lalr1plus::Error<AATerminal>> for AttributeData {
     fn from(error: lalr1plus::Error<AATerminal>) -> Self {
         match error {
-            lalr1plus::Error::LexicalError(error) => AttributeData::LexicalError(error),
+            lalr1plus::Error::LexicalError(error, expected) => {
+                AttributeData::LexicalError(error, expected)
+            }
             lalr1plus::Error::SyntaxError(token, expected) => {
                 AttributeData::SyntaxError(token, expected)
             }

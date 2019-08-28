@@ -11,9 +11,7 @@ use ordered_collections::{
     OrderedMap, OrderedSet,
 };
 
-use crate::symbols::{
-    format_as_or_list, format_as_vec, AssociativePrecedence, Associativity, Symbol,
-};
+use crate::symbols::{format_as_or_list, AssociativePrecedence, Associativity, Symbol};
 
 #[derive(Debug, Clone, Default)]
 pub struct ProductionTail {
@@ -634,7 +632,7 @@ impl ParserState {
         false
     }
 
-    fn look_ahead_set(&self) -> OrderedSet<Rc<Symbol>> {
+    pub fn look_ahead_set(&self) -> OrderedSet<Rc<Symbol>> {
         self.grammar_items
             .borrow()
             .reducible_look_ahead_set()
@@ -649,12 +647,6 @@ impl ParserState {
         indent: &str,
     ) -> std::io::Result<()> {
         let reductions = self.grammar_items.borrow().reductions();
-        let expected_tokens = self
-            .shift_list
-            .borrow()
-            .keys()
-            .union(reductions.expected_tokens.iter())
-            .to_set();
         wtr.write_fmt(format_args!(
             "{}{} => match aa_tag {{\n",
             indent, self.ident
@@ -730,11 +722,7 @@ impl ParserState {
                 wtr.write_fmt(format_args!("{}    }}\n", indent))?;
             }
         }
-        wtr.write_fmt(format_args!(
-            "{}    _ => Action::SyntaxError({}),\n",
-            indent,
-            format_as_vec(&expected_tokens)
-        ))?;
+        wtr.write_fmt(format_args!("{}    _ => Action::SyntaxError,\n", indent,))?;
         wtr.write_fmt(format_args!("{}}},\n", indent))?;
         Ok(())
     }

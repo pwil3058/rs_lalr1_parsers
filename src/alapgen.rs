@@ -9,6 +9,7 @@ use crate::{
 
 use lalr1plus;
 use lexan;
+use ordered_collections::OrderedSet;
 
 #[derive(Debug, Clone, Copy, PartialOrd, Ord, PartialEq, Eq)]
 pub enum AATerminal {
@@ -195,12 +196,139 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData> for GrammarSpec
         }
     }
 
+    fn look_ahead_set(state: u32) -> OrderedSet<AATerminal> {
+        use AATerminal::*;
+        return match state {
+            0 => vec![ATTR, TARGET, INJECT, RUSTCODE].into(),
+            1 => vec![AAEnd].into(),
+            2 => vec![ATTR, TARGET].into(),
+            3 => vec![
+                AAEnd, ATTR, TARGET, TOKEN, LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION, IDENT,
+                RUSTCODE,
+            ]
+            .into(),
+            4 => vec![LITERAL].into(),
+            5 => vec![DOT].into(),
+            6 => vec![RUSTCODE].into(),
+            7 => vec![NEWSECTION].into(),
+            8 => vec![TARGET, INJECT].into(),
+            9 => vec![ATTR, INJECT].into(),
+            10 => vec![IDENT].into(),
+            11 => vec![IDENT].into(),
+            12 => vec![DOT].into(),
+            13 => vec![
+                AAEnd, ATTR, TARGET, TOKEN, LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION, IDENT,
+                RUSTCODE,
+            ]
+            .into(),
+            14 => vec![ATTR, TARGET, INJECT].into(),
+            15 => vec![TOKEN, INJECT].into(),
+            16 => vec![TARGET].into(),
+            17 => vec![ATTR].into(),
+            18 => vec![TARGET, INJECT, NEWSECTION].into(),
+            19 => vec![ATTR, INJECT, NEWSECTION].into(),
+            20 => vec![ATTR, TARGET].into(),
+            21 => vec![NEWSECTION].into(),
+            22 => vec![TOKEN, LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION].into(),
+            23 => vec![TOKEN].into(),
+            24 => vec![INJECT, NEWSECTION].into(),
+            25 => vec![INJECT, NEWSECTION].into(),
+            26 => vec![INJECT, IDENT].into(),
+            27 => vec![LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION].into(),
+            28 => vec![TOKEN].into(),
+            29 => vec![TOKEN, LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION].into(),
+            30 => vec![IDENT].into(),
+            31 => vec![NEWSECTION].into(),
+            32 => vec![NEWSECTION].into(),
+            33 => vec![AAEnd, IDENT].into(),
+            34 => vec![IDENT].into(),
+            35 => vec![LEFT, RIGHT, NONASSOC, INJECT, NEWSECTION].into(),
+            36 => vec![SKIP].into(),
+            37 => vec![TOKEN, LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION].into(),
+            38 => vec![REGEX, LITERAL].into(),
+            39 => vec![REGEX, LITERAL].into(),
+            40 => vec![AAEnd, INJECT, IDENT].into(),
+            41 => vec![LITERAL, ERROR, VBAR, DOT, IDENT, PREDICATE, ACTION].into(),
+            42 => vec![COLON].into(),
+            43 => vec![AAEnd, INJECT, IDENT].into(),
+            44 => vec![LEFT, RIGHT, NONASSOC].into(),
+            45 => vec![LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION].into(),
+            46 => vec![REGEX].into(),
+            47 => vec![TOKEN, LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION].into(),
+            48 => vec![TOKEN, LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION].into(),
+            49 => vec![TOKEN, LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION].into(),
+            50 => vec![TOKEN, LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION].into(),
+            51 => vec![AAEnd, IDENT].into(),
+            52 => vec![VBAR, DOT].into(),
+            53 => vec![VBAR, DOT].into(),
+            54 => vec![VBAR, DOT].into(),
+            55 => vec![VBAR, DOT, ACTION].into(),
+            56 => vec![
+                LITERAL, PRECEDENCE, ERROR, VBAR, DOT, IDENT, PREDICATE, ACTION,
+            ]
+            .into(),
+            57 => vec![VBAR, DOT].into(),
+            58 => vec![PRECEDENCE, VBAR, DOT, ACTION].into(),
+            59 => vec![
+                LITERAL, PRECEDENCE, ERROR, VBAR, DOT, IDENT, PREDICATE, ACTION,
+            ]
+            .into(),
+            60 => vec![
+                LITERAL, PRECEDENCE, ERROR, VBAR, DOT, IDENT, PREDICATE, ACTION,
+            ]
+            .into(),
+            61 => vec![
+                LITERAL, PRECEDENCE, ERROR, VBAR, DOT, IDENT, PREDICATE, ACTION,
+            ]
+            .into(),
+            62 => vec![
+                LITERAL, PRECEDENCE, ERROR, VBAR, DOT, IDENT, PREDICATE, ACTION,
+            ]
+            .into(),
+            63 => vec![LITERAL, ERROR, VBAR, DOT, IDENT, PREDICATE, ACTION].into(),
+            64 => vec![AAEnd, IDENT].into(),
+            65 => vec![LEFT, RIGHT, NONASSOC, INJECT, NEWSECTION].into(),
+            66 => vec![LITERAL, IDENT].into(),
+            67 => vec![LITERAL, IDENT].into(),
+            68 => vec![LITERAL, IDENT].into(),
+            69 => vec![LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION].into(),
+            70 => vec![LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION].into(),
+            71 => vec![AAEnd, INJECT, IDENT].into(),
+            72 => vec![LITERAL, ERROR, VBAR, DOT, IDENT, PREDICATE, ACTION].into(),
+            73 => vec![VBAR, DOT].into(),
+            74 => vec![PRECEDENCE, VBAR, DOT, ACTION].into(),
+            75 => vec![VBAR, DOT, ACTION].into(),
+            76 => vec![VBAR, DOT].into(),
+            77 => vec![LITERAL, IDENT].into(),
+            78 => vec![
+                LITERAL, PRECEDENCE, ERROR, VBAR, DOT, IDENT, PREDICATE, ACTION,
+            ]
+            .into(),
+            79 => vec![LEFT, RIGHT, NONASSOC, INJECT, NEWSECTION].into(),
+            80 => vec![LITERAL, LEFT, RIGHT, NONASSOC, INJECT, NEWSECTION, IDENT].into(),
+            81 => vec![LITERAL, LEFT, RIGHT, NONASSOC, INJECT, NEWSECTION, IDENT].into(),
+            82 => vec![LITERAL, LEFT, RIGHT, NONASSOC, INJECT, NEWSECTION, IDENT].into(),
+            83 => vec![LITERAL, LEFT, RIGHT, NONASSOC, INJECT, NEWSECTION, IDENT].into(),
+            84 => vec![LITERAL, LEFT, RIGHT, NONASSOC, INJECT, NEWSECTION, IDENT].into(),
+            85 => vec![LITERAL, LEFT, RIGHT, NONASSOC, INJECT, NEWSECTION, IDENT].into(),
+            86 => vec![VBAR, DOT].into(),
+            87 => vec![VBAR, DOT, ACTION].into(),
+            88 => vec![VBAR, DOT].into(),
+            89 => vec![VBAR, DOT].into(),
+            90 => vec![VBAR, DOT, ACTION].into(),
+            91 => vec![VBAR, DOT, ACTION].into(),
+            92 => vec![LITERAL, LEFT, RIGHT, NONASSOC, INJECT, NEWSECTION, IDENT].into(),
+            93 => vec![VBAR, DOT].into(),
+            _ => panic!("illegal state: {}", state),
+        };
+    }
+
     fn next_action(
         &self,
         aa_state: u32,
         aa_attributes: &lalr1plus::ParseStack<AATerminal, AANonTerminal, AttributeData>,
         aa_token: &lexan::Token<AATerminal>,
-    ) -> lalr1plus::Action<AATerminal> {
+    ) -> lalr1plus::Action {
         use lalr1plus::Action;
         use AATerminal::*;
         let aa_tag = *aa_token.tag();
@@ -211,115 +339,109 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData> for GrammarSpec
                 RUSTCODE => Action::Reduce(2),
                 // Preamble: <empty>
                 ATTR | TARGET => Action::Reduce(6),
-                _ => Action::SyntaxError(vec![ATTR, TARGET, INJECT, RUSTCODE]),
+                _ => Action::SyntaxError,
             },
             1 => match aa_tag {
                 // AAStart: Specification
                 AAEnd => Action::Accept,
-                _ => Action::SyntaxError(vec![AAEnd]),
+                _ => Action::SyntaxError,
             },
             2 => match aa_tag {
                 ATTR => Action::Shift(10),
                 TARGET => Action::Shift(11),
-                _ => Action::SyntaxError(vec![ATTR, TARGET]),
+                _ => Action::SyntaxError,
             },
             3 => match aa_tag {
                 // OptionalInjection: Injection
                 AAEnd | ATTR | TARGET | TOKEN | LEFT | RIGHT | NONASSOC | SKIP | INJECT
                 | NEWSECTION | IDENT | RUSTCODE => Action::Reduce(3),
-                _ => Action::SyntaxError(vec![
-                    AAEnd, ATTR, TARGET, TOKEN, LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION,
-                    IDENT, RUSTCODE,
-                ]),
+                _ => Action::SyntaxError,
             },
             4 => match aa_tag {
                 LITERAL => Action::Shift(12),
-                _ => Action::SyntaxError(vec![LITERAL]),
+                _ => Action::SyntaxError,
             },
             5 => match aa_tag {
                 DOT => Action::Shift(13),
-                _ => Action::SyntaxError(vec![DOT]),
+                _ => Action::SyntaxError,
             },
             6 => match aa_tag {
                 RUSTCODE => Action::Shift(14),
-                _ => Action::SyntaxError(vec![RUSTCODE]),
+                _ => Action::SyntaxError,
             },
             7 => match aa_tag {
                 NEWSECTION => Action::Shift(15),
-                _ => Action::SyntaxError(vec![NEWSECTION]),
+                _ => Action::SyntaxError,
             },
             8 => match aa_tag {
                 INJECT => Action::Shift(4),
                 // OptionalInjection: <empty>
                 TARGET => Action::Reduce(2),
-                _ => Action::SyntaxError(vec![TARGET, INJECT]),
+                _ => Action::SyntaxError,
             },
             9 => match aa_tag {
                 INJECT => Action::Shift(4),
                 // OptionalInjection: <empty>
                 ATTR => Action::Reduce(2),
-                _ => Action::SyntaxError(vec![ATTR, INJECT]),
+                _ => Action::SyntaxError,
             },
             10 => match aa_tag {
                 IDENT => Action::Shift(18),
-                _ => Action::SyntaxError(vec![IDENT]),
+                _ => Action::SyntaxError,
             },
             11 => match aa_tag {
                 IDENT => Action::Shift(19),
-                _ => Action::SyntaxError(vec![IDENT]),
+                _ => Action::SyntaxError,
             },
             12 => match aa_tag {
                 // InjectionHead: "%inject" LITERAL
                 DOT => Action::Reduce(4),
-                _ => Action::SyntaxError(vec![DOT]),
+                _ => Action::SyntaxError,
             },
             13 => match aa_tag {
                 // Injection: InjectionHead "."
                 AAEnd | ATTR | TARGET | TOKEN | LEFT | RIGHT | NONASSOC | SKIP | INJECT
                 | NEWSECTION | IDENT | RUSTCODE => Action::Reduce(5),
-                _ => Action::SyntaxError(vec![
-                    AAEnd, ATTR, TARGET, TOKEN, LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION,
-                    IDENT, RUSTCODE,
-                ]),
+                _ => Action::SyntaxError,
             },
             14 => match aa_tag {
                 INJECT => Action::Shift(4),
                 // OptionalInjection: <empty>
                 ATTR | TARGET => Action::Reduce(2),
-                _ => Action::SyntaxError(vec![ATTR, TARGET, INJECT]),
+                _ => Action::SyntaxError,
             },
             15 => match aa_tag {
                 INJECT => Action::Shift(4),
                 // OptionalInjection: <empty>
                 TOKEN => Action::Reduce(2),
-                _ => Action::SyntaxError(vec![TOKEN, INJECT]),
+                _ => Action::SyntaxError,
             },
             16 => match aa_tag {
                 TARGET => Action::Shift(11),
-                _ => Action::SyntaxError(vec![TARGET]),
+                _ => Action::SyntaxError,
             },
             17 => match aa_tag {
                 ATTR => Action::Shift(10),
-                _ => Action::SyntaxError(vec![ATTR]),
+                _ => Action::SyntaxError,
             },
             18 => match aa_tag {
                 // AttributeType: "%attr" IDENT
                 TARGET | INJECT | NEWSECTION => Action::Reduce(10),
-                _ => Action::SyntaxError(vec![TARGET, INJECT, NEWSECTION]),
+                _ => Action::SyntaxError,
             },
             19 => match aa_tag {
                 // TargetType: "%target" IDENT
                 ATTR | INJECT | NEWSECTION => Action::Reduce(11),
-                _ => Action::SyntaxError(vec![ATTR, INJECT, NEWSECTION]),
+                _ => Action::SyntaxError,
             },
             20 => match aa_tag {
                 // Preamble: OptionalInjection RUSTCODE OptionalInjection
                 ATTR | TARGET => Action::Reduce(7),
-                _ => Action::SyntaxError(vec![ATTR, TARGET]),
+                _ => Action::SyntaxError,
             },
             21 => match aa_tag {
                 NEWSECTION => Action::Shift(26),
-                _ => Action::SyntaxError(vec![NEWSECTION]),
+                _ => Action::SyntaxError,
             },
             22 => match aa_tag {
                 INJECT => Action::Shift(4),
@@ -327,31 +449,29 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData> for GrammarSpec
                 TOKEN => Action::Reduce(2),
                 // SkipDefinitions: <empty>
                 LEFT | RIGHT | NONASSOC | SKIP | NEWSECTION => Action::Reduce(20),
-                _ => Action::SyntaxError(vec![
-                    TOKEN, LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION,
-                ]),
+                _ => Action::SyntaxError,
             },
             23 => match aa_tag {
                 TOKEN => Action::Shift(30),
-                _ => Action::SyntaxError(vec![TOKEN]),
+                _ => Action::SyntaxError,
             },
             24 => match aa_tag {
                 INJECT => Action::Shift(4),
                 // OptionalInjection: <empty>
                 NEWSECTION => Action::Reduce(2),
-                _ => Action::SyntaxError(vec![INJECT, NEWSECTION]),
+                _ => Action::SyntaxError,
             },
             25 => match aa_tag {
                 INJECT => Action::Shift(4),
                 // OptionalInjection: <empty>
                 NEWSECTION => Action::Reduce(2),
-                _ => Action::SyntaxError(vec![INJECT, NEWSECTION]),
+                _ => Action::SyntaxError,
             },
             26 => match aa_tag {
                 INJECT => Action::Shift(4),
                 // OptionalInjection: <empty>
                 IDENT => Action::Reduce(2),
-                _ => Action::SyntaxError(vec![INJECT, IDENT]),
+                _ => Action::SyntaxError,
             },
             27 => match aa_tag {
                 INJECT => Action::Shift(4),
@@ -359,42 +479,40 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData> for GrammarSpec
                 SKIP => Action::Reduce(2),
                 // PrecedenceDefinitions: <empty>
                 LEFT | RIGHT | NONASSOC | NEWSECTION => Action::Reduce(23),
-                _ => Action::SyntaxError(vec![LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION]),
+                _ => Action::SyntaxError,
             },
             28 => match aa_tag {
                 TOKEN => Action::Shift(30),
-                _ => Action::SyntaxError(vec![TOKEN]),
+                _ => Action::SyntaxError,
             },
             29 => match aa_tag {
                 // TokenDefinitions: OptionalInjection TokenDefinition
                 TOKEN | LEFT | RIGHT | NONASSOC | SKIP | INJECT | NEWSECTION => Action::Reduce(13),
-                _ => Action::SyntaxError(vec![
-                    TOKEN, LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION,
-                ]),
+                _ => Action::SyntaxError,
             },
             30 => match aa_tag {
                 IDENT => Action::Shift(39),
-                _ => Action::SyntaxError(vec![IDENT]),
+                _ => Action::SyntaxError,
             },
             31 => match aa_tag {
                 // Configuration: AttributeType OptionalInjection TargetType OptionalInjection
                 NEWSECTION => Action::Reduce(8),
-                _ => Action::SyntaxError(vec![NEWSECTION]),
+                _ => Action::SyntaxError,
             },
             32 => match aa_tag {
                 // Configuration: TargetType OptionalInjection AttributeType OptionalInjection
                 NEWSECTION => Action::Reduce(9),
-                _ => Action::SyntaxError(vec![NEWSECTION]),
+                _ => Action::SyntaxError,
             },
             33 => match aa_tag {
                 IDENT => Action::Shift(42),
                 // Specification: Preamble Configuration "%%" Definitions "%%" ProductionRules
                 AAEnd => Action::Reduce(1),
-                _ => Action::SyntaxError(vec![AAEnd, IDENT]),
+                _ => Action::SyntaxError,
             },
             34 => match aa_tag {
                 IDENT => Action::Shift(42),
-                _ => Action::SyntaxError(vec![IDENT]),
+                _ => Action::SyntaxError,
             },
             35 => match aa_tag {
                 INJECT => Action::Shift(4),
@@ -402,24 +520,22 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData> for GrammarSpec
                 LEFT | RIGHT | NONASSOC => Action::Reduce(2),
                 // Definitions: TokenDefinitions SkipDefinitions PrecedenceDefinitions
                 NEWSECTION => Action::Reduce(12),
-                _ => Action::SyntaxError(vec![LEFT, RIGHT, NONASSOC, INJECT, NEWSECTION]),
+                _ => Action::SyntaxError,
             },
             36 => match aa_tag {
                 SKIP => Action::Shift(46),
-                _ => Action::SyntaxError(vec![SKIP]),
+                _ => Action::SyntaxError,
             },
             37 => match aa_tag {
                 INJECT => Action::Shift(4),
                 // OptionalInjection: <empty>
                 TOKEN | LEFT | RIGHT | NONASSOC | SKIP | NEWSECTION => Action::Reduce(2),
-                _ => Action::SyntaxError(vec![
-                    TOKEN, LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION,
-                ]),
+                _ => Action::SyntaxError,
             },
             38 => match aa_tag {
                 REGEX => Action::Shift(49),
                 LITERAL => Action::Shift(50),
-                _ => Action::SyntaxError(vec![REGEX, LITERAL]),
+                _ => Action::SyntaxError,
             },
             39 => match aa_tag {
                 REGEX | LITERAL => {
@@ -431,13 +547,13 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData> for GrammarSpec
                         Action::Reduce(17)
                     }
                 }
-                _ => Action::SyntaxError(vec![REGEX, LITERAL]),
+                _ => Action::SyntaxError,
             },
             40 => match aa_tag {
                 INJECT => Action::Shift(4),
                 // OptionalInjection: <empty>
                 AAEnd | IDENT => Action::Reduce(2),
-                _ => Action::SyntaxError(vec![AAEnd, INJECT, IDENT]),
+                _ => Action::SyntaxError,
             },
             41 => match aa_tag {
                 LITERAL => Action::Shift(61),
@@ -447,87 +563,79 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData> for GrammarSpec
                 ACTION => Action::Shift(57),
                 // ProductionTail: <empty>
                 VBAR | DOT => Action::Reduce(38),
-                _ => Action::SyntaxError(vec![LITERAL, ERROR, VBAR, DOT, IDENT, PREDICATE, ACTION]),
+                _ => Action::SyntaxError,
             },
             42 => match aa_tag {
                 COLON => Action::Shift(63),
-                _ => Action::SyntaxError(vec![COLON]),
+                _ => Action::SyntaxError,
             },
             43 => match aa_tag {
                 INJECT => Action::Shift(4),
                 // OptionalInjection: <empty>
                 AAEnd | IDENT => Action::Reduce(2),
-                _ => Action::SyntaxError(vec![AAEnd, INJECT, IDENT]),
+                _ => Action::SyntaxError,
             },
             44 => match aa_tag {
                 LEFT => Action::Shift(66),
                 RIGHT => Action::Shift(67),
                 NONASSOC => Action::Shift(68),
-                _ => Action::SyntaxError(vec![LEFT, RIGHT, NONASSOC]),
+                _ => Action::SyntaxError,
             },
             45 => match aa_tag {
                 INJECT => Action::Shift(4),
                 // OptionalInjection: <empty>
                 LEFT | RIGHT | NONASSOC | SKIP | NEWSECTION => Action::Reduce(2),
-                _ => Action::SyntaxError(vec![LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION]),
+                _ => Action::SyntaxError,
             },
             46 => match aa_tag {
                 REGEX => Action::Shift(70),
-                _ => Action::SyntaxError(vec![REGEX]),
+                _ => Action::SyntaxError,
             },
             47 => match aa_tag {
                 // TokenDefinitions: TokenDefinitions OptionalInjection TokenDefinition OptionalInjection
                 TOKEN | LEFT | RIGHT | NONASSOC | SKIP | INJECT | NEWSECTION => Action::Reduce(14),
-                _ => Action::SyntaxError(vec![
-                    TOKEN, LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION,
-                ]),
+                _ => Action::SyntaxError,
             },
             48 => match aa_tag {
                 // TokenDefinition: "%token" NewTokenName Pattern
                 TOKEN | LEFT | RIGHT | NONASSOC | SKIP | INJECT | NEWSECTION => Action::Reduce(15),
-                _ => Action::SyntaxError(vec![
-                    TOKEN, LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION,
-                ]),
+                _ => Action::SyntaxError,
             },
             49 => match aa_tag {
                 // Pattern: REGEX
                 TOKEN | LEFT | RIGHT | NONASSOC | SKIP | INJECT | NEWSECTION => Action::Reduce(18),
-                _ => Action::SyntaxError(vec![
-                    TOKEN, LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION,
-                ]),
+                _ => Action::SyntaxError,
             },
             50 => match aa_tag {
                 // Pattern: LITERAL
                 TOKEN | LEFT | RIGHT | NONASSOC | SKIP | INJECT | NEWSECTION => Action::Reduce(19),
-                _ => Action::SyntaxError(vec![
-                    TOKEN, LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION,
-                ]),
+                _ => Action::SyntaxError,
             },
             51 => match aa_tag {
                 // ProductionRules: ProductionRules ProductionGroup OptionalInjection
                 AAEnd | IDENT => Action::Reduce(33),
-                _ => Action::SyntaxError(vec![AAEnd, IDENT]),
+                _ => Action::SyntaxError,
             },
             52 => match aa_tag {
                 VBAR => Action::Shift(72),
                 DOT => Action::Shift(71),
-                _ => Action::SyntaxError(vec![VBAR, DOT]),
+                _ => Action::SyntaxError,
             },
             53 => match aa_tag {
                 // ProductionTailList: ProductionTail
                 VBAR | DOT => Action::Reduce(36),
-                _ => Action::SyntaxError(vec![VBAR, DOT]),
+                _ => Action::SyntaxError,
             },
             54 => match aa_tag {
                 // ProductionTail: Action
                 VBAR | DOT => Action::Reduce(39),
-                _ => Action::SyntaxError(vec![VBAR, DOT]),
+                _ => Action::SyntaxError,
             },
             55 => match aa_tag {
                 ACTION => Action::Shift(57),
                 // ProductionTail: Predicate
                 VBAR | DOT => Action::Reduce(41),
-                _ => Action::SyntaxError(vec![VBAR, DOT, ACTION]),
+                _ => Action::SyntaxError,
             },
             56 => match aa_tag {
                 LITERAL => Action::Shift(61),
@@ -538,101 +646,91 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData> for GrammarSpec
                 ACTION => Action::Shift(57),
                 // ProductionTail: SymbolList
                 VBAR | DOT => Action::Reduce(49),
-                _ => Action::SyntaxError(vec![
-                    LITERAL, PRECEDENCE, ERROR, VBAR, DOT, IDENT, PREDICATE, ACTION,
-                ]),
+                _ => Action::SyntaxError,
             },
             57 => match aa_tag {
                 // Action: ACTION
                 VBAR | DOT => Action::Reduce(50),
-                _ => Action::SyntaxError(vec![VBAR, DOT]),
+                _ => Action::SyntaxError,
             },
             58 => match aa_tag {
                 // Predicate: PREDICATE
                 PRECEDENCE | VBAR | DOT | ACTION => Action::Reduce(51),
-                _ => Action::SyntaxError(vec![PRECEDENCE, VBAR, DOT, ACTION]),
+                _ => Action::SyntaxError,
             },
             59 => match aa_tag {
                 // SymbolList: Symbol
                 LITERAL | PRECEDENCE | ERROR | VBAR | DOT | IDENT | PREDICATE | ACTION => {
                     Action::Reduce(54)
                 }
-                _ => Action::SyntaxError(vec![
-                    LITERAL, PRECEDENCE, ERROR, VBAR, DOT, IDENT, PREDICATE, ACTION,
-                ]),
+                _ => Action::SyntaxError,
             },
             60 => match aa_tag {
                 // Symbol: IDENT
                 LITERAL | PRECEDENCE | ERROR | VBAR | DOT | IDENT | PREDICATE | ACTION => {
                     Action::Reduce(56)
                 }
-                _ => Action::SyntaxError(vec![
-                    LITERAL, PRECEDENCE, ERROR, VBAR, DOT, IDENT, PREDICATE, ACTION,
-                ]),
+                _ => Action::SyntaxError,
             },
             61 => match aa_tag {
                 // Symbol: LITERAL
                 LITERAL | PRECEDENCE | ERROR | VBAR | DOT | IDENT | PREDICATE | ACTION => {
                     Action::Reduce(57)
                 }
-                _ => Action::SyntaxError(vec![
-                    LITERAL, PRECEDENCE, ERROR, VBAR, DOT, IDENT, PREDICATE, ACTION,
-                ]),
+                _ => Action::SyntaxError,
             },
             62 => match aa_tag {
                 // Symbol: "%error"
                 LITERAL | PRECEDENCE | ERROR | VBAR | DOT | IDENT | PREDICATE | ACTION => {
                     Action::Reduce(58)
                 }
-                _ => Action::SyntaxError(vec![
-                    LITERAL, PRECEDENCE, ERROR, VBAR, DOT, IDENT, PREDICATE, ACTION,
-                ]),
+                _ => Action::SyntaxError,
             },
             63 => match aa_tag {
                 // ProductionGroupHead: IDENT ":"
                 LITERAL | ERROR | VBAR | DOT | IDENT | PREDICATE | ACTION => Action::Reduce(35),
-                _ => Action::SyntaxError(vec![LITERAL, ERROR, VBAR, DOT, IDENT, PREDICATE, ACTION]),
+                _ => Action::SyntaxError,
             },
             64 => match aa_tag {
                 // ProductionRules: OptionalInjection ProductionGroup OptionalInjection
                 AAEnd | IDENT => Action::Reduce(32),
-                _ => Action::SyntaxError(vec![AAEnd, IDENT]),
+                _ => Action::SyntaxError,
             },
             65 => match aa_tag {
                 INJECT => Action::Shift(4),
                 // OptionalInjection: <empty>
                 LEFT | RIGHT | NONASSOC | NEWSECTION => Action::Reduce(2),
-                _ => Action::SyntaxError(vec![LEFT, RIGHT, NONASSOC, INJECT, NEWSECTION]),
+                _ => Action::SyntaxError,
             },
             66 => match aa_tag {
                 LITERAL => Action::Shift(82),
                 IDENT => Action::Shift(83),
-                _ => Action::SyntaxError(vec![LITERAL, IDENT]),
+                _ => Action::SyntaxError,
             },
             67 => match aa_tag {
                 LITERAL => Action::Shift(82),
                 IDENT => Action::Shift(83),
-                _ => Action::SyntaxError(vec![LITERAL, IDENT]),
+                _ => Action::SyntaxError,
             },
             68 => match aa_tag {
                 LITERAL => Action::Shift(82),
                 IDENT => Action::Shift(83),
-                _ => Action::SyntaxError(vec![LITERAL, IDENT]),
+                _ => Action::SyntaxError,
             },
             69 => match aa_tag {
                 // SkipDefinitions: SkipDefinitions OptionalInjection SkipDefinition OptionalInjection
                 LEFT | RIGHT | NONASSOC | SKIP | INJECT | NEWSECTION => Action::Reduce(21),
-                _ => Action::SyntaxError(vec![LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION]),
+                _ => Action::SyntaxError,
             },
             70 => match aa_tag {
                 // SkipDefinition: "%skip" REGEX
                 LEFT | RIGHT | NONASSOC | SKIP | INJECT | NEWSECTION => Action::Reduce(22),
-                _ => Action::SyntaxError(vec![LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION]),
+                _ => Action::SyntaxError,
             },
             71 => match aa_tag {
                 // ProductionGroup: ProductionGroupHead ProductionTailList "."
                 AAEnd | INJECT | IDENT => Action::Reduce(34),
-                _ => Action::SyntaxError(vec![AAEnd, INJECT, IDENT]),
+                _ => Action::SyntaxError,
             },
             72 => match aa_tag {
                 LITERAL => Action::Shift(61),
@@ -642,148 +740,132 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData> for GrammarSpec
                 ACTION => Action::Shift(57),
                 // ProductionTail: <empty>
                 VBAR | DOT => Action::Reduce(38),
-                _ => Action::SyntaxError(vec![LITERAL, ERROR, VBAR, DOT, IDENT, PREDICATE, ACTION]),
+                _ => Action::SyntaxError,
             },
             73 => match aa_tag {
                 // ProductionTail: Predicate Action
                 VBAR | DOT => Action::Reduce(40),
-                _ => Action::SyntaxError(vec![VBAR, DOT]),
+                _ => Action::SyntaxError,
             },
             74 => match aa_tag {
                 PRECEDENCE => Action::Shift(77),
                 ACTION => Action::Shift(57),
                 // ProductionTail: SymbolList Predicate
                 VBAR | DOT => Action::Reduce(45),
-                _ => Action::SyntaxError(vec![PRECEDENCE, VBAR, DOT, ACTION]),
+                _ => Action::SyntaxError,
             },
             75 => match aa_tag {
                 ACTION => Action::Shift(57),
                 // ProductionTail: SymbolList TaggedPrecedence
                 VBAR | DOT => Action::Reduce(47),
-                _ => Action::SyntaxError(vec![VBAR, DOT, ACTION]),
+                _ => Action::SyntaxError,
             },
             76 => match aa_tag {
                 // ProductionTail: SymbolList Action
                 VBAR | DOT => Action::Reduce(48),
-                _ => Action::SyntaxError(vec![VBAR, DOT]),
+                _ => Action::SyntaxError,
             },
             77 => match aa_tag {
                 LITERAL => Action::Shift(91),
                 IDENT => Action::Shift(90),
-                _ => Action::SyntaxError(vec![LITERAL, IDENT]),
+                _ => Action::SyntaxError,
             },
             78 => match aa_tag {
                 // SymbolList: SymbolList Symbol
                 LITERAL | PRECEDENCE | ERROR | VBAR | DOT | IDENT | PREDICATE | ACTION => {
                     Action::Reduce(55)
                 }
-                _ => Action::SyntaxError(vec![
-                    LITERAL, PRECEDENCE, ERROR, VBAR, DOT, IDENT, PREDICATE, ACTION,
-                ]),
+                _ => Action::SyntaxError,
             },
             79 => match aa_tag {
                 // PrecedenceDefinitions: PrecedenceDefinitions OptionalInjection PrecedenceDefinition OptionalInjection
                 LEFT | RIGHT | NONASSOC | INJECT | NEWSECTION => Action::Reduce(24),
-                _ => Action::SyntaxError(vec![LEFT, RIGHT, NONASSOC, INJECT, NEWSECTION]),
+                _ => Action::SyntaxError,
             },
             80 => match aa_tag {
                 LITERAL => Action::Shift(82),
                 IDENT => Action::Shift(83),
                 // PrecedenceDefinition: "%left" TagList
                 LEFT | RIGHT | NONASSOC | INJECT | NEWSECTION => Action::Reduce(25),
-                _ => Action::SyntaxError(vec![
-                    LITERAL, LEFT, RIGHT, NONASSOC, INJECT, NEWSECTION, IDENT,
-                ]),
+                _ => Action::SyntaxError,
             },
             81 => match aa_tag {
                 // TagList: Tag
                 LITERAL | LEFT | RIGHT | NONASSOC | INJECT | NEWSECTION | IDENT => {
                     Action::Reduce(28)
                 }
-                _ => Action::SyntaxError(vec![
-                    LITERAL, LEFT, RIGHT, NONASSOC, INJECT, NEWSECTION, IDENT,
-                ]),
+                _ => Action::SyntaxError,
             },
             82 => match aa_tag {
                 // Tag: LITERAL
                 LITERAL | LEFT | RIGHT | NONASSOC | INJECT | NEWSECTION | IDENT => {
                     Action::Reduce(30)
                 }
-                _ => Action::SyntaxError(vec![
-                    LITERAL, LEFT, RIGHT, NONASSOC, INJECT, NEWSECTION, IDENT,
-                ]),
+                _ => Action::SyntaxError,
             },
             83 => match aa_tag {
                 // Tag: IDENT
                 LITERAL | LEFT | RIGHT | NONASSOC | INJECT | NEWSECTION | IDENT => {
                     Action::Reduce(31)
                 }
-                _ => Action::SyntaxError(vec![
-                    LITERAL, LEFT, RIGHT, NONASSOC, INJECT, NEWSECTION, IDENT,
-                ]),
+                _ => Action::SyntaxError,
             },
             84 => match aa_tag {
                 LITERAL => Action::Shift(82),
                 IDENT => Action::Shift(83),
                 // PrecedenceDefinition: "%right" TagList
                 LEFT | RIGHT | NONASSOC | INJECT | NEWSECTION => Action::Reduce(26),
-                _ => Action::SyntaxError(vec![
-                    LITERAL, LEFT, RIGHT, NONASSOC, INJECT, NEWSECTION, IDENT,
-                ]),
+                _ => Action::SyntaxError,
             },
             85 => match aa_tag {
                 LITERAL => Action::Shift(82),
                 IDENT => Action::Shift(83),
                 // PrecedenceDefinition: "%nonassoc" TagList
                 LEFT | RIGHT | NONASSOC | INJECT | NEWSECTION => Action::Reduce(27),
-                _ => Action::SyntaxError(vec![
-                    LITERAL, LEFT, RIGHT, NONASSOC, INJECT, NEWSECTION, IDENT,
-                ]),
+                _ => Action::SyntaxError,
             },
             86 => match aa_tag {
                 // ProductionTailList: ProductionTailList "|" ProductionTail
                 VBAR | DOT => Action::Reduce(37),
-                _ => Action::SyntaxError(vec![VBAR, DOT]),
+                _ => Action::SyntaxError,
             },
             87 => match aa_tag {
                 ACTION => Action::Shift(57),
                 // ProductionTail: SymbolList Predicate TaggedPrecedence
                 VBAR | DOT => Action::Reduce(43),
-                _ => Action::SyntaxError(vec![VBAR, DOT, ACTION]),
+                _ => Action::SyntaxError,
             },
             88 => match aa_tag {
                 // ProductionTail: SymbolList Predicate Action
                 VBAR | DOT => Action::Reduce(44),
-                _ => Action::SyntaxError(vec![VBAR, DOT]),
+                _ => Action::SyntaxError,
             },
             89 => match aa_tag {
                 // ProductionTail: SymbolList TaggedPrecedence Action
                 VBAR | DOT => Action::Reduce(46),
-                _ => Action::SyntaxError(vec![VBAR, DOT]),
+                _ => Action::SyntaxError,
             },
             90 => match aa_tag {
                 // TaggedPrecedence: "%prec" IDENT
                 VBAR | DOT | ACTION => Action::Reduce(52),
-                _ => Action::SyntaxError(vec![VBAR, DOT, ACTION]),
+                _ => Action::SyntaxError,
             },
             91 => match aa_tag {
                 // TaggedPrecedence: "%prec" LITERAL
                 VBAR | DOT | ACTION => Action::Reduce(53),
-                _ => Action::SyntaxError(vec![VBAR, DOT, ACTION]),
+                _ => Action::SyntaxError,
             },
             92 => match aa_tag {
                 // TagList: TagList Tag
                 LITERAL | LEFT | RIGHT | NONASSOC | INJECT | NEWSECTION | IDENT => {
                     Action::Reduce(29)
                 }
-                _ => Action::SyntaxError(vec![
-                    LITERAL, LEFT, RIGHT, NONASSOC, INJECT, NEWSECTION, IDENT,
-                ]),
+                _ => Action::SyntaxError,
             },
             93 => match aa_tag {
                 // ProductionTail: SymbolList Predicate TaggedPrecedence Action
                 VBAR | DOT => Action::Reduce(42),
-                _ => Action::SyntaxError(vec![VBAR, DOT]),
+                _ => Action::SyntaxError,
             },
             _ => panic!("illegal state: {}", aa_state),
         };

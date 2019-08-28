@@ -10,7 +10,7 @@ use lalr1plus::{self, Parser};
 use lexan;
 
 use crate::state::{GrammarItemKey, GrammarItemSet, ParserState, Production, ProductionTail};
-use crate::symbols::{FirstsData, Symbol, SymbolTable};
+use crate::symbols::{format_as_vec, FirstsData, Symbol, SymbolTable};
 
 #[cfg(not(feature = "bootstrap"))]
 use crate::alapgen::*;
@@ -377,7 +377,8 @@ impl Grammar {
     fn write_symbol_enum_code<W: Write>(&self, wtr: &mut W) -> io::Result<()> {
         let tokens = self.specification.symbol_table.tokens_sorted();
         wtr.write(b"use lalr1plus;\n")?;
-        wtr.write(b"use lexan;\n\n")?;
+        wtr.write(b"use lexan;\n")?;
+        wtr.write(b"use ordered_collections::OrderedSet;\n\n")?;
         wtr.write(b"#[derive(Debug, Clone, Copy, PartialOrd, Ord, PartialEq, Eq)]\n")?;
         wtr.write(b"pub enum AATerminal {\n")?;
         for token in tokens.iter() {
@@ -482,6 +483,7 @@ impl Grammar {
         wtr.write(b"        &AALEXAN\n")?;
         wtr.write(b"    }\n\n")?;
         self.write_error_recovery_code(wtr)?;
+        self.write_look_ahead_set_code(wtr)?;
         self.write_next_action_code(wtr)?;
         self.specification.write_production_data_code(wtr)?;
         self.write_goto_table_code(wtr)?;
@@ -551,6 +553,23 @@ impl Grammar {
         Ok(())
     }
 
+    fn write_look_ahead_set_code<W: Write>(&self, wtr: &mut W) -> io::Result<()> {
+        wtr.write(b"    fn look_ahead_set(state: u32) -> OrderedSet<AATerminal> {\n")?;
+        wtr.write(b"        use AATerminal::*;\n")?;
+        wtr.write(b"        return match state {\n")?;
+        for parser_state in self.parser_states.iter() {
+            wtr.write_fmt(format_args!(
+                "            {} => {}.into(),\n",
+                parser_state.ident,
+                format_as_vec(&parser_state.look_ahead_set())
+            ))?;
+        }
+        wtr.write(b"            _ => panic!(\"illegal state: {}\", state),\n")?;
+        wtr.write(b"        }\n")?;
+        wtr.write(b"    }\n\n")?;
+        Ok(())
+    }
+
     fn write_next_action_code<W: Write>(&self, wtr: &mut W) -> io::Result<()> {
         wtr.write(b"    fn next_action(\n")?;
         wtr.write(b"        &self,\n")?;
@@ -560,7 +579,7 @@ impl Grammar {
             self.specification.attribute_type
         ))?;
         wtr.write(b"        aa_token: &lexan::Token<AATerminal>,\n")?;
-        wtr.write(b"    ) -> lalr1plus::Action<AATerminal> {\n")?;
+        wtr.write(b"    ) -> lalr1plus::Action {\n")?;
         wtr.write(b"        use lalr1plus::Action;\n")?;
         wtr.write(b"        use AATerminal::*;\n")?;
         wtr.write(b"        let aa_tag = *aa_token.tag();\n")?;
