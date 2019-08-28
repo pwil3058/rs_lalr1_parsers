@@ -106,7 +106,6 @@ lazy_static! {
 pub enum AANonTerminal {
     AAStart,
     AASyntaxError,
-    AALexicalError,
     Specification,
     Preamble,
     Configuration,
@@ -143,7 +142,6 @@ impl std::fmt::Display for AANonTerminal {
         match self {
             AANonTerminal::AAStart => write!(f, r"AAStart"),
             AANonTerminal::AASyntaxError => write!(f, r"AASyntaxError"),
-            AANonTerminal::AALexicalError => write!(f, r"AALexicalError"),
             AANonTerminal::Specification => write!(f, r"Specification"),
             AANonTerminal::Preamble => write!(f, r"Preamble"),
             AANonTerminal::Configuration => write!(f, r"Configuration"),
@@ -931,7 +929,6 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData> for GrammarSpec
             57 => (AANonTerminal::Symbol, 1),
             58 => (AANonTerminal::Symbol, 1),
             59 => (AANonTerminal::AASyntaxError, 0),
-            60 => (AANonTerminal::AALexicalError, 0),
             _ => panic!("malformed production data table"),
         }
     }
@@ -1299,7 +1296,7 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData> for GrammarSpec
                 } else {
                     let symbol = self
                         .symbol_table
-                        .use_symbol_named(&AANonTerminal::AALexicalError.to_string(), location)
+                        .use_symbol_named(&"AAInvalidTag".to_string(), location)
                         .unwrap();
                     aa_lhs = AttributeData::Symbol(symbol);
                     let msg = format!("Literal token \"{}\" is not known", text);
@@ -1572,7 +1569,7 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData> for GrammarSpec
                     self.error(location, &format!("{}: unknown literal)", lexeme));
                     let symbol = self
                         .symbol_table
-                        .use_symbol_named(&AANonTerminal::AALexicalError.to_string(), location)
+                        .use_symbol_named(&AANonTerminal::AASyntaxError.to_string(), location)
                         .unwrap();
                     aa_lhs = AttributeData::Symbol(symbol);
                 }

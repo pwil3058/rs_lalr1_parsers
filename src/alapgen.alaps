@@ -195,7 +195,7 @@ Tag: LITERAL
             if let Some(symbol) = self.symbol_table.get_literal_token(text, location) {
                 $$ = AttributeData::Symbol(Rc::clone(symbol));
             } else {
-                let symbol = self.symbol_table.use_symbol_named(&AANonTerminal::AALexicalError.to_string(), location).unwrap();
+                let symbol = self.symbol_table.use_symbol_named(&"AAInvalidTag".to_string(), location).unwrap();
                 $$ = AttributeData::Symbol(symbol);
                 let msg = format!("Literal token \"{}\" is not known", text);
                 self.error(location, &msg);
@@ -457,7 +457,7 @@ Symbol: IDENT
                 self.error(location, &format!("{}: unknown literal)", lexeme));
                 let symbol = self
                     .symbol_table
-                    .use_symbol_named(&AANonTerminal::AALexicalError.to_string(), location)
+                    .use_symbol_named(&AANonTerminal::AASyntaxError.to_string(), location)
                     .unwrap();
                 aa_lhs = AttributeData::Symbol(symbol);
             }

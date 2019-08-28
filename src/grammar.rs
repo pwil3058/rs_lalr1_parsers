@@ -55,7 +55,7 @@ impl GrammarSpecification {
         };
         spec.parse_text(text, label)?;
         let location = lexan::Location::default();
-        for error in &[AANonTerminal::AASyntaxError, AANonTerminal::AALexicalError] {
+        for error in &[AANonTerminal::AASyntaxError] {
             let symbol = spec
                 .symbol_table
                 .use_symbol_named(&error.to_string(), &location)
