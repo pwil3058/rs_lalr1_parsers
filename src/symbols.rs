@@ -1,7 +1,7 @@
-use std::{cell::RefCell, fmt, rc::Rc};
+use std::{cell::RefCell, collections::HashMap, fmt, rc::Rc};
 
 use lexan;
-use ordered_collections::{OrderedMap, OrderedSet};
+use ordered_collections::OrderedSet;
 
 #[cfg(not(feature = "bootstrap"))]
 use crate::alapgen::{AANonTerminal, AATerminal};
@@ -356,10 +356,10 @@ const NUM_SPECIAL_SYMBOLS: u32 = 4;
 
 #[derive(Debug, Default, Clone)]
 pub struct SymbolTable {
-    tokens: OrderedMap<String, Rc<Symbol>>, // indexed by token name
-    literal_tokens: OrderedMap<String, Rc<Symbol>>, // indexed by token literal
-    tags: OrderedMap<String, Rc<Symbol>>,   // indexed by tag name
-    non_terminals: OrderedMap<String, Rc<Symbol>>, // indexed by symbol name
+    tokens: HashMap<String, Rc<Symbol>>, // indexed by token name
+    literal_tokens: HashMap<String, Rc<Symbol>>, // indexed by token literal
+    tags: HashMap<String, Rc<Symbol>>,   // indexed by tag name
+    non_terminals: HashMap<String, Rc<Symbol>>, // indexed by symbol name
     skip_rules: Vec<String>,
     next_precedence: u32,
     next_ident: u32,
@@ -368,10 +368,10 @@ pub struct SymbolTable {
 impl SymbolTable {
     pub fn new() -> Self {
         let mut st = Self {
-            tokens: OrderedMap::new(),
-            literal_tokens: OrderedMap::new(),
-            tags: OrderedMap::new(),
-            non_terminals: OrderedMap::new(),
+            tokens: HashMap::new(),
+            literal_tokens: HashMap::new(),
+            tags: HashMap::new(),
+            non_terminals: HashMap::new(),
             skip_rules: Vec::new(),
             next_precedence: u32::max_value(),
             next_ident: 0,
