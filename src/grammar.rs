@@ -10,7 +10,7 @@ use lalr1plus::{self, Parser};
 use lexan;
 
 use crate::state::{GrammarItemKey, GrammarItemSet, ParserState, Production, ProductionTail};
-use crate::symbols::{format_as_vec, FirstsData, Symbol, SymbolTable};
+use crate::symbols::{format_as_vec, FirstsData, Symbol, SymbolTable, SymbolType};
 
 #[cfg(not(feature = "bootstrap"))]
 use crate::alapgen::*;
@@ -386,17 +386,19 @@ impl Grammar {
         for token in tokens.iter() {
             wtr.write(b"            AATerminal::")?;
             let name = token.name();
-            let pattern = token.pattern();
-            if pattern.starts_with('"') {
-                wtr.write_fmt(format_args!(
-                    "{} => write!(f, r###\"{}\"###),\n",
-                    name, pattern
-                ))?;
-            } else {
-                wtr.write_fmt(format_args!(
-                    "{} => write!(f, r###\"{}\"###),\n",
-                    name, name
-                ))?;
+            match token.symbol_type() {
+                SymbolType::LiteralToken(literal) => {
+                    wtr.write_fmt(format_args!(
+                        "{} => write!(f, r###\"{}\"###),\n",
+                        name, literal
+                    ))?;
+                }
+                _ => {
+                    wtr.write_fmt(format_args!(
+                        "{} => write!(f, r###\"{}\"###),\n",
+                        name, name
+                    ))?;
+                }
             }
         }
         wtr.write(b"        }\n")?;
@@ -434,23 +436,19 @@ impl Grammar {
         wtr.write(b"        use AATerminal::*;\n")?;
         wtr.write(b"        lexan::LexicalAnalyzer::new(\n")?;
         wtr.write(b"            &[\n")?;
-        for token in tokens.iter().filter(|x| x.pattern().starts_with('"')) {
-            wtr.write(b"                ")?;
-            wtr.write_fmt(format_args!(
-                "({}, r###{}###),\n",
-                token.name(),
-                token.pattern()
-            ))?;
+        for token in tokens.iter() {
+            if let SymbolType::LiteralToken(literal) = token.symbol_type() {
+                wtr.write(b"                ")?;
+                wtr.write_fmt(format_args!("({}, r###{}###),\n", token.name(), literal))?;
+            }
         }
         wtr.write(b"            ],\n")?;
         wtr.write(b"            &[\n")?;
-        for token in tokens.iter().filter(|x| x.pattern().starts_with('(')) {
-            wtr.write(b"                ")?;
-            wtr.write_fmt(format_args!(
-                "({}, r###\"{}\"###),\n",
-                token.name(),
-                token.pattern()
-            ))?;
+        for token in tokens.iter() {
+            if let SymbolType::RegExToken(regex) = token.symbol_type() {
+                wtr.write(b"                ")?;
+                wtr.write_fmt(format_args!("({}, r###\"{}\"###),\n", token.name(), regex))?;
+            }
         }
         wtr.write(b"            ],\n")?;
         wtr.write(b"            &[\n")?;

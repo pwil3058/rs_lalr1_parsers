@@ -113,15 +113,18 @@ impl Default for SymbolMutableData {
 
 #[derive(Debug, Clone)]
 pub enum SymbolType {
-    Token,
+    LiteralToken(String),
+    RegExToken(String),
+    SpecialToken,
     Tag,
     NonTerminal,
 }
 
 impl SymbolType {
     pub fn is_token(&self) -> bool {
+        use SymbolType::*;
         match self {
-            SymbolType::Token => true,
+            LiteralToken(_) | RegExToken(_) | SpecialToken => true,
             _ => false,
         }
     }
@@ -139,7 +142,6 @@ pub struct Symbol {
     ident: u32,
     name: String,
     symbol_type: SymbolType,
-    pattern: String,
     pub mutable_data: RefCell<SymbolMutableData>,
 }
 
@@ -151,14 +153,8 @@ impl fmt::Debug for Symbol {
 
 impl fmt::Display for Symbol {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self.symbol_type {
-            SymbolType::Token => {
-                if self.pattern.starts_with('"') {
-                    write!(f, "{}", self.pattern)
-                } else {
-                    write!(f, "{}", self.name)
-                }
-            }
+        match &self.symbol_type {
+            SymbolType::LiteralToken(literal) => write!(f, "{}", literal),
             _ => write!(f, "{}", self.name),
         }
     }
@@ -177,7 +173,6 @@ impl Symbol {
         Rc::new(Self {
             ident,
             name: name.to_string(),
-            pattern: String::new(),
             symbol_type: SymbolType::NonTerminal,
             mutable_data,
         })
@@ -197,7 +192,6 @@ impl Symbol {
         Rc::new(Self {
             ident,
             name: name.to_string(),
-            pattern: String::new(),
             symbol_type: SymbolType::NonTerminal,
             mutable_data,
         })
@@ -213,7 +207,6 @@ impl Symbol {
         Rc::new(Self {
             ident,
             name: name.to_string(),
-            pattern: String::new(),
             symbol_type: SymbolType::Tag,
             mutable_data,
         })
@@ -222,7 +215,7 @@ impl Symbol {
     pub fn new_token_at(
         ident: u32,
         name: &str,
-        pattern: &str,
+        symbol_type: SymbolType,
         location: &lexan::Location,
     ) -> Rc<Symbol> {
         let mutable_data = RefCell::new(SymbolMutableData {
@@ -234,8 +227,7 @@ impl Symbol {
         let token = Rc::new(Self {
             ident,
             name: name.to_string(),
-            pattern: pattern.to_string(),
-            symbol_type: SymbolType::Token,
+            symbol_type,
             mutable_data,
         });
         let mut token_set: OrderedSet<Rc<Symbol>> = OrderedSet::new();
@@ -245,6 +237,10 @@ impl Symbol {
             transparent: false,
         });
         token
+    }
+
+    pub fn symbol_type(&self) -> &SymbolType {
+        &self.symbol_type
     }
 
     pub fn is_start_symbol(&self) -> bool {
@@ -285,10 +281,6 @@ impl Symbol {
 
     pub fn name(&self) -> &String {
         &self.name
-    }
-
-    pub fn pattern(&self) -> &String {
-        &self.pattern
     }
 
     pub fn defined_at(&self) -> Option<lexan::Location> {
@@ -365,9 +357,9 @@ const NUM_SPECIAL_SYMBOLS: u32 = 4;
 #[derive(Debug, Default, Clone)]
 pub struct SymbolTable {
     tokens: OrderedMap<String, Rc<Symbol>>, // indexed by token name
-    literal_tokens: OrderedMap<String, Rc<Symbol>>, // indexed by token name
+    literal_tokens: OrderedMap<String, Rc<Symbol>>, // indexed by token literal
     tags: OrderedMap<String, Rc<Symbol>>,   // indexed by tag name
-    non_terminals: OrderedMap<String, Rc<Symbol>>, // indexed by tag name
+    non_terminals: OrderedMap<String, Rc<Symbol>>, // indexed by symbol name
     skip_rules: Vec<String>,
     next_precedence: u32,
     next_ident: u32,
@@ -469,21 +461,30 @@ impl SymbolTable {
         pattern: &str,
         location: &lexan::Location,
     ) -> Result<Rc<Symbol>, Error> {
-        let token = Symbol::new_token_at(self.next_ident, name, pattern, location);
+        let symbol_type = if pattern.len() == 0 {
+            SymbolType::SpecialToken
+        } else if pattern.starts_with('"') {
+            SymbolType::LiteralToken(pattern.to_string())
+        } else {
+            SymbolType::RegExToken(pattern.to_string())
+        };
+        let token = Symbol::new_token_at(self.next_ident, name, symbol_type, location);
         self.next_ident += 1;
         if let Some(token) = self.tokens.insert(name.to_string(), Rc::clone(&token)) {
             Err(Error::AlreadyDefined(Rc::clone(&token)))
-        } else if pattern.starts_with('"') {
-            if let Some(token) = self
-                .literal_tokens
-                .insert(pattern.to_string(), Rc::clone(&token))
-            {
-                Err(Error::AlreadyDefined(Rc::clone(&token)))
+        } else {
+            if let SymbolType::LiteralToken(literal) = token.symbol_type() {
+                if let Some(token) = self
+                    .literal_tokens
+                    .insert(literal.to_string(), Rc::clone(&token))
+                {
+                    Err(Error::AlreadyDefined(Rc::clone(&token)))
+                } else {
+                    Ok(token)
+                }
             } else {
                 Ok(token)
             }
-        } else {
-            Ok(token)
         }
     }
 
@@ -543,10 +544,16 @@ impl SymbolTable {
         let mut string = "Symbols:\n".to_string();
         string += "  Tokens:\n";
         for token in self.tokens_sorted() {
+            let pattern = match token.symbol_type() {
+                SymbolType::RegExToken(regex) => regex,
+                SymbolType::LiteralToken(literal) => literal,
+                SymbolType::SpecialToken => "",
+                _ => panic!("not a token"),
+            };
             string += &format!(
                 "    {}({}): {} {}\n",
                 token.name,
-                token.pattern,
+                pattern,
                 token.associative_precedence(),
                 token.firsts_data()
             );
