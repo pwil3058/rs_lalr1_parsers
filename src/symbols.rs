@@ -379,8 +379,12 @@ impl SymbolTable {
         let start_location = lexan::Location::default();
 
         st.define_non_terminal(&AANonTerminal::AAStart.to_string(), &start_location);
-        st.new_token(&AATerminal::AAEnd.to_string(), "", &start_location)
-            .expect("There should be no naming conflicts yet.");
+        st.new_token(
+            &AATerminal::AAEnd.to_string(),
+            SymbolType::SpecialToken,
+            &start_location,
+        )
+        .expect("There should be no naming conflicts yet.");
         st.new_tag("AAInvalidTag", &start_location)
             .expect("There should be no naming conflicts yet.");
         st.define_non_terminal(&AANonTerminal::AAError.to_string(), &start_location);
@@ -458,16 +462,17 @@ impl SymbolTable {
     pub fn new_token(
         &mut self,
         name: &str,
-        pattern: &str,
+        symbol_type: SymbolType,
         location: &lexan::Location,
     ) -> Result<Rc<Symbol>, Error> {
-        let symbol_type = if pattern.len() == 0 {
-            SymbolType::SpecialToken
-        } else if pattern.starts_with('"') {
-            SymbolType::LiteralToken(pattern.to_string())
-        } else {
-            SymbolType::RegExToken(pattern.to_string())
-        };
+        debug_assert!(symbol_type.is_token());
+        //        let symbol_type = if pattern.len() == 0 {
+        //            SymbolType::SpecialToken
+        //        } else if pattern.starts_with('"') {
+        //            SymbolType::LiteralToken(pattern.to_string())
+        //        } else {
+        //            SymbolType::RegExToken(pattern.to_string())
+        //        };
         let token = Symbol::new_token_at(self.next_ident, name, symbol_type, location);
         self.next_ident += 1;
         if let Some(token) = self.tokens.insert(name.to_string(), Rc::clone(&token)) {

@@ -8,7 +8,7 @@ use crate::{
     attributes::*,
     grammar::GrammarSpecification,
     state::ProductionTail,
-    symbols::{AssociativePrecedence, Associativity},
+    symbols::{AssociativePrecedence, Associativity, SymbolType},
 };
 %}
 
@@ -109,11 +109,19 @@ TokenDefinitions : OptionalInjection TokenDefinition
     | TokenDefinitions OptionalInjection TokenDefinition OptionalInjection
     .
 
-TokenDefinition: "%token" NewTokenName Pattern
+TokenDefinition: "%token" NewTokenName LITERAL
         !{
             let (name, location) = $2.text_and_location();
-            let pattern = $3.matched_text();
-            if let Err(err) = self.symbol_table.new_token(name, pattern, location) {
+            let symbol_type = SymbolType::LiteralToken($3.matched_text().to_string());
+            if let Err(err) = self.symbol_table.new_token(name, symbol_type, location) {
+                self.error(location, &err.to_string());
+            }
+        !}
+    | "%token" NewTokenName REGEX
+        !{
+            let (name, location) = $2.text_and_location();
+            let symbol_type = SymbolType::RegExToken($3.matched_text().to_string());
+            if let Err(err) = self.symbol_table.new_token(name, symbol_type, location) {
                 self.error(location, &err.to_string());
             }
         !}
@@ -128,10 +136,6 @@ NewTokenName: IDENT ?( !Self::is_allowable_name($1.matched_text()) ?)
             );
         !}
     | IDENT
-    .
-
-Pattern: REGEX
-    | LITERAL
     .
 
 // Skip Definitions
