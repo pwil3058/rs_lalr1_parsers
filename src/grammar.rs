@@ -482,37 +482,37 @@ impl Grammar {
         Ok(())
     }
 
-    fn error_recovery_states_for_token(&self, token: &Rc<Symbol>) -> Vec<u32> {
-        let mut states = vec![];
-        for parser_state in self.parser_states.iter() {
-            if parser_state.is_recovery_state_for_token(token) {
-                states.push(parser_state.ident)
-            }
-        }
-        states
+    fn error_recovery_states_for_token(&self, token: &Rc<Symbol>) -> OrderedSet<u32> {
+        self.parser_states
+            .iter()
+            .filter(|x| x.is_recovery_state_for_token(token))
+            .map(|x| x.ident)
+            .collect()
     }
 
-    fn format_u32_vec(vec: &[u32]) -> String {
+    fn format_u32_set(set: &OrderedSet<u32>) -> String {
         let mut string = "vec![".to_string();
-        for (index, number) in vec.iter().enumerate() {
+        for (index, number) in set.iter().enumerate() {
             if index == 0 {
                 string += &format!("{}", number);
             } else {
                 string += &format!(", {}", number);
             }
         }
-        string += "]";
+        string += "].into()";
         string
     }
 
     fn write_error_recovery_code<W: Write>(&self, wtr: &mut W) -> io::Result<()> {
-        wtr.write(b"    fn viable_error_recovery_states(token: &AATerminal) -> Vec<u32> {\n")?;
+        wtr.write(
+            b"    fn viable_error_recovery_states(token: &AATerminal) -> OrderedSet<u32> {\n",
+        )?;
         wtr.write(b"        match token {\n")?;
         let mut default_required = false;
         for token in self.specification.symbol_table.token_set() {
             let set = self.error_recovery_states_for_token(token);
             if set.len() > 0 {
-                let set_str = Self::format_u32_vec(&set);
+                let set_str = Self::format_u32_set(&set);
                 wtr.write_fmt(format_args!(
                     "            AATerminal::{} => {},\n",
                     token.name(),
@@ -523,7 +523,7 @@ impl Grammar {
             }
         }
         if default_required {
-            wtr.write(b"            _ => vec![],\n")?;
+            wtr.write(b"            _ => OrderedSet::new(),\n")?;
         }
         wtr.write(b"        }\n")?;
         wtr.write(b"    }\n\n")?;

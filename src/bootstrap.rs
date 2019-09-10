@@ -178,9 +178,9 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData> for GrammarSpec
         &AALEXAN
     }
 
-    fn viable_error_recovery_states(token: &AATerminal) -> Vec<u32> {
+    fn viable_error_recovery_states(token: &AATerminal) -> OrderedSet<u32> {
         match token {
-            _ => vec![],
+            _ => OrderedSet::new(),
         }
     }
 
