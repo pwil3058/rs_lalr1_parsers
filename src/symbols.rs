@@ -462,13 +462,6 @@ impl SymbolTable {
         location: &lexan::Location,
     ) -> Result<Rc<Symbol>, Error> {
         debug_assert!(symbol_type.is_token());
-        //        let symbol_type = if pattern.len() == 0 {
-        //            SymbolType::SpecialToken
-        //        } else if pattern.starts_with('"') {
-        //            SymbolType::LiteralToken(pattern.to_string())
-        //        } else {
-        //            SymbolType::RegExToken(pattern.to_string())
-        //        };
         let token = Symbol::new_token_at(self.next_ident, name, symbol_type, location);
         self.next_ident += 1;
         if let Some(token) = self.tokens.insert(name.to_string(), Rc::clone(&token)) {
