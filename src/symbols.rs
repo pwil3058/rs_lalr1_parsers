@@ -414,16 +414,12 @@ impl SymbolTable {
         self.non_terminals.values()
     }
 
-    pub fn tokens_sorted(&self) -> Vec<&Rc<Symbol>> {
-        let mut tokens: Vec<&Rc<Symbol>> = self.tokens.values().collect();
-        tokens.sort();
-        tokens
+    pub fn token_set(&self) -> OrderedSet<&Rc<Symbol>> {
+        self.tokens.values().collect()
     }
 
-    pub fn non_terminal_symbols_sorted(&self) -> Vec<&Rc<Symbol>> {
-        let mut non_terminal_symbols: Vec<&Rc<Symbol>> = self.non_terminals.values().collect();
-        non_terminal_symbols.sort();
-        non_terminal_symbols
+    pub fn non_terminal_symbol_set(&self) -> OrderedSet<&Rc<Symbol>> {
+        self.non_terminals.values().collect()
     }
 
     pub fn skip_rules(&self) -> impl Iterator<Item = &String> {
@@ -548,7 +544,7 @@ impl SymbolTable {
     pub fn description(&self) -> String {
         let mut string = "Symbols:\n".to_string();
         string += "  Tokens:\n";
-        for token in self.tokens_sorted() {
+        for token in self.token_set() {
             let pattern = match token.symbol_type() {
                 SymbolType::RegExToken(regex) => regex,
                 SymbolType::LiteralToken(literal) => literal,
@@ -568,7 +564,7 @@ impl SymbolTable {
             string += &format!("    {}: {}\n", tag.name, tag.associative_precedence(),);
         }
         string += "  Non Terminal Symbols:\n";
-        for symbol in self.non_terminal_symbols_sorted() {
+        for symbol in self.non_terminal_symbol_set() {
             string += &format!(
                 "    {}: {} {}\n",
                 symbol.name,

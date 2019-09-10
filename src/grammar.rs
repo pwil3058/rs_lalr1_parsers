@@ -370,7 +370,7 @@ impl Grammar {
     }
 
     fn write_symbol_enum_code<W: Write>(&self, wtr: &mut W) -> io::Result<()> {
-        let tokens = self.specification.symbol_table.tokens_sorted();
+        let tokens = self.specification.symbol_table.token_set();
         wtr.write(b"use lalr1plus;\n")?;
         wtr.write(b"use lexan;\n")?;
         wtr.write(b"use ordered_collections::OrderedSet;\n\n")?;
@@ -407,10 +407,7 @@ impl Grammar {
         self.write_lexical_analyzer_code(wtr)?;
         wtr.write(b"#[derive(Debug, Clone, Copy, PartialOrd, Ord, PartialEq, Eq)]\n")?;
         wtr.write(b"pub enum AANonTerminal {\n")?;
-        let non_terminal_symbols = self
-            .specification
-            .symbol_table
-            .non_terminal_symbols_sorted();
+        let non_terminal_symbols = self.specification.symbol_table.non_terminal_symbol_set();
         for symbol in non_terminal_symbols.iter() {
             wtr.write_fmt(format_args!("    {},\n", symbol.name()))?;
         }
@@ -430,7 +427,7 @@ impl Grammar {
     }
 
     fn write_lexical_analyzer_code<W: Write>(&self, wtr: &mut W) -> io::Result<()> {
-        let tokens = self.specification.symbol_table.tokens_sorted();
+        let tokens = self.specification.symbol_table.token_set();
         wtr.write(b"lazy_static! {\n")?;
         wtr.write(b"    static ref AALEXAN: lexan::LexicalAnalyzer<AATerminal> = {\n")?;
         wtr.write(b"        use AATerminal::*;\n")?;
@@ -512,7 +509,7 @@ impl Grammar {
         wtr.write(b"    fn viable_error_recovery_states(token: &AATerminal) -> Vec<u32> {\n")?;
         wtr.write(b"        match token {\n")?;
         let mut default_required = false;
-        for token in self.specification.symbol_table.tokens_sorted().iter() {
+        for token in self.specification.symbol_table.token_set() {
             let set = self.error_recovery_states_for_token(token);
             if set.len() > 0 {
                 let set_str = Self::format_u32_vec(&set);
