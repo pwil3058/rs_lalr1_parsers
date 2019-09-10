@@ -142,7 +142,7 @@ where
         }
     }
 
-    fn distance_to_viable_state<F: Fn(&T) -> Vec<u32>>(
+    fn distance_to_viable_state<F: Fn(&T) -> OrderedSet<u32>>(
         &mut self,
         tokens: &mut lexan::TokenStream<T>,
         viable_error_recovery_states: F,
@@ -201,7 +201,7 @@ where
         A::default()
     }
 
-    fn viable_error_recovery_states(tag: &T) -> Vec<u32>;
+    fn viable_error_recovery_states(tag: &T) -> OrderedSet<u32>;
 
     fn error_goto_state(state: u32) -> u32;
 
@@ -428,11 +428,11 @@ mod tests {
             &AALEXAN
         }
 
-        fn viable_error_recovery_states(tag: &Terminal) -> Vec<u32> {
+        fn viable_error_recovery_states(tag: &Terminal) -> OrderedSet<u32> {
             use Terminal::*;
             match tag {
-                EOL => vec![0, 4],
-                _ => vec![],
+                EOL => vec![0, 4].into(),
+                _ => OrderedSet::new(),
             }
         }
 
