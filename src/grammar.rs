@@ -10,7 +10,7 @@ use lalr1plus::{self, Parser};
 use lexan;
 
 use crate::state::{GrammarItemKey, GrammarItemSet, ParserState, Production, ProductionTail};
-use crate::symbols::{format_as_vec, FirstsData, Symbol, SymbolTable, SymbolType};
+use crate::symbols::{format_as_macro_call, FirstsData, Symbol, SymbolTable, SymbolType};
 
 #[cfg(not(feature = "bootstrap"))]
 use crate::alapgen::*;
@@ -374,7 +374,7 @@ impl Grammar {
         let tokens = self.specification.symbol_table.token_set();
         wtr.write(b"use lalr1plus;\n")?;
         wtr.write(b"use lexan;\n")?;
-        wtr.write(b"use ordered_collections::OrderedSet;\n\n")?;
+        wtr.write(b"use ordered_collections::{ordered_set, OrderedSet};\n\n")?;
         wtr.write(b"#[derive(Debug, Clone, Copy, PartialOrd, Ord, PartialEq, Eq)]\n")?;
         wtr.write(b"pub enum AATerminal {\n")?;
         for token in tokens.iter() {
@@ -492,7 +492,7 @@ impl Grammar {
     }
 
     fn format_u32_set(set: &OrderedSet<u32>) -> String {
-        let mut string = "vec![".to_string();
+        let mut string = "ordered_set![".to_string();
         for (index, number) in set.iter().enumerate() {
             if index == 0 {
                 string += &format!("{}", number);
@@ -500,7 +500,7 @@ impl Grammar {
                 string += &format!(", {}", number);
             }
         }
-        string += "].into()";
+        string += "]";
         string
     }
 
@@ -524,7 +524,7 @@ impl Grammar {
             }
         }
         if default_required {
-            wtr.write(b"            _ => OrderedSet::new(),\n")?;
+            wtr.write(b"            _ => ordered_set![],\n")?;
         }
         wtr.write(b"        }\n")?;
         wtr.write(b"    }\n\n")?;
@@ -550,9 +550,9 @@ impl Grammar {
         wtr.write(b"        return match state {\n")?;
         for parser_state in self.parser_states.iter() {
             wtr.write_fmt(format_args!(
-                "            {} => {}.into(),\n",
+                "            {} => {},\n",
                 parser_state.ident,
-                format_as_vec(&parser_state.look_ahead_set())
+                format_as_macro_call(&parser_state.look_ahead_set())
             ))?;
         }
         wtr.write(b"            _ => panic!(\"illegal state: {}\", state),\n")?;
