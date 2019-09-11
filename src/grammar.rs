@@ -178,6 +178,7 @@ impl GrammarSpecification {
         let mut additions_made = true;
         while additions_made {
             additions_made = false;
+            // Closables extraction as a new separate map necessary to avoid borrow conflict
             for (item_key, look_ahead_set) in closure_set.closables() {
                 let prospective_lhs = item_key.next_symbol().expect("it's closable");
                 for look_ahead_symbol in look_ahead_set.iter() {

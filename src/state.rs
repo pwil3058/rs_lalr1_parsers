@@ -300,6 +300,10 @@ impl GrammarItemSet {
         GrammarItemSet(map)
     }
 
+    pub fn iter(&self) -> impl Iterator<Item = (&Rc<GrammarItemKey>, &OrderedSet<Rc<Symbol>>)> {
+        self.0.iter()
+    }
+
     pub fn closables(&self) -> Vec<(Rc<GrammarItemKey>, OrderedSet<Rc<Symbol>>)> {
         let mut closables = vec![];
         for (key, set) in self.0.iter().filter(|x| x.0.is_closable()) {
@@ -492,8 +496,8 @@ impl ParserState {
 
     pub fn merge_lookahead_sets(&self, item_set: &GrammarItemSet) {
         let mut additions = 0;
-        for (key, other_look_ahead_set) in item_set.0.iter().filter(|(k, _)| k.is_kernel_item()) {
-            if let Some(look_ahead_set) = self.grammar_items.borrow_mut().0.get_mut(key) {
+        for (key, other_look_ahead_set) in item_set.iter().filter(|(k, _)| k.is_kernel_item()) {
+            if let Some(look_ahead_set) = self.grammar_items.borrow_mut().get_mut(key) {
                 let current_len = look_ahead_set.len();
                 *look_ahead_set |= other_look_ahead_set;
                 additions += look_ahead_set.len() - current_len;
@@ -542,7 +546,7 @@ impl ParserState {
         // do this in two stages to avoid borrow/access conflicts
         let mut conflicts = vec![];
         for (shift_symbol, goto_state) in self.shift_list.borrow().iter() {
-            for (item, look_ahead_set) in self.grammar_items.borrow().0.iter() {
+            for (item, look_ahead_set) in self.grammar_items.borrow().iter() {
                 if item.is_reducible() && look_ahead_set.contains(shift_symbol) {
                     conflicts.push((
                         Rc::clone(shift_symbol),
@@ -751,7 +755,7 @@ impl ParserState {
 
     pub fn description(&self) -> String {
         let mut string = format!("State<{}>:\n  Grammar Items:\n", self.ident);
-        for (key, look_ahead_set) in self.grammar_items.borrow().0.iter() {
+        for (key, look_ahead_set) in self.grammar_items.borrow().iter() {
             string += &format!("    {}: {}\n", key, look_ahead_set);
         }
         string += "  Parser Action Table:\n";
