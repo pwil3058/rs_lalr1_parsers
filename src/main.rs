@@ -1,9 +1,13 @@
 #[macro_use]
 extern crate lazy_static;
-extern crate clap;
-extern crate regex;
 
-use std::str::FromStr;
+use structopt::StructOpt;
+
+use std::{
+    fs,
+    io::prelude::*,
+    path::{Path, PathBuf},
+};
 
 #[macro_export]
 macro_rules! impl_ident_cmp {
@@ -30,12 +34,6 @@ macro_rules! impl_ident_cmp {
     };
 }
 
-use std::{
-    fs,
-    io::prelude::*,
-    path::{Path, PathBuf},
-};
-
 #[cfg(not(feature = "bootstrap"))]
 mod alapgen;
 mod attributes;
@@ -55,34 +53,27 @@ fn with_changed_extension(path: &Path, new_extension: &str) -> PathBuf {
     new_path
 }
 
+#[derive(Debug, StructOpt)]
+#[structopt(
+    name = "alapgen",
+    about = "Augmented Lexical Analyzer and Parser Generator"
+)]
+struct CLOptions {
+    /// Overwrite the output files (if they exist)
+    #[structopt(short, long)]
+    force: bool,
+    /// Total number of shift/reduce and/or reduce/reduce conflicts that are expected.
+    #[structopt(short, long)]
+    expect: Option<usize>,
+    /// The path of the file containing the grammar specification.
+    #[structopt(parse(from_os_str))]
+    specification: PathBuf,
+}
+
 fn main() {
-    let matches = clap::App::new("Augmented Lexical Analyzer and Parser Generator")
-        .arg(
-            clap::Arg::with_name("force")
-                .short("f")
-                .long("force")
-                .takes_value(false)
-                .help("overwrite the output files (if they exist)"),
-        )
-        .arg(
-            clap::Arg::with_name("expect")
-                .short("e")
-                .long("expect")
-                .takes_value(true)
-                .help("the exact number of shift/reduce and/or reduce/reduce conflicts to expect"),
-        )
-        .arg(
-            clap::Arg::with_name("specification")
-                .required(true)
-                .help("the path of the file containing the grammar specification"),
-        )
-        .get_matches();
-    let force = matches.is_present("force");
-    let file_name = matches
-        .value_of("specification")
-        .expect("\"specification\" is a required argument");
-    let output_path = with_changed_extension(Path::new(file_name), "rs");
-    if output_path.exists() && !force {
+    let cl_options = CLOptions::from_args();
+    let output_path = with_changed_extension(&cl_options.specification, "rs");
+    if output_path.exists() && !cl_options.force {
         writeln!(
             std::io::stderr(),
             "{}: output file already exists",
@@ -91,33 +82,43 @@ fn main() {
         .unwrap();
         std::process::exit(1);
     }
-    let expected_number_of_conflicts = if let Some(expect) = matches.value_of("expect") {
-        let number = if let Ok(number) = usize::from_str(expect) {
-            number
-        } else {
-            writeln!(
-                std::io::stderr(),
-                "--expect expected number found: {}",
-                expect
-            )
-            .unwrap();
-            std::process::exit(2);
-        };
+    let expected_number_of_conflicts = if let Some(number) = cl_options.expect {
         number
     } else {
         0
     };
-    let mut file = fs::File::open(file_name).unwrap();
+    let mut file = match fs::File::open(&cl_options.specification) {
+        Ok(file) => file,
+        Err(error) => {
+            writeln!(
+                std::io::stderr(),
+                "Error opening specification file: {:?}",
+                error
+            )
+            .unwrap();
+            std::process::exit(2);
+        }
+    };
     let mut specification = String::new();
-    file.read_to_string(&mut specification).unwrap();
-    let grammar_specification =
-        match grammar::GrammarSpecification::new(specification, file_name.to_string()) {
-            Ok(spec) => spec,
-            Err(error) => {
-                writeln!(std::io::stderr(), "Parse failed: {:?}", error).unwrap();
-                std::process::exit(2);
-            }
-        };
+    if let Err(error) = file.read_to_string(&mut specification) {
+        writeln!(
+            std::io::stderr(),
+            "Error reading specification file: {:?}",
+            error
+        )
+        .unwrap();
+        std::process::exit(2);
+    };
+    let grammar_specification = match grammar::GrammarSpecification::new(
+        specification,
+        cl_options.specification.to_string_lossy().to_string(),
+    ) {
+        Ok(spec) => spec,
+        Err(error) => {
+            writeln!(std::io::stderr(), "Parse failed: {:?}", error).unwrap();
+            std::process::exit(2);
+        }
+    };
 
     for symbol in grammar_specification.symbol_table.unused_symbols() {
         let location = symbol.defined_at().unwrap();
@@ -177,7 +178,7 @@ fn main() {
         std::process::exit(6);
     }
 
-    let description_file = with_changed_extension(Path::new(file_name), "states");
+    let description_file = with_changed_extension(&cl_options.specification, "states");
     if let Err(err) = grammar.write_description(&description_file) {
         writeln!(
             std::io::stderr(),
