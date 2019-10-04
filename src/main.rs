@@ -1,6 +1,7 @@
 #[macro_use]
 extern crate lazy_static;
 
+use clap::crate_authors;
 use structopt::StructOpt;
 
 use std::{
@@ -56,7 +57,8 @@ fn with_changed_extension(path: &Path, new_extension: &str) -> PathBuf {
 #[derive(Debug, StructOpt)]
 #[structopt(
     name = "alapgen",
-    about = "Augmented Lexical Analyzer and Parser Generator"
+    about = "Augmented Lexical Analyzer and Parser Generator",
+    author = crate_authors!(),
 )]
 struct CLOptions {
     /// Overwrite the output files (if they exist)
