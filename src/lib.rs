@@ -2,9 +2,9 @@
 #[macro_use]
 extern crate lazy_static;
 extern crate lexan;
-extern crate ordered_collections;
 
 pub use std::{
+    collections::BTreeSet,
     convert::From,
     default::Default,
     fmt::{self, Debug, Display},
@@ -12,15 +12,14 @@ pub use std::{
 };
 
 use lexan::TokenStream;
-use ordered_collections::OrderedSet;
 
 #[derive(Debug, Clone)]
 pub enum Error<T: Ord + Copy + Debug + Display + Eq> {
-    LexicalError(lexan::Error<T>, OrderedSet<T>),
-    SyntaxError(lexan::Token<T>, OrderedSet<T>),
+    LexicalError(lexan::Error<T>, BTreeSet<T>),
+    SyntaxError(lexan::Token<T>, BTreeSet<T>),
 }
 
-fn format_set<T: Ord + Display>(set: &OrderedSet<T>) -> String {
+fn format_set<T: Ord + Display>(set: &BTreeSet<T>) -> String {
     let mut string = String::new();
     let last = set.len() - 1;
     for (index, item) in set.iter().enumerate() {
@@ -41,9 +40,12 @@ fn format_set<T: Ord + Display>(set: &OrderedSet<T>) -> String {
 impl<T: Ord + Copy + Debug + Display + Eq> Display for Error<T> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Error::LexicalError(lex_err, expected) => {
-                write!(f, "Lexical Error: {}: expected: {}.", lex_err, expected)
-            }
+            Error::LexicalError(lex_err, expected) => write!(
+                f,
+                "Lexical Error: {}: expected: {}.",
+                lex_err,
+                format_set(&expected)
+            ),
             Error::SyntaxError(found, expected) => write!(
                 f,
                 "Syntax Error: expected: {} found: {} at: {}.",
@@ -142,7 +144,7 @@ where
         }
     }
 
-    fn distance_to_viable_state<F: Fn(&T) -> OrderedSet<u32>>(
+    fn distance_to_viable_state<F: Fn(&T) -> BTreeSet<u32>>(
         &mut self,
         tokens: &mut lexan::TokenStream<T>,
         viable_error_recovery_states: F,
@@ -201,11 +203,11 @@ where
         A::default()
     }
 
-    fn viable_error_recovery_states(tag: &T) -> OrderedSet<u32>;
+    fn viable_error_recovery_states(tag: &T) -> BTreeSet<u32>;
 
     fn error_goto_state(state: u32) -> u32;
 
-    fn look_ahead_set(state: u32) -> OrderedSet<T>;
+    fn look_ahead_set(state: u32) -> BTreeSet<T>;
 
     fn recover_from_error(
         error: Error<T>,
@@ -274,12 +276,23 @@ where
 #[cfg(test)]
 mod tests {
     use crate::ReportError;
-    use ordered_collections::OrderedSet;
-    use std::collections::HashMap;
+    use std::collections::{BTreeSet, HashMap};
     use std::convert::From;
     use std::fmt;
     use std::str::FromStr;
 
+    macro_rules! btree_set {
+        ( $( $x:expr ),* ) => {
+            {
+                let mut set = BTreeSet::new();
+                $( set.insert($x); )*
+                set
+            }
+        };
+        ( $( $x:expr ),+ , ) => {
+            btree_set![ $( $x ), * ]
+        };
+    }
     #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
     enum Terminal {
         Plus,
@@ -428,11 +441,11 @@ mod tests {
             &AALEXAN
         }
 
-        fn viable_error_recovery_states(tag: &Terminal) -> OrderedSet<u32> {
+        fn viable_error_recovery_states(tag: &Terminal) -> BTreeSet<u32> {
             use Terminal::*;
             match tag {
-                EOL => vec![0, 4].into(),
-                _ => OrderedSet::new(),
+                EOL => btree_set![0_u32, 4], //BTreeSet::from_iter([0_u32, 4].into_iter().cloned()),
+                _ => BTreeSet::new(),
             }
         }
 
@@ -443,29 +456,29 @@ mod tests {
             }
         }
 
-        fn look_ahead_set(state: u32) -> OrderedSet<Terminal> {
+        fn look_ahead_set(state: u32) -> BTreeSet<Terminal> {
             use Terminal::*;
             return match state {
-                0 => vec![Minus, LPR, Number, Id].into(),
-                1 => vec![EndMarker, EOL].into(),
-                2 => vec![Minus, LPR, Number, Id].into(),
-                3 => vec![EndMarker, EOL].into(),
-                4 => vec![EndMarker, EOL, Minus, Number, Id, LPR].into(),
-                5 => vec![EndMarker, EOL, Plus, Minus, Times, Divide].into(),
-                6 => vec![EndMarker, EOL, Plus, Minus, Times, Divide, Assign].into(),
-                7 | 8 => vec![Minus, Number, Id, LPR].into(),
-                9 => vec![EndMarker, EOL, Plus, Minus, Times, Divide, RPR].into(),
-                10 => vec![EndMarker, EOL].into(),
-                11 | 12 | 13 | 14 | 15 => vec![Minus, Number, Id, LPR].into(),
-                16 => vec![Plus, Minus, Times, Divide, RPR].into(),
-                17 => vec![EndMarker, EOL, Plus, Minus, Times, Divide, RPR].into(),
-                18 => vec![EndMarker, EOL, Plus, Minus, Times, Divide, RPR].into(),
-                19 => vec![EndMarker, EOL, Plus, Minus, Times, Divide, RPR].into(),
-                20 => vec![EndMarker, EOL, Plus, Minus, Times, Divide, RPR].into(),
-                21 => vec![EndMarker, EOL, Plus, Minus, Times, Divide, RPR].into(),
-                22 => vec![EndMarker, EOL, Plus, Minus, Times, Divide, RPR].into(),
-                23 => vec![EndMarker, EOL, Plus, Minus, Times, Divide, RPR].into(),
-                24 => vec![EndMarker, EOL, Plus, Minus, Times, Divide, RPR].into(),
+                0 => btree_set![Minus, LPR, Number, Id],
+                1 => btree_set![EndMarker, EOL],
+                2 => btree_set![Minus, LPR, Number, Id],
+                3 => btree_set![EndMarker, EOL],
+                4 => btree_set![EndMarker, EOL, Minus, Number, Id, LPR],
+                5 => btree_set![EndMarker, EOL, Plus, Minus, Times, Divide],
+                6 => btree_set![EndMarker, EOL, Plus, Minus, Times, Divide, Assign],
+                7 | 8 => btree_set![Minus, Number, Id, LPR],
+                9 => btree_set![EndMarker, EOL, Plus, Minus, Times, Divide, RPR],
+                10 => btree_set![EndMarker, EOL],
+                11 | 12 | 13 | 14 | 15 => btree_set![Minus, Number, Id, LPR],
+                16 => btree_set![Plus, Minus, Times, Divide, RPR],
+                17 => btree_set![EndMarker, EOL, Plus, Minus, Times, Divide, RPR],
+                18 => btree_set![EndMarker, EOL, Plus, Minus, Times, Divide, RPR],
+                19 => btree_set![EndMarker, EOL, Plus, Minus, Times, Divide, RPR],
+                20 => btree_set![EndMarker, EOL, Plus, Minus, Times, Divide, RPR],
+                21 => btree_set![EndMarker, EOL, Plus, Minus, Times, Divide, RPR],
+                22 => btree_set![EndMarker, EOL, Plus, Minus, Times, Divide, RPR],
+                23 => btree_set![EndMarker, EOL, Plus, Minus, Times, Divide, RPR],
+                24 => btree_set![EndMarker, EOL, Plus, Minus, Times, Divide, RPR],
                 _ => panic!("illegal state: {}", state),
             };
         }
