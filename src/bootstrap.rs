@@ -1167,7 +1167,6 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData> for GrammarSpec
                 // Preamble: <empty>
 
                 // no Preamble defined so there's nothing to do
-
             }
             7 => {
                 // Preamble: OptionalInjection RUSTCODE OptionalInjection
@@ -1216,7 +1215,6 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData> for GrammarSpec
                 // SkipDefinitions: <empty>
 
                 // do nothing
-
             }
             21 => {
                 // SkipDefinition: "%skip" REGEX
@@ -1228,7 +1226,6 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData> for GrammarSpec
                 // PrecedenceDefinitions: <empty>
 
                 // do nothing
-
             }
             24 => {
                 // PrecedenceDefinition: "%left" TagList

@@ -7,10 +7,24 @@ use crate::{
     symbols::{AssociativePrecedence, Associativity, SymbolType},
 };
 
+use std::collections::BTreeSet;
+
+macro_rules! btree_set {
+    () => { BTreeSet::new() };
+    ( $( $x:expr ),* ) => {
+        {
+            let mut set = BTreeSet::new();
+            $( set.insert($x); )*
+            set
+        }
+    };
+    ( $( $x:expr ),+ , ) => {
+        btree_set![ $( $x ), * ]
+    };
+}
+
 use lalr1plus;
 use lexan;
-use ordered_collections::{ordered_set, OrderedSet};
-
 #[derive(Debug, Clone, Copy, PartialOrd, Ord, PartialEq, Eq)]
 pub enum AATerminal {
     AAEnd,
@@ -178,9 +192,9 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData> for GrammarSpec
         &AALEXAN
     }
 
-    fn viable_error_recovery_states(token: &AATerminal) -> OrderedSet<u32> {
+    fn viable_error_recovery_states(token: &AATerminal) -> BTreeSet<u32> {
         match token {
-            _ => ordered_set![],
+            _ => btree_set![],
         }
     }
 
@@ -190,108 +204,108 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData> for GrammarSpec
         }
     }
 
-    fn look_ahead_set(state: u32) -> OrderedSet<AATerminal> {
+    fn look_ahead_set(state: u32) -> BTreeSet<AATerminal> {
         use AATerminal::*;
         return match state {
-            0 => ordered_set![ATTR, TARGET, INJECT, RUSTCODE],
-            1 => ordered_set![AAEnd],
-            2 => ordered_set![ATTR, TARGET],
-            3 => ordered_set![
+            0 => btree_set![ATTR, TARGET, INJECT, RUSTCODE],
+            1 => btree_set![AAEnd],
+            2 => btree_set![ATTR, TARGET],
+            3 => btree_set![
                 AAEnd, ATTR, TARGET, TOKEN, LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION, IDENT,
                 RUSTCODE
             ],
-            4 => ordered_set![LITERAL],
-            5 => ordered_set![DOT],
-            6 => ordered_set![RUSTCODE],
-            7 => ordered_set![NEWSECTION],
-            8 => ordered_set![TARGET, INJECT],
-            9 => ordered_set![ATTR, INJECT],
-            10 => ordered_set![IDENT],
-            11 => ordered_set![IDENT],
-            12 => ordered_set![DOT],
-            13 => ordered_set![
+            4 => btree_set![LITERAL],
+            5 => btree_set![DOT],
+            6 => btree_set![RUSTCODE],
+            7 => btree_set![NEWSECTION],
+            8 => btree_set![TARGET, INJECT],
+            9 => btree_set![ATTR, INJECT],
+            10 => btree_set![IDENT],
+            11 => btree_set![IDENT],
+            12 => btree_set![DOT],
+            13 => btree_set![
                 AAEnd, ATTR, TARGET, TOKEN, LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION, IDENT,
                 RUSTCODE
             ],
-            14 => ordered_set![ATTR, TARGET, INJECT],
-            15 => ordered_set![TOKEN, INJECT],
-            16 => ordered_set![TARGET],
-            17 => ordered_set![ATTR],
-            18 => ordered_set![TARGET, INJECT, NEWSECTION],
-            19 => ordered_set![ATTR, INJECT, NEWSECTION],
-            20 => ordered_set![ATTR, TARGET],
-            21 => ordered_set![NEWSECTION],
-            22 => ordered_set![TOKEN, LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION],
-            23 => ordered_set![TOKEN],
-            24 => ordered_set![INJECT, NEWSECTION],
-            25 => ordered_set![INJECT, NEWSECTION],
-            26 => ordered_set![INJECT, IDENT],
-            27 => ordered_set![LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION],
-            28 => ordered_set![TOKEN],
-            29 => ordered_set![TOKEN, LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION],
-            30 => ordered_set![IDENT],
-            31 => ordered_set![NEWSECTION],
-            32 => ordered_set![NEWSECTION],
-            33 => ordered_set![AAEnd, IDENT],
-            34 => ordered_set![IDENT],
-            35 => ordered_set![LEFT, RIGHT, NONASSOC, INJECT, NEWSECTION],
-            36 => ordered_set![SKIP],
-            37 => ordered_set![TOKEN, LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION],
-            38 => ordered_set![REGEX, LITERAL],
-            39 => ordered_set![REGEX, LITERAL],
-            40 => ordered_set![AAEnd, INJECT, IDENT],
-            41 => ordered_set![LITERAL, ERROR, VBAR, DOT, IDENT, PREDICATE, ACTION],
-            42 => ordered_set![COLON],
-            43 => ordered_set![AAEnd, INJECT, IDENT],
-            44 => ordered_set![LEFT, RIGHT, NONASSOC],
-            45 => ordered_set![LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION],
-            46 => ordered_set![REGEX],
-            47 => ordered_set![TOKEN, LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION],
-            48 => ordered_set![TOKEN, LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION],
-            49 => ordered_set![TOKEN, LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION],
-            50 => ordered_set![AAEnd, IDENT],
-            51 => ordered_set![VBAR, DOT],
-            52 => ordered_set![VBAR, DOT],
-            53 => ordered_set![VBAR, DOT],
-            54 => ordered_set![VBAR, DOT, ACTION],
-            55 => ordered_set![LITERAL, PRECEDENCE, ERROR, VBAR, DOT, IDENT, PREDICATE, ACTION],
-            56 => ordered_set![VBAR, DOT],
-            57 => ordered_set![PRECEDENCE, VBAR, DOT, ACTION],
-            58 => ordered_set![LITERAL, PRECEDENCE, ERROR, VBAR, DOT, IDENT, PREDICATE, ACTION],
-            59 => ordered_set![LITERAL, PRECEDENCE, ERROR, VBAR, DOT, IDENT, PREDICATE, ACTION],
-            60 => ordered_set![LITERAL, PRECEDENCE, ERROR, VBAR, DOT, IDENT, PREDICATE, ACTION],
-            61 => ordered_set![LITERAL, PRECEDENCE, ERROR, VBAR, DOT, IDENT, PREDICATE, ACTION],
-            62 => ordered_set![LITERAL, ERROR, VBAR, DOT, IDENT, PREDICATE, ACTION],
-            63 => ordered_set![AAEnd, IDENT],
-            64 => ordered_set![LEFT, RIGHT, NONASSOC, INJECT, NEWSECTION],
-            65 => ordered_set![LITERAL, IDENT],
-            66 => ordered_set![LITERAL, IDENT],
-            67 => ordered_set![LITERAL, IDENT],
-            68 => ordered_set![LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION],
-            69 => ordered_set![LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION],
-            70 => ordered_set![AAEnd, INJECT, IDENT],
-            71 => ordered_set![LITERAL, ERROR, VBAR, DOT, IDENT, PREDICATE, ACTION],
-            72 => ordered_set![VBAR, DOT],
-            73 => ordered_set![PRECEDENCE, VBAR, DOT, ACTION],
-            74 => ordered_set![VBAR, DOT, ACTION],
-            75 => ordered_set![VBAR, DOT],
-            76 => ordered_set![LITERAL, IDENT],
-            77 => ordered_set![LITERAL, PRECEDENCE, ERROR, VBAR, DOT, IDENT, PREDICATE, ACTION],
-            78 => ordered_set![LEFT, RIGHT, NONASSOC, INJECT, NEWSECTION],
-            79 => ordered_set![LITERAL, LEFT, RIGHT, NONASSOC, INJECT, NEWSECTION, IDENT],
-            80 => ordered_set![LITERAL, LEFT, RIGHT, NONASSOC, INJECT, NEWSECTION, IDENT],
-            81 => ordered_set![LITERAL, LEFT, RIGHT, NONASSOC, INJECT, NEWSECTION, IDENT],
-            82 => ordered_set![LITERAL, LEFT, RIGHT, NONASSOC, INJECT, NEWSECTION, IDENT],
-            83 => ordered_set![LITERAL, LEFT, RIGHT, NONASSOC, INJECT, NEWSECTION, IDENT],
-            84 => ordered_set![LITERAL, LEFT, RIGHT, NONASSOC, INJECT, NEWSECTION, IDENT],
-            85 => ordered_set![VBAR, DOT],
-            86 => ordered_set![VBAR, DOT, ACTION],
-            87 => ordered_set![VBAR, DOT],
-            88 => ordered_set![VBAR, DOT],
-            89 => ordered_set![VBAR, DOT, ACTION],
-            90 => ordered_set![VBAR, DOT, ACTION],
-            91 => ordered_set![LITERAL, LEFT, RIGHT, NONASSOC, INJECT, NEWSECTION, IDENT],
-            92 => ordered_set![VBAR, DOT],
+            14 => btree_set![ATTR, TARGET, INJECT],
+            15 => btree_set![TOKEN, INJECT],
+            16 => btree_set![TARGET],
+            17 => btree_set![ATTR],
+            18 => btree_set![TARGET, INJECT, NEWSECTION],
+            19 => btree_set![ATTR, INJECT, NEWSECTION],
+            20 => btree_set![ATTR, TARGET],
+            21 => btree_set![NEWSECTION],
+            22 => btree_set![TOKEN, LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION],
+            23 => btree_set![TOKEN],
+            24 => btree_set![INJECT, NEWSECTION],
+            25 => btree_set![INJECT, NEWSECTION],
+            26 => btree_set![INJECT, IDENT],
+            27 => btree_set![LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION],
+            28 => btree_set![TOKEN],
+            29 => btree_set![TOKEN, LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION],
+            30 => btree_set![IDENT],
+            31 => btree_set![NEWSECTION],
+            32 => btree_set![NEWSECTION],
+            33 => btree_set![AAEnd, IDENT],
+            34 => btree_set![IDENT],
+            35 => btree_set![LEFT, RIGHT, NONASSOC, INJECT, NEWSECTION],
+            36 => btree_set![SKIP],
+            37 => btree_set![TOKEN, LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION],
+            38 => btree_set![REGEX, LITERAL],
+            39 => btree_set![REGEX, LITERAL],
+            40 => btree_set![AAEnd, INJECT, IDENT],
+            41 => btree_set![LITERAL, ERROR, VBAR, DOT, IDENT, PREDICATE, ACTION],
+            42 => btree_set![COLON],
+            43 => btree_set![AAEnd, INJECT, IDENT],
+            44 => btree_set![LEFT, RIGHT, NONASSOC],
+            45 => btree_set![LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION],
+            46 => btree_set![REGEX],
+            47 => btree_set![TOKEN, LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION],
+            48 => btree_set![TOKEN, LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION],
+            49 => btree_set![TOKEN, LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION],
+            50 => btree_set![AAEnd, IDENT],
+            51 => btree_set![VBAR, DOT],
+            52 => btree_set![VBAR, DOT],
+            53 => btree_set![VBAR, DOT],
+            54 => btree_set![VBAR, DOT, ACTION],
+            55 => btree_set![LITERAL, PRECEDENCE, ERROR, VBAR, DOT, IDENT, PREDICATE, ACTION],
+            56 => btree_set![VBAR, DOT],
+            57 => btree_set![PRECEDENCE, VBAR, DOT, ACTION],
+            58 => btree_set![LITERAL, PRECEDENCE, ERROR, VBAR, DOT, IDENT, PREDICATE, ACTION],
+            59 => btree_set![LITERAL, PRECEDENCE, ERROR, VBAR, DOT, IDENT, PREDICATE, ACTION],
+            60 => btree_set![LITERAL, PRECEDENCE, ERROR, VBAR, DOT, IDENT, PREDICATE, ACTION],
+            61 => btree_set![LITERAL, PRECEDENCE, ERROR, VBAR, DOT, IDENT, PREDICATE, ACTION],
+            62 => btree_set![LITERAL, ERROR, VBAR, DOT, IDENT, PREDICATE, ACTION],
+            63 => btree_set![AAEnd, IDENT],
+            64 => btree_set![LEFT, RIGHT, NONASSOC, INJECT, NEWSECTION],
+            65 => btree_set![LITERAL, IDENT],
+            66 => btree_set![LITERAL, IDENT],
+            67 => btree_set![LITERAL, IDENT],
+            68 => btree_set![LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION],
+            69 => btree_set![LEFT, RIGHT, NONASSOC, SKIP, INJECT, NEWSECTION],
+            70 => btree_set![AAEnd, INJECT, IDENT],
+            71 => btree_set![LITERAL, ERROR, VBAR, DOT, IDENT, PREDICATE, ACTION],
+            72 => btree_set![VBAR, DOT],
+            73 => btree_set![PRECEDENCE, VBAR, DOT, ACTION],
+            74 => btree_set![VBAR, DOT, ACTION],
+            75 => btree_set![VBAR, DOT],
+            76 => btree_set![LITERAL, IDENT],
+            77 => btree_set![LITERAL, PRECEDENCE, ERROR, VBAR, DOT, IDENT, PREDICATE, ACTION],
+            78 => btree_set![LEFT, RIGHT, NONASSOC, INJECT, NEWSECTION],
+            79 => btree_set![LITERAL, LEFT, RIGHT, NONASSOC, INJECT, NEWSECTION, IDENT],
+            80 => btree_set![LITERAL, LEFT, RIGHT, NONASSOC, INJECT, NEWSECTION, IDENT],
+            81 => btree_set![LITERAL, LEFT, RIGHT, NONASSOC, INJECT, NEWSECTION, IDENT],
+            82 => btree_set![LITERAL, LEFT, RIGHT, NONASSOC, INJECT, NEWSECTION, IDENT],
+            83 => btree_set![LITERAL, LEFT, RIGHT, NONASSOC, INJECT, NEWSECTION, IDENT],
+            84 => btree_set![LITERAL, LEFT, RIGHT, NONASSOC, INJECT, NEWSECTION, IDENT],
+            85 => btree_set![VBAR, DOT],
+            86 => btree_set![VBAR, DOT, ACTION],
+            87 => btree_set![VBAR, DOT],
+            88 => btree_set![VBAR, DOT],
+            89 => btree_set![VBAR, DOT, ACTION],
+            90 => btree_set![VBAR, DOT, ACTION],
+            91 => btree_set![LITERAL, LEFT, RIGHT, NONASSOC, INJECT, NEWSECTION, IDENT],
+            92 => btree_set![VBAR, DOT],
             _ => panic!("illegal state: {}", state),
         };
     }
@@ -1167,7 +1181,6 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData> for GrammarSpec
                 // Preamble: <empty>
 
                 // no Preamble defined so there's nothing to do
-
             }
             7 => {
                 // Preamble: OptionalInjection RUSTCODE OptionalInjection
@@ -1216,7 +1229,6 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData> for GrammarSpec
                 // SkipDefinitions: <empty>
 
                 // do nothing
-
             }
             21 => {
                 // SkipDefinition: "%skip" REGEX
@@ -1228,7 +1240,6 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData> for GrammarSpec
                 // PrecedenceDefinitions: <empty>
 
                 // do nothing
-
             }
             24 => {
                 // PrecedenceDefinition: "%left" TagList

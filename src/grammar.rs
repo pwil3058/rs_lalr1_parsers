@@ -372,9 +372,24 @@ impl Grammar {
 
     fn write_symbol_enum_code<W: Write>(&self, wtr: &mut W) -> io::Result<()> {
         let tokens = self.specification.symbol_table.token_set();
+        wtr.write(b"use std::collections::BTreeSet;\n\n")?;
+
+        wtr.write(b"macro_rules! btree_set {\n")?;
+        wtr.write(b"    () => { BTreeSet::new() };\n")?;
+        wtr.write(b"    ( $( $x:expr ),* ) => {\n")?;
+        wtr.write(b"        {\n")?;
+        wtr.write(b"            let mut set = BTreeSet::new();\n")?;
+        wtr.write(b"            $( set.insert($x); )*\n")?;
+        wtr.write(b"            set\n")?;
+        wtr.write(b"        }\n")?;
+        wtr.write(b"    };\n")?;
+        wtr.write(b"    ( $( $x:expr ),+ , ) => {\n")?;
+        wtr.write(b"        btree_set![ $( $x ), * ]\n")?;
+        wtr.write(b"    };\n")?;
+        wtr.write(b"}\n\n")?;
         wtr.write(b"use lalr1plus;\n")?;
         wtr.write(b"use lexan;\n")?;
-        wtr.write(b"use ordered_collections::{ordered_set, OrderedSet};\n\n")?;
+        //wtr.write(b"use ordered_collections::{ordered_set, OrderedSet};\n\n")?;
         wtr.write(b"#[derive(Debug, Clone, Copy, PartialOrd, Ord, PartialEq, Eq)]\n")?;
         wtr.write(b"pub enum AATerminal {\n")?;
         for token in tokens.iter() {
@@ -492,7 +507,7 @@ impl Grammar {
     }
 
     fn format_u32_set(set: &OrderedSet<u32>) -> String {
-        let mut string = "ordered_set![".to_string();
+        let mut string = "btree_set![".to_string();
         for (index, number) in set.iter().enumerate() {
             if index == 0 {
                 string += &format!("{}", number);
@@ -505,9 +520,7 @@ impl Grammar {
     }
 
     fn write_error_recovery_code<W: Write>(&self, wtr: &mut W) -> io::Result<()> {
-        wtr.write(
-            b"    fn viable_error_recovery_states(token: &AATerminal) -> OrderedSet<u32> {\n",
-        )?;
+        wtr.write(b"    fn viable_error_recovery_states(token: &AATerminal) -> BTreeSet<u32> {\n")?;
         wtr.write(b"        match token {\n")?;
         let mut default_required = false;
         for token in self.specification.symbol_table.token_set() {
@@ -524,7 +537,7 @@ impl Grammar {
             }
         }
         if default_required {
-            wtr.write(b"            _ => ordered_set![],\n")?;
+            wtr.write(b"            _ => btree_set![],\n")?;
         }
         wtr.write(b"        }\n")?;
         wtr.write(b"    }\n\n")?;
@@ -545,7 +558,7 @@ impl Grammar {
     }
 
     fn write_look_ahead_set_code<W: Write>(&self, wtr: &mut W) -> io::Result<()> {
-        wtr.write(b"    fn look_ahead_set(state: u32) -> OrderedSet<AATerminal> {\n")?;
+        wtr.write(b"    fn look_ahead_set(state: u32) -> BTreeSet<AATerminal> {\n")?;
         wtr.write(b"        use AATerminal::*;\n")?;
         wtr.write(b"        return match state {\n")?;
         for parser_state in self.parser_states.iter() {

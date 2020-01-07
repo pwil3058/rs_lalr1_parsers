@@ -328,7 +328,7 @@ impl Symbol {
 }
 
 pub fn format_as_macro_call(symbol_set: &OrderedSet<Rc<Symbol>>) -> String {
-    let mut string = "ordered_set![".to_string();
+    let mut string = "btree_set![".to_string();
     for (index, symbol) in symbol_set.iter().enumerate() {
         if index == 0 {
             string += &format!("{}", symbol.name());

@@ -1,4 +1,4 @@
-use std::rc::Rc;
+use std::{collections::BTreeSet, rc::Rc};
 
 use lexan;
 
@@ -8,13 +8,12 @@ use crate::alapgen::AATerminal;
 use crate::bootstrap::AATerminal;
 use crate::state::ProductionTail;
 use crate::symbols::*;
-use ordered_collections::OrderedSet;
 
 #[derive(Debug, Clone)]
 pub enum AttributeData {
     Token(lexan::Token<AATerminal>),
-    SyntaxError(lexan::Token<AATerminal>, OrderedSet<AATerminal>),
-    LexicalError(lexan::Error<AATerminal>, OrderedSet<AATerminal>),
+    SyntaxError(lexan::Token<AATerminal>, BTreeSet<AATerminal>),
+    LexicalError(lexan::Error<AATerminal>, BTreeSet<AATerminal>),
     SymbolList(Vec<Rc<Symbol>>),
     Symbol(Rc<Symbol>),
     LeftHandSide(Rc<Symbol>),
