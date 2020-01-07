@@ -1,10 +1,11 @@
 use std::{
+    collections::BTreeSet,
     io::{self, stderr, Write},
     path::Path,
     rc::Rc,
 };
 
-use ordered_collections::{OrderedMap, OrderedSet};
+use ordered_collections::OrderedMap;
 
 use lalr1plus::{self, Parser};
 use lexan;
@@ -118,11 +119,11 @@ impl GrammarSpecification {
         &self,
         symbol_string: &[Rc<Symbol>],
         token: &Rc<Symbol>,
-    ) -> OrderedSet<Rc<Symbol>> {
-        let mut token_set: OrderedSet<Rc<Symbol>> = OrderedSet::new();
+    ) -> BTreeSet<Rc<Symbol>> {
+        let mut token_set: BTreeSet<Rc<Symbol>> = BTreeSet::new();
         for symbol in symbol_string.iter() {
             let firsts_data = symbol.firsts_data();
-            token_set |= &firsts_data.token_set;
+            token_set = &token_set | &firsts_data.token_set;
             if !firsts_data.transparent {
                 return token_set;
             }
@@ -140,7 +141,7 @@ impl GrammarSpecification {
             .filter(|x| x.left_hand_side() == symbol)
             .collect();
         let mut transparent = relevant_productions.iter().any(|x| x.is_empty());
-        let mut token_set = OrderedSet::<Rc<Symbol>>::new();
+        let mut token_set = BTreeSet::<Rc<Symbol>>::new();
         let mut transparency_changed = true;
         while transparency_changed {
             transparency_changed = false;
@@ -159,7 +160,7 @@ impl GrammarSpecification {
                         self.set_firsts_data(rhs_symbol)
                     }
                     let firsts_data = rhs_symbol.firsts_data();
-                    token_set |= &firsts_data.token_set;
+                    token_set = &token_set | &firsts_data.token_set;
                     if !firsts_data.transparent {
                         transparent_production = false;
                         break;
@@ -191,7 +192,7 @@ impl GrammarSpecification {
                         let prospective_key = GrammarItemKey::new(Rc::clone(production));
                         if let Some(set) = closure_set.get_mut(&prospective_key) {
                             let len = set.len();
-                            *set |= &firsts;
+                            *set = &*set | &firsts;
                             additions_made = additions_made || set.len() > len;
                         } else {
                             closure_set.insert(prospective_key, firsts.clone());
@@ -272,7 +273,7 @@ impl Grammar {
             unresolved_sr_conflicts: 0,
         };
         let start_item_key = GrammarItemKey::new(Rc::clone(&grammar.specification.productions[0]));
-        let mut start_look_ahead_set: OrderedSet<Rc<Symbol>> = OrderedSet::new();
+        let mut start_look_ahead_set: BTreeSet<Rc<Symbol>> = BTreeSet::new();
         start_look_ahead_set.insert(
             grammar
                 .specification
@@ -280,7 +281,7 @@ impl Grammar {
                 .use_symbol_named(&AATerminal::AAEnd.to_string(), &lexan::Location::default())
                 .unwrap(),
         );
-        let mut map: OrderedMap<Rc<GrammarItemKey>, OrderedSet<Rc<Symbol>>> = OrderedMap::new();
+        let mut map: OrderedMap<Rc<GrammarItemKey>, BTreeSet<Rc<Symbol>>> = OrderedMap::new();
         map.insert(start_item_key, start_look_ahead_set);
         let start_kernel = grammar.specification.closure(GrammarItemSet::new(map));
         grammar.new_parser_state(start_kernel);
@@ -288,7 +289,7 @@ impl Grammar {
         while let Some(unprocessed_state) = grammar.first_unprocessed_state() {
             let first_time = unprocessed_state.is_unprocessed();
             unprocessed_state.mark_as_processed();
-            let mut already_done: OrderedSet<Rc<Symbol>> = OrderedSet::new();
+            let mut already_done: BTreeSet<Rc<Symbol>> = BTreeSet::new();
             for item_key in unprocessed_state.non_kernel_keys().iter() {
                 let symbol_x = item_key.next_symbol().expect("not reducible");
                 if !already_done.insert(Rc::clone(symbol_x)) {
@@ -389,7 +390,6 @@ impl Grammar {
         wtr.write(b"}\n\n")?;
         wtr.write(b"use lalr1plus;\n")?;
         wtr.write(b"use lexan;\n")?;
-        //wtr.write(b"use ordered_collections::{ordered_set, OrderedSet};\n\n")?;
         wtr.write(b"#[derive(Debug, Clone, Copy, PartialOrd, Ord, PartialEq, Eq)]\n")?;
         wtr.write(b"pub enum AATerminal {\n")?;
         for token in tokens.iter() {
@@ -498,7 +498,7 @@ impl Grammar {
         Ok(())
     }
 
-    fn error_recovery_states_for_token(&self, token: &Rc<Symbol>) -> OrderedSet<u32> {
+    fn error_recovery_states_for_token(&self, token: &Rc<Symbol>) -> BTreeSet<u32> {
         self.parser_states
             .iter()
             .filter(|x| x.is_recovery_state_for_token(token))
@@ -506,7 +506,7 @@ impl Grammar {
             .collect()
     }
 
-    fn format_u32_set(set: &OrderedSet<u32>) -> String {
+    fn format_u32_set(set: &BTreeSet<u32>) -> String {
         let mut string = "btree_set![".to_string();
         for (index, number) in set.iter().enumerate() {
             if index == 0 {

@@ -9,7 +9,7 @@ use crate::{
 
 use lalr1plus;
 use lexan;
-use ordered_collections::{ordered_set, OrderedSet};
+use ordered_collections::{ordered_set, BTreeSet};
 
 #[derive(Debug, Clone, Copy, PartialOrd, Ord, PartialEq, Eq)]
 pub enum AATerminal {
@@ -178,7 +178,7 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData> for GrammarSpec
         &AALEXAN
     }
 
-    fn viable_error_recovery_states(token: &AATerminal) -> OrderedSet<u32> {
+    fn viable_error_recovery_states(token: &AATerminal) -> BTreeSet<u32> {
         match token {
             _ => ordered_set![],
         }
@@ -190,7 +190,7 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData> for GrammarSpec
         }
     }
 
-    fn look_ahead_set(state: u32) -> OrderedSet<AATerminal> {
+    fn look_ahead_set(state: u32) -> BTreeSet<AATerminal> {
         use AATerminal::*;
         return match state {
             0 => ordered_set![ATTR, TARGET, INJECT, RUSTCODE],

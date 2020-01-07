@@ -1,7 +1,11 @@
-use std::{cell::RefCell, collections::HashMap, fmt, rc::Rc};
+use std::{
+    cell::RefCell,
+    collections::{BTreeSet, HashMap},
+    fmt,
+    rc::Rc,
+};
 
 use lexan;
-use ordered_collections::OrderedSet;
 
 #[cfg(not(feature = "bootstrap"))]
 use crate::alapgen::{AANonTerminal, AATerminal};
@@ -73,12 +77,12 @@ impl Default for AssociativePrecedence {
 
 #[derive(Debug, Clone, Default)]
 pub struct FirstsData {
-    pub token_set: OrderedSet<Rc<Symbol>>,
+    pub token_set: BTreeSet<Rc<Symbol>>,
     pub transparent: bool,
 }
 
 impl FirstsData {
-    pub fn new(token_set: OrderedSet<Rc<Symbol>>, transparent: bool) -> Self {
+    pub fn new(token_set: BTreeSet<Rc<Symbol>>, transparent: bool) -> Self {
         Self {
             token_set,
             transparent,
@@ -88,7 +92,12 @@ impl FirstsData {
 
 impl fmt::Display for FirstsData {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}:({})", self.token_set, self.transparent)
+        write!(
+            f,
+            "{}:({})",
+            crate::state::format_set(&self.token_set),
+            self.transparent
+        )
     }
 }
 
@@ -230,7 +239,7 @@ impl Symbol {
             symbol_type,
             mutable_data,
         });
-        let mut token_set: OrderedSet<Rc<Symbol>> = OrderedSet::new();
+        let mut token_set: BTreeSet<Rc<Symbol>> = BTreeSet::new();
         token_set.insert(Rc::clone(&token));
         token.set_firsts_data(FirstsData {
             token_set,
@@ -327,7 +336,7 @@ impl Symbol {
     }
 }
 
-pub fn format_as_macro_call(symbol_set: &OrderedSet<Rc<Symbol>>) -> String {
+pub fn format_as_macro_call(symbol_set: &BTreeSet<Rc<Symbol>>) -> String {
     let mut string = "btree_set![".to_string();
     for (index, symbol) in symbol_set.iter().enumerate() {
         if index == 0 {
@@ -340,7 +349,7 @@ pub fn format_as_macro_call(symbol_set: &OrderedSet<Rc<Symbol>>) -> String {
     string
 }
 
-pub fn format_as_or_list(symbol_set: &OrderedSet<Rc<Symbol>>) -> String {
+pub fn format_as_or_list(symbol_set: &BTreeSet<Rc<Symbol>>) -> String {
     let mut string = "".to_string();
     for (index, symbol) in symbol_set.iter().enumerate() {
         if index == 0 {
@@ -414,11 +423,11 @@ impl SymbolTable {
         self.non_terminals.values()
     }
 
-    pub fn token_set(&self) -> OrderedSet<&Rc<Symbol>> {
+    pub fn token_set(&self) -> BTreeSet<&Rc<Symbol>> {
         self.tokens.values().collect()
     }
 
-    pub fn non_terminal_symbol_set(&self) -> OrderedSet<&Rc<Symbol>> {
+    pub fn non_terminal_symbol_set(&self) -> BTreeSet<&Rc<Symbol>> {
         self.non_terminals.values().collect()
     }
 
