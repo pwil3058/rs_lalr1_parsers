@@ -1,11 +1,9 @@
 use std::{
-    collections::BTreeSet,
+    collections::{BTreeMap, BTreeSet},
     io::{self, stderr, Write},
     path::Path,
     rc::Rc,
 };
-
-use ordered_collections::OrderedMap;
 
 use lalr1plus::{self, Parser};
 use lexan;
@@ -281,7 +279,7 @@ impl Grammar {
                 .use_symbol_named(&AATerminal::AAEnd.to_string(), &lexan::Location::default())
                 .unwrap(),
         );
-        let mut map: OrderedMap<Rc<GrammarItemKey>, BTreeSet<Rc<Symbol>>> = OrderedMap::new();
+        let mut map: BTreeMap<Rc<GrammarItemKey>, BTreeSet<Rc<Symbol>>> = BTreeMap::new();
         map.insert(start_item_key, start_look_ahead_set);
         let start_kernel = grammar.specification.closure(GrammarItemSet::new(map));
         grammar.new_parser_state(start_kernel);

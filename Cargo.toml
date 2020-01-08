@@ -20,5 +20,3 @@ lexan = { path = "../../CRATES/rs_lexan.git" }
 #lexan = { git = "https://github.com/pwil3058/rs_lexan.git" }
 lalr1plus = { path = "../../CRATES/rs_lalr1plus.git" }
 #lalr1plus = { git = "https://github.com/pwil3058/rs_lalr1plus.git" }
-ordered_collections = { path = "../../CRATES/rs_ordered_collections.git"}
-#ordered_collections = { git = "https://github.com/pwil3058/rs_ordered_collections.git"}

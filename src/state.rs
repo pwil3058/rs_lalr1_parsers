@@ -1,15 +1,10 @@
 use std::{
     cell::{Cell, RefCell},
-    collections::BTreeSet,
+    collections::{BTreeMap, BTreeSet},
     fmt,
     io::Write,
     rc::Rc,
     str::FromStr,
-};
-
-use ordered_collections::{
-    ordered_set::ord_set_iterators::{IterSetOperations, Selection, SkipAheadIterator, ToSet},
-    OrderedMap,
 };
 
 use crate::symbols::{format_as_or_list, AssociativePrecedence, Associativity, Symbol};
@@ -277,7 +272,7 @@ impl GrammarItemKey {
     }
 }
 
-pub struct GrammarItemSet(OrderedMap<Rc<GrammarItemKey>, BTreeSet<Rc<Symbol>>>);
+pub struct GrammarItemSet(BTreeMap<Rc<GrammarItemKey>, BTreeSet<Rc<Symbol>>>);
 
 pub fn format_set<T: Ord + std::fmt::Display>(set: &BTreeSet<T>) -> String {
     let mut set_string = "Set{".to_string();
@@ -305,12 +300,12 @@ impl std::fmt::Display for GrammarItemSet {
 
 #[derive(Debug)]
 struct Reductions {
-    reductions: OrderedMap<BTreeSet<Rc<Production>>, BTreeSet<Rc<Symbol>>>,
+    reductions: BTreeMap<BTreeSet<Rc<Production>>, BTreeSet<Rc<Symbol>>>,
     expected_tokens: BTreeSet<Rc<Symbol>>,
 }
 
 impl GrammarItemSet {
-    pub fn new(map: OrderedMap<Rc<GrammarItemKey>, BTreeSet<Rc<Symbol>>>) -> Self {
+    pub fn new(map: BTreeMap<Rc<GrammarItemKey>, BTreeSet<Rc<Symbol>>>) -> Self {
         GrammarItemSet(map)
     }
 
@@ -327,7 +322,7 @@ impl GrammarItemSet {
     }
 
     pub fn generate_goto_kernel(&self, symbol: &Rc<Symbol>) -> GrammarItemSet {
-        let mut map = OrderedMap::new();
+        let mut map = BTreeMap::new();
         for (item_key, look_ahead_set) in self.0.iter() {
             if item_key.next_symbol_is(symbol) {
                 map.insert(item_key.shifted(), look_ahead_set.clone());
@@ -347,7 +342,7 @@ impl GrammarItemSet {
     pub fn irreducible_keys(&self) -> BTreeSet<Rc<GrammarItemKey>> {
         self.0
             .keys()
-            .select(|x| !x.is_reducible())
+            .filter(|x| !x.is_reducible())
             .cloned()
             .collect()
     }
@@ -355,7 +350,7 @@ impl GrammarItemSet {
     pub fn reducible_keys(&self) -> BTreeSet<Rc<GrammarItemKey>> {
         self.0
             .keys()
-            .select(|x| x.is_reducible())
+            .filter(|x| x.is_reducible())
             .cloned()
             .collect()
     }
@@ -421,8 +416,8 @@ impl GrammarItemSet {
 
     fn reductions(&self) -> Reductions {
         let expected_tokens = self.reducible_look_ahead_set();
-        let mut reductions: OrderedMap<BTreeSet<Rc<Production>>, BTreeSet<Rc<Symbol>>> =
-            OrderedMap::new();
+        let mut reductions: BTreeMap<BTreeSet<Rc<Production>>, BTreeSet<Rc<Symbol>>> =
+            BTreeMap::new();
         for token in expected_tokens.iter() {
             let mut productions: BTreeSet<Rc<Production>> = BTreeSet::new();
             for (item_key, look_ahead_set) in self.0.iter().filter(|x| x.0.is_reducible()) {
@@ -452,8 +447,8 @@ pub enum ProcessedState {
 pub struct ParserState {
     pub ident: u32,
     grammar_items: RefCell<GrammarItemSet>,
-    shift_list: RefCell<OrderedMap<Rc<Symbol>, Rc<ParserState>>>,
-    goto_table: RefCell<OrderedMap<Rc<Symbol>, Rc<ParserState>>>,
+    shift_list: RefCell<BTreeMap<Rc<Symbol>, Rc<ParserState>>>,
+    goto_table: RefCell<BTreeMap<Rc<Symbol>, Rc<ParserState>>>,
     error_recovery_state: RefCell<Option<Rc<ParserState>>>,
     processed_state: Cell<ProcessedState>,
     shift_reduce_conflicts: RefCell<
@@ -490,8 +485,8 @@ impl ParserState {
         Rc::new(Self {
             ident,
             grammar_items: RefCell::new(grammar_items),
-            shift_list: RefCell::new(OrderedMap::new()),
-            goto_table: RefCell::new(OrderedMap::new()),
+            shift_list: RefCell::new(BTreeMap::new()),
+            goto_table: RefCell::new(BTreeMap::new()),
             error_recovery_state: RefCell::new(None),
             processed_state: Cell::new(ProcessedState::Unprocessed),
             shift_reduce_conflicts: RefCell::new(vec![]),
@@ -587,15 +582,24 @@ impl ParserState {
             if shift_symbol.precedence() < reducible_item.precedence() {
                 shift_list.remove(shift_symbol);
             } else if shift_symbol.precedence() > reducible_item.precedence() {
-                grammar_items.0[Rc::clone(reducible_item)].remove(shift_symbol);
+                grammar_items
+                    .get_mut(&Rc::clone(reducible_item))
+                    .unwrap()
+                    .remove(shift_symbol);
             } else if reducible_item.associativity() == Associativity::Left {
                 shift_list.remove(shift_symbol);
             } else if reducible_item.has_error_recovery_tail() {
-                grammar_items.0[Rc::clone(reducible_item)].remove(shift_symbol);
+                grammar_items
+                    .get_mut(&Rc::clone(reducible_item))
+                    .unwrap()
+                    .remove(shift_symbol);
             } else {
                 // Default: resolve in favour of shift but mark as unresolved
                 // to give the user the option of accepting this resolution
-                grammar_items.0[Rc::clone(reducible_item)].remove(shift_symbol);
+                grammar_items
+                    .get_mut(&Rc::clone(reducible_item))
+                    .unwrap()
+                    .remove(shift_symbol);
                 shift_reduce_conflicts.push((
                     Rc::clone(shift_symbol),
                     Rc::clone(goto_state),
@@ -841,12 +845,12 @@ impl ParserState {
                 string += &format!(
                     "      reduce {} : {}\n",
                     items.0,
-                    format_set(&self.grammar_items.borrow().0[Rc::clone(&items.0)])
+                    format_set(&self.grammar_items.borrow().0[&Rc::clone(&items.0)])
                 );
                 string += &format!(
                     "      reduce {} : {}\n",
                     items.1,
-                    format_set(&self.grammar_items.borrow().0[Rc::clone(&items.1)])
+                    format_set(&self.grammar_items.borrow().0[&Rc::clone(&items.1)])
                 );
             }
         }
