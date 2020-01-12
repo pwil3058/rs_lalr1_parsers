@@ -16,7 +16,5 @@ clap = "2"
 regex = "1"
 structopt = "0.3.2"
 
-lexan = { path = "../../CRATES/rs_lexan.git" }
-#lexan = { git = "https://github.com/pwil3058/rs_lexan.git" }
-lalr1plus = { path = "../../CRATES/rs_lalr1plus.git" }
-#lalr1plus = { git = "https://github.com/pwil3058/rs_lalr1plus.git" }
+lexan = { git = "https://github.com/pwil3058/rs_lexan.git" }
+lalr1plus = { git = "https://github.com/pwil3058/rs_lalr1plus.git" }
