@@ -5,6 +5,8 @@
       <sourceFolder url="file://$MODULE_DIR$/alap_gen/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/lalr1_plus/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/lexan/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/tests" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/tests/calc/src" isTestSource="false" />
       <excludeFolder url="file://$MODULE_DIR$/target" />
     </content>
     <orderEntry type="inheritedJdk" />
