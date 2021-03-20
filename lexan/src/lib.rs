@@ -28,10 +28,11 @@ where
         skip_regex_strs: &[&'a str],
         end_marker: T,
     ) -> Self {
-        let lexicon = match Lexicon::new(literal_lexemes, regex_lexemes, skip_regex_strs, end_marker) {
-            Ok(lexicon) => Arc::new(lexicon),
-            Err(err) => panic!("Fatal Error: {:?}", err),
-        };
+        let lexicon =
+            match Lexicon::new(literal_lexemes, regex_lexemes, skip_regex_strs, end_marker) {
+                Ok(lexicon) => Arc::new(lexicon),
+                Err(err) => panic!("Fatal Error: {:?}", err),
+            };
         Self { lexicon }
     }
 
@@ -241,7 +242,10 @@ mod tests {
             }
             _ => assert!(false),
         };
-        second_token_stream.inject("if one \"name\"".to_string(), "\"injected text\"".to_string());
+        second_token_stream.inject(
+            "if one \"name\"".to_string(),
+            "\"injected text\"".to_string(),
+        );
         match second_token_stream.front_advance() {
             Ok(token) => {
                 assert_eq!(*token.tag(), If);

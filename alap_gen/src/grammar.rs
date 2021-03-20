@@ -387,7 +387,7 @@ impl Grammar {
         wtr.write(b"    };\n")?;
         wtr.write(b"}\n\n")?;
         wtr.write(b"use lalr1_plus;\n")?;
-        wtr.write(b"use lexan;\n")?;
+        wtr.write(b"use lexan;\n\n")?;
         wtr.write(b"#[derive(Debug, Clone, Copy, PartialOrd, Ord, PartialEq, Eq)]\n")?;
         wtr.write(b"pub enum AATerminal {\n")?;
         for token in tokens.iter() {

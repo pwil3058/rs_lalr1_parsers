@@ -97,11 +97,9 @@ impl<T: Debug + Display + Copy> fmt::Display for Error<T> {
                 "Ambiguous matches {:#?} \"{}\" at: {}.",
                 tags, text, location
             ),
-            Error::AdvancedWhenEmpty(location) => write!(
-                dest,
-                "Advanced past end of text at: {}.",
-                location,
-            ),
+            Error::AdvancedWhenEmpty(location) => {
+                write!(dest, "Advanced past end of text at: {}.", location,)
+            }
         }
     }
 }
@@ -243,7 +241,9 @@ where
                 current_location,
             )))
         } else {
-            let distance = self.lexicon.distance_to_next_valid_byte(&self.text[self.index..]);
+            let distance = self
+                .lexicon
+                .distance_to_next_valid_byte(&self.text[self.index..]);
             self.incr_index_and_location(distance);
             Some(Err(Error::UnexpectedText(
                 (&self.text[start..self.index]).to_string(),
@@ -295,33 +295,33 @@ where
     pub fn advance(&mut self) {
         let mut i = self.token_stream_stack.len();
         if i > 0 {
-            self.token_stream_stack[i-1].advance();
+            self.token_stream_stack[i - 1].advance();
             let mut popped = None;
-            while i > 0 && self.token_stream_stack[i-1].is_empty() {
+            while i > 0 && self.token_stream_stack[i - 1].is_empty() {
                 popped = self.token_stream_stack.pop();
                 i -= 1;
             }
             self.front = if i > 0 {
-                self.token_stream_stack[i-1].front().unwrap()
+                self.token_stream_stack[i - 1].front().unwrap()
             } else {
                 let end_location = popped.unwrap().location();
-                Ok(Token{
+                Ok(Token {
                     tag: self.lexicon.end_marker(),
                     lexeme: String::new(),
-                    location: end_location
+                    location: end_location,
                 })
             }
-       } else {
-           let location = match &self.front {
-               Ok(token) => token.location(),
-               Err(err) => match err {
-                   Error::UnexpectedText(_, location) => location,
-                   Error::AmbiguousMatches(_, _, location) => location,
-                   Error::AdvancedWhenEmpty(location) => location,
-               },
-           };
-           self.front = Err(Error::AdvancedWhenEmpty(location.clone()))
-       }
+        } else {
+            let location = match &self.front {
+                Ok(token) => token.location(),
+                Err(err) => match err {
+                    Error::UnexpectedText(_, location) => location,
+                    Error::AmbiguousMatches(_, _, location) => location,
+                    Error::AdvancedWhenEmpty(location) => location,
+                },
+            };
+            self.front = Err(Error::AdvancedWhenEmpty(location.clone()))
+        }
     }
 
     pub fn front_advance(&mut self) -> Result<Token<T>, Error<T>> {
@@ -398,9 +398,7 @@ mod tests {
         use Handle::*;
         let lexicon = Lexicon::new(
             &[(If, "if"), (When, "when")],
-            &[
-                (Ident, "[a-zA-Z]+[\\w_]*"),
-            ],
+            &[(Ident, "[a-zA-Z]+[\\w_]*")],
             &[r"(/\*(.|[\n\r])*?\*/)", r"(//[^\n\r]*)", r"(\s+)"],
             End,
         );
@@ -417,7 +415,11 @@ mod tests {
         let token = Token {
             tag: If,
             lexeme: "if".to_string(),
-            location: Location { line_number: 1, offset: 2, label: "another".to_string() },
+            location: Location {
+                line_number: 1,
+                offset: 2,
+                label: "another".to_string(),
+            },
         };
         assert_eq!((token_stream.front().clone()).unwrap(), token.clone());
         assert_eq!((token_stream.front().clone()).unwrap(), token.clone());
@@ -425,7 +427,11 @@ mod tests {
         let token = Token {
             tag: Ident,
             lexeme: "nothing".to_string(),
-            location: Location { line_number: 1, offset: 5, label: "another".to_string() },
+            location: Location {
+                line_number: 1,
+                offset: 5,
+                label: "another".to_string(),
+            },
         };
         assert_eq!((token_stream.front().clone()).unwrap(), token.clone());
         let text = "just".to_string();
@@ -434,14 +440,22 @@ mod tests {
         let token = Token {
             tag: Ident,
             lexeme: "just".to_string(),
-            location: Location { line_number: 1, offset: 1, label: "more".to_string() },
+            location: Location {
+                line_number: 1,
+                offset: 1,
+                label: "more".to_string(),
+            },
         };
         assert_eq!((token_stream.front().clone()).unwrap(), token.clone());
         token_stream.advance();
         let token = Token {
             tag: Ident,
             lexeme: "nothing".to_string(),
-            location: Location { line_number: 1, offset: 5, label: "another".to_string() },
+            location: Location {
+                line_number: 1,
+                offset: 5,
+                label: "another".to_string(),
+            },
         };
         assert_eq!((token_stream.front().clone()).unwrap(), token.clone());
         token_stream.advance();
@@ -452,7 +466,11 @@ mod tests {
         let token = Token {
             tag: End,
             lexeme: "".to_string(),
-            location: Location { line_number: 1, offset: 23, label: "another".to_string() },
+            location: Location {
+                line_number: 1,
+                offset: 23,
+                label: "another".to_string(),
+            },
         };
         assert_eq!(token_stream.front().clone().unwrap(), token);
         assert!(token_stream.advance_front().is_err());
