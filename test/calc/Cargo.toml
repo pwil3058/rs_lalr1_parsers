@@ -1,0 +1,14 @@
+[package]
+name = "calc"
+version = "0.1.0"
+authors = ["Peter Williams <pwil3058@gmail.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+lazy_static = "1.3.0"
+
+lexan = { path = "../../../../CRATES/rs_lexan.git" }
+ordered_collections = { path = "../../../../CRATES/rs_ordered_collections.git" }
+lalr1plus = { path = "../../../../CRATES/rs_lalr1plus.git" }
