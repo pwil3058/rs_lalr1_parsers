@@ -6,7 +6,7 @@ use std::str::FromStr;
 #[derive(Debug, Clone)]
 pub enum AttributeData {
     Token(lexan::Token<AATerminal>),
-    Error(lalr1plus::Error<AATerminal>),
+    Error(lalr1_plus::Error<AATerminal>),
     Value(f64),
     Id(String),
     Default
@@ -50,8 +50,8 @@ impl From<lexan::Token<AATerminal>> for AttributeData {
     }
 }
 
-impl From<lalr1plus::Error<AATerminal>> for AttributeData {
-    fn from(error: lalr1plus::Error<AATerminal>) -> Self {
+impl From<lalr1_plus::Error<AATerminal>> for AttributeData {
+    fn from(error: lalr1_plus::Error<AATerminal>) -> Self {
         AttributeData::Error(error.clone())
     }
 }
@@ -67,7 +67,7 @@ pub struct Calc {
     variables: HashMap<String, f64>,
 }
 
-impl lalr1plus::ReportError<AATerminal> for Calc {}
+impl lalr1_plus::ReportError<AATerminal> for Calc {}
 
 impl Calc {
     pub fn new() -> Self {

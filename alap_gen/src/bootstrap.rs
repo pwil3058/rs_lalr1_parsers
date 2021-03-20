@@ -7,7 +7,7 @@ use crate::{
     symbols::{AssociativePrecedence, Associativity, SymbolType},
 };
 
-use lalr1plus;
+use lalr1_plus;
 use lexan;
 use ordered_collections::{ordered_set, BTreeSet};
 
@@ -173,7 +173,7 @@ impl std::fmt::Display for AANonTerminal {
     }
 }
 
-impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData> for GrammarSpecification {
+impl lalr1_plus::Parser<AATerminal, AANonTerminal, AttributeData> for GrammarSpecification {
     fn lexical_analyzer(&self) -> &lexan::LexicalAnalyzer<AATerminal> {
         &AALEXAN
     }
@@ -299,10 +299,10 @@ impl lalr1plus::Parser<AATerminal, AANonTerminal, AttributeData> for GrammarSpec
     fn next_action(
         &self,
         aa_state: u32,
-        aa_attributes: &lalr1plus::ParseStack<AATerminal, AANonTerminal, AttributeData>,
+        aa_attributes: &lalr1_plus::ParseStack<AATerminal, AANonTerminal, AttributeData>,
         aa_token: &lexan::Token<AATerminal>,
-    ) -> lalr1plus::Action {
-        use lalr1plus::Action;
+    ) -> lalr1_plus::Action {
+        use lalr1_plus::Action;
         use AATerminal::*;
         let aa_tag = *aa_token.tag();
         return match aa_state {

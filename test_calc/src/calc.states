@@ -1,0 +1,733 @@
+Symbols:
+  Tokens:
+    AAEnd(): NonAssoc:(0) Set{AAEnd}:(false)
+    EOL((\n)): Left:(4294967292) Set{EOL}:(false)
+    PLUS("+"): Left:(4294967293) Set{"+"}:(false)
+    MINUS("-"): Left:(4294967293) Set{"-"}:(false)
+    TIMES("*"): Left:(4294967294) Set{"*"}:(false)
+    DIVIDE("/"): Left:(4294967294) Set{"/"}:(false)
+    ASSIGN("="): NonAssoc:(0) Set{"="}:(false)
+    NUMBER(([0-9]+(\.[0-9]+){0,1})): NonAssoc:(0) Set{NUMBER}:(false)
+    ID(([a-zA-Z]+)): NonAssoc:(0) Set{ID}:(false)
+    LPR("("): NonAssoc:(0) Set{"("}:(false)
+    RPR(")"): NonAssoc:(0) Set{")"}:(false)
+  Tags:
+    UMINUS: Right:(4294967295)
+    AAInvalidTag: NonAssoc:(0)
+  Non Terminal Symbols:
+    AAStart: NonAssoc:(0) Set{EOL, "-", NUMBER, ID, "("}:(true)
+    AAError: NonAssoc:(0) Set{}:(true)
+    Line: NonAssoc:(0) Set{EOL, "-", NUMBER, ID, "("}:(true)
+    SetUp: NonAssoc:(0) Set{}:(true)
+    Expr: NonAssoc:(0) Set{"-", NUMBER, ID, "("}:(false)
+State<0>:
+  Grammar Items:
+    AAStart: . Line: Set{AAEnd}
+    Line: . SetUp Expr ?(self.errors > 0?): Set{AAEnd, EOL}
+    Line: . SetUp Expr: Set{AAEnd, EOL}
+    Line: . SetUp ID "=" Expr ?(self.errors == 0?): Set{AAEnd, EOL}
+    Line: . SetUp ID "=" Expr: Set{AAEnd, EOL}
+    Line: . Line EOL Line: Set{AAEnd, EOL}
+    Line: . Line EOL: Set{AAEnd, EOL}
+    Line: . AAError: Set{AAEnd, EOL}
+    SetUp: . <empty>: Set{"-", NUMBER, ID, "("}
+    AAError: . <empty>: Set{AAEnd, EOL}
+  Parser Action Table:
+    AAEnd: reduce: AAError: <empty>
+    EOL: reduce: AAError: <empty>
+    "-": reduce: SetUp: <empty>
+    NUMBER: reduce: SetUp: <empty>
+    ID: reduce: SetUp: <empty>
+    "(": reduce: SetUp: <empty>
+  Go To Table:
+    AAError -> State<3>
+    Line -> State<1>
+    SetUp -> State<2>
+  Error Recovery State: State<3>
+    Look Ahead: Set{AAEnd, EOL}
+State<1>:
+  Grammar Items:
+    AAStart: Line . : Set{AAEnd}
+    Line: Line . EOL Line: Set{AAEnd, EOL}
+    Line: Line . EOL: Set{AAEnd, EOL}
+  Parser Action Table:
+    AAEnd: reduce: AAStart: Line
+    EOL: shift: -> State<4>
+  Go To Table:
+    <empty>
+  Error Recovery State: <none>
+State<2>:
+  Grammar Items:
+    Line: SetUp . Expr ?(self.errors > 0?): Set{AAEnd, EOL}
+    Line: SetUp . Expr: Set{AAEnd, EOL}
+    Line: SetUp . ID "=" Expr ?(self.errors == 0?): Set{AAEnd, EOL}
+    Line: SetUp . ID "=" Expr: Set{AAEnd, EOL}
+    Expr: . Expr "+" Expr ?($1.value() == 0.0?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: . Expr "+" Expr ?($3.value() == 0.0?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: . Expr "+" Expr: Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: . Expr "-" Expr ?($1.value() == 0.0?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: . Expr "-" Expr ?($3.value() == 0.0?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: . Expr "-" Expr: Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: . Expr "*" Expr ?($1.value() == 0.0 || $3.value() == 0.0?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: . Expr "*" Expr ?($1.value() == 1.0?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: . Expr "*" Expr ?($3.value() == 1.0?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: . Expr "*" Expr: Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: . Expr "/" Expr ?($3.value() == 1.0?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: . Expr "/" Expr ?($3.value() == 0.0?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: . Expr "/" Expr ?($1.value() == 0.0?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: . Expr "/" Expr: Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: . "(" Expr ")": Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: . "-" Expr: Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: . NUMBER: Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: . ID ?(self.variables.contains_key($1.id())?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: . ID: Set{AAEnd, EOL, "+", "-", "*", "/"}
+  Parser Action Table:
+    "-": shift: -> State<8>
+    NUMBER: shift: -> State<9>
+    ID: shift: -> State<6>
+    "(": shift: -> State<7>
+  Go To Table:
+    Expr -> State<5>
+  Error Recovery State: <none>
+State<3>:
+  Grammar Items:
+    Line: AAError . : Set{AAEnd, EOL}
+  Parser Action Table:
+    AAEnd: reduce: Line: AAError
+    EOL: reduce: Line: AAError
+  Go To Table:
+    <empty>
+  Error Recovery State: <none>
+State<4>:
+  Grammar Items:
+    Line: . SetUp Expr ?(self.errors > 0?): Set{AAEnd, EOL}
+    Line: . SetUp Expr: Set{AAEnd, EOL}
+    Line: . SetUp ID "=" Expr ?(self.errors == 0?): Set{AAEnd, EOL}
+    Line: . SetUp ID "=" Expr: Set{AAEnd, EOL}
+    Line: . Line EOL Line: Set{AAEnd, EOL}
+    Line: Line EOL . Line: Set{AAEnd, EOL}
+    Line: . Line EOL: Set{AAEnd, EOL}
+    Line: Line EOL . : Set{AAEnd, EOL}
+    Line: . AAError: Set{AAEnd, EOL}
+    SetUp: . <empty>: Set{"-", NUMBER, ID, "("}
+    AAError: . <empty>: Set{}
+  Parser Action Table:
+    AAEnd: reduce: Line: Line EOL
+    EOL: reduce: Line: Line EOL
+    "-": reduce: SetUp: <empty>
+    NUMBER: reduce: SetUp: <empty>
+    ID: reduce: SetUp: <empty>
+    "(": reduce: SetUp: <empty>
+  Go To Table:
+    AAError -> State<3>
+    Line -> State<10>
+    SetUp -> State<2>
+  Error Recovery State: State<3>
+    Look Ahead: Set{AAEnd, EOL}
+  Reduce/Reduce Conflicts:
+    Set{AAEnd, EOL}
+      reduce Line: Line EOL .  : Set{AAEnd, EOL}
+      reduce AAError: . <empty> : Set{}
+State<5>:
+  Grammar Items:
+    Line: SetUp Expr .  ?(self.errors > 0?): Set{AAEnd, EOL}
+    Line: SetUp Expr . : Set{AAEnd, EOL}
+    Expr: Expr . "+" Expr ?($1.value() == 0.0?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: Expr . "+" Expr ?($3.value() == 0.0?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: Expr . "+" Expr: Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: Expr . "-" Expr ?($1.value() == 0.0?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: Expr . "-" Expr ?($3.value() == 0.0?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: Expr . "-" Expr: Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: Expr . "*" Expr ?($1.value() == 0.0 || $3.value() == 0.0?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: Expr . "*" Expr ?($1.value() == 1.0?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: Expr . "*" Expr ?($3.value() == 1.0?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: Expr . "*" Expr: Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: Expr . "/" Expr ?($3.value() == 1.0?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: Expr . "/" Expr ?($3.value() == 0.0?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: Expr . "/" Expr ?($1.value() == 0.0?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: Expr . "/" Expr: Set{AAEnd, EOL, "+", "-", "*", "/"}
+  Parser Action Table:
+    AAEnd: reduce: Line: SetUp Expr ?(self.errors > 0?)
+    AAEnd: reduce: Line: SetUp Expr
+    EOL: reduce: Line: SetUp Expr ?(self.errors > 0?)
+    EOL: reduce: Line: SetUp Expr
+    "+": shift: -> State<11>
+    "-": shift: -> State<12>
+    "*": shift: -> State<13>
+    "/": shift: -> State<14>
+  Go To Table:
+    <empty>
+  Error Recovery State: <none>
+State<6>:
+  Grammar Items:
+    Line: SetUp ID . "=" Expr ?(self.errors == 0?): Set{AAEnd, EOL}
+    Line: SetUp ID . "=" Expr: Set{AAEnd, EOL}
+    Expr: ID .  ?(self.variables.contains_key($1.id())?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: ID . : Set{AAEnd, EOL, "+", "-", "*", "/"}
+  Parser Action Table:
+    AAEnd: reduce: Expr: ID ?(self.variables.contains_key($1.id())?)
+    AAEnd: reduce: Expr: ID
+    EOL: reduce: Expr: ID ?(self.variables.contains_key($1.id())?)
+    EOL: reduce: Expr: ID
+    "+": reduce: Expr: ID ?(self.variables.contains_key($1.id())?)
+    "+": reduce: Expr: ID
+    "-": reduce: Expr: ID ?(self.variables.contains_key($1.id())?)
+    "-": reduce: Expr: ID
+    "*": reduce: Expr: ID ?(self.variables.contains_key($1.id())?)
+    "*": reduce: Expr: ID
+    "/": reduce: Expr: ID ?(self.variables.contains_key($1.id())?)
+    "/": reduce: Expr: ID
+    "=": shift: -> State<15>
+  Go To Table:
+    <empty>
+  Error Recovery State: <none>
+State<7>:
+  Grammar Items:
+    Expr: . Expr "+" Expr ?($1.value() == 0.0?): Set{"+", "-", "*", "/", ")"}
+    Expr: . Expr "+" Expr ?($3.value() == 0.0?): Set{"+", "-", "*", "/", ")"}
+    Expr: . Expr "+" Expr: Set{"+", "-", "*", "/", ")"}
+    Expr: . Expr "-" Expr ?($1.value() == 0.0?): Set{"+", "-", "*", "/", ")"}
+    Expr: . Expr "-" Expr ?($3.value() == 0.0?): Set{"+", "-", "*", "/", ")"}
+    Expr: . Expr "-" Expr: Set{"+", "-", "*", "/", ")"}
+    Expr: . Expr "*" Expr ?($1.value() == 0.0 || $3.value() == 0.0?): Set{"+", "-", "*", "/", ")"}
+    Expr: . Expr "*" Expr ?($1.value() == 1.0?): Set{"+", "-", "*", "/", ")"}
+    Expr: . Expr "*" Expr ?($3.value() == 1.0?): Set{"+", "-", "*", "/", ")"}
+    Expr: . Expr "*" Expr: Set{"+", "-", "*", "/", ")"}
+    Expr: . Expr "/" Expr ?($3.value() == 1.0?): Set{"+", "-", "*", "/", ")"}
+    Expr: . Expr "/" Expr ?($3.value() == 0.0?): Set{"+", "-", "*", "/", ")"}
+    Expr: . Expr "/" Expr ?($1.value() == 0.0?): Set{"+", "-", "*", "/", ")"}
+    Expr: . Expr "/" Expr: Set{"+", "-", "*", "/", ")"}
+    Expr: . "(" Expr ")": Set{"+", "-", "*", "/", ")"}
+    Expr: "(" . Expr ")": Set{AAEnd, EOL, "+", "-", "*", "/", ")"}
+    Expr: . "-" Expr: Set{"+", "-", "*", "/", ")"}
+    Expr: . NUMBER: Set{"+", "-", "*", "/", ")"}
+    Expr: . ID ?(self.variables.contains_key($1.id())?): Set{"+", "-", "*", "/", ")"}
+    Expr: . ID: Set{"+", "-", "*", "/", ")"}
+  Parser Action Table:
+    "-": shift: -> State<8>
+    NUMBER: shift: -> State<9>
+    ID: shift: -> State<17>
+    "(": shift: -> State<7>
+  Go To Table:
+    Expr -> State<16>
+  Error Recovery State: <none>
+State<8>:
+  Grammar Items:
+    Expr: . Expr "+" Expr ?($1.value() == 0.0?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: . Expr "+" Expr ?($3.value() == 0.0?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: . Expr "+" Expr: Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: . Expr "-" Expr ?($1.value() == 0.0?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: . Expr "-" Expr ?($3.value() == 0.0?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: . Expr "-" Expr: Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: . Expr "*" Expr ?($1.value() == 0.0 || $3.value() == 0.0?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: . Expr "*" Expr ?($1.value() == 1.0?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: . Expr "*" Expr ?($3.value() == 1.0?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: . Expr "*" Expr: Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: . Expr "/" Expr ?($3.value() == 1.0?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: . Expr "/" Expr ?($3.value() == 0.0?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: . Expr "/" Expr ?($1.value() == 0.0?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: . Expr "/" Expr: Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: . "(" Expr ")": Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: . "-" Expr: Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: "-" . Expr: Set{AAEnd, EOL, "+", "-", "*", "/", ")"}
+    Expr: . NUMBER: Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: . ID ?(self.variables.contains_key($1.id())?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: . ID: Set{AAEnd, EOL, "+", "-", "*", "/"}
+  Parser Action Table:
+    "-": shift: -> State<8>
+    NUMBER: shift: -> State<9>
+    ID: shift: -> State<17>
+    "(": shift: -> State<7>
+  Go To Table:
+    Expr -> State<18>
+  Error Recovery State: <none>
+State<9>:
+  Grammar Items:
+    Expr: NUMBER . : Set{AAEnd, EOL, "+", "-", "*", "/", ")"}
+  Parser Action Table:
+    AAEnd: reduce: Expr: NUMBER
+    EOL: reduce: Expr: NUMBER
+    "+": reduce: Expr: NUMBER
+    "-": reduce: Expr: NUMBER
+    "*": reduce: Expr: NUMBER
+    "/": reduce: Expr: NUMBER
+    ")": reduce: Expr: NUMBER
+  Go To Table:
+    <empty>
+  Error Recovery State: <none>
+State<10>:
+  Grammar Items:
+    Line: Line . EOL Line: Set{AAEnd, EOL}
+    Line: Line EOL Line . : Set{AAEnd, EOL}
+    Line: Line . EOL: Set{AAEnd, EOL}
+  Parser Action Table:
+    AAEnd: reduce: Line: Line EOL Line
+    EOL: reduce: Line: Line EOL Line
+  Go To Table:
+    <empty>
+  Error Recovery State: <none>
+State<11>:
+  Grammar Items:
+    Expr: . Expr "+" Expr ?($1.value() == 0.0?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: Expr "+" . Expr ?($1.value() == 0.0?): Set{AAEnd, EOL, "+", "-", "*", "/", ")"}
+    Expr: . Expr "+" Expr ?($3.value() == 0.0?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: Expr "+" . Expr ?($3.value() == 0.0?): Set{AAEnd, EOL, "+", "-", "*", "/", ")"}
+    Expr: . Expr "+" Expr: Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: Expr "+" . Expr: Set{AAEnd, EOL, "+", "-", "*", "/", ")"}
+    Expr: . Expr "-" Expr ?($1.value() == 0.0?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: . Expr "-" Expr ?($3.value() == 0.0?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: . Expr "-" Expr: Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: . Expr "*" Expr ?($1.value() == 0.0 || $3.value() == 0.0?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: . Expr "*" Expr ?($1.value() == 1.0?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: . Expr "*" Expr ?($3.value() == 1.0?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: . Expr "*" Expr: Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: . Expr "/" Expr ?($3.value() == 1.0?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: . Expr "/" Expr ?($3.value() == 0.0?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: . Expr "/" Expr ?($1.value() == 0.0?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: . Expr "/" Expr: Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: . "(" Expr ")": Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: . "-" Expr: Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: . NUMBER: Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: . ID ?(self.variables.contains_key($1.id())?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: . ID: Set{AAEnd, EOL, "+", "-", "*", "/"}
+  Parser Action Table:
+    "-": shift: -> State<8>
+    NUMBER: shift: -> State<9>
+    ID: shift: -> State<17>
+    "(": shift: -> State<7>
+  Go To Table:
+    Expr -> State<19>
+  Error Recovery State: <none>
+State<12>:
+  Grammar Items:
+    Expr: . Expr "+" Expr ?($1.value() == 0.0?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: . Expr "+" Expr ?($3.value() == 0.0?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: . Expr "+" Expr: Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: . Expr "-" Expr ?($1.value() == 0.0?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: Expr "-" . Expr ?($1.value() == 0.0?): Set{AAEnd, EOL, "+", "-", "*", "/", ")"}
+    Expr: . Expr "-" Expr ?($3.value() == 0.0?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: Expr "-" . Expr ?($3.value() == 0.0?): Set{AAEnd, EOL, "+", "-", "*", "/", ")"}
+    Expr: . Expr "-" Expr: Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: Expr "-" . Expr: Set{AAEnd, EOL, "+", "-", "*", "/", ")"}
+    Expr: . Expr "*" Expr ?($1.value() == 0.0 || $3.value() == 0.0?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: . Expr "*" Expr ?($1.value() == 1.0?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: . Expr "*" Expr ?($3.value() == 1.0?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: . Expr "*" Expr: Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: . Expr "/" Expr ?($3.value() == 1.0?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: . Expr "/" Expr ?($3.value() == 0.0?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: . Expr "/" Expr ?($1.value() == 0.0?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: . Expr "/" Expr: Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: . "(" Expr ")": Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: . "-" Expr: Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: . NUMBER: Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: . ID ?(self.variables.contains_key($1.id())?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: . ID: Set{AAEnd, EOL, "+", "-", "*", "/"}
+  Parser Action Table:
+    "-": shift: -> State<8>
+    NUMBER: shift: -> State<9>
+    ID: shift: -> State<17>
+    "(": shift: -> State<7>
+  Go To Table:
+    Expr -> State<20>
+  Error Recovery State: <none>
+State<13>:
+  Grammar Items:
+    Expr: . Expr "+" Expr ?($1.value() == 0.0?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: . Expr "+" Expr ?($3.value() == 0.0?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: . Expr "+" Expr: Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: . Expr "-" Expr ?($1.value() == 0.0?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: . Expr "-" Expr ?($3.value() == 0.0?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: . Expr "-" Expr: Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: . Expr "*" Expr ?($1.value() == 0.0 || $3.value() == 0.0?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: Expr "*" . Expr ?($1.value() == 0.0 || $3.value() == 0.0?): Set{AAEnd, EOL, "+", "-", "*", "/", ")"}
+    Expr: . Expr "*" Expr ?($1.value() == 1.0?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: Expr "*" . Expr ?($1.value() == 1.0?): Set{AAEnd, EOL, "+", "-", "*", "/", ")"}
+    Expr: . Expr "*" Expr ?($3.value() == 1.0?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: Expr "*" . Expr ?($3.value() == 1.0?): Set{AAEnd, EOL, "+", "-", "*", "/", ")"}
+    Expr: . Expr "*" Expr: Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: Expr "*" . Expr: Set{AAEnd, EOL, "+", "-", "*", "/", ")"}
+    Expr: . Expr "/" Expr ?($3.value() == 1.0?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: . Expr "/" Expr ?($3.value() == 0.0?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: . Expr "/" Expr ?($1.value() == 0.0?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: . Expr "/" Expr: Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: . "(" Expr ")": Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: . "-" Expr: Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: . NUMBER: Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: . ID ?(self.variables.contains_key($1.id())?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: . ID: Set{AAEnd, EOL, "+", "-", "*", "/"}
+  Parser Action Table:
+    "-": shift: -> State<8>
+    NUMBER: shift: -> State<9>
+    ID: shift: -> State<17>
+    "(": shift: -> State<7>
+  Go To Table:
+    Expr -> State<21>
+  Error Recovery State: <none>
+State<14>:
+  Grammar Items:
+    Expr: . Expr "+" Expr ?($1.value() == 0.0?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: . Expr "+" Expr ?($3.value() == 0.0?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: . Expr "+" Expr: Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: . Expr "-" Expr ?($1.value() == 0.0?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: . Expr "-" Expr ?($3.value() == 0.0?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: . Expr "-" Expr: Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: . Expr "*" Expr ?($1.value() == 0.0 || $3.value() == 0.0?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: . Expr "*" Expr ?($1.value() == 1.0?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: . Expr "*" Expr ?($3.value() == 1.0?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: . Expr "*" Expr: Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: . Expr "/" Expr ?($3.value() == 1.0?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: Expr "/" . Expr ?($3.value() == 1.0?): Set{AAEnd, EOL, "+", "-", "*", "/", ")"}
+    Expr: . Expr "/" Expr ?($3.value() == 0.0?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: Expr "/" . Expr ?($3.value() == 0.0?): Set{AAEnd, EOL, "+", "-", "*", "/", ")"}
+    Expr: . Expr "/" Expr ?($1.value() == 0.0?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: Expr "/" . Expr ?($1.value() == 0.0?): Set{AAEnd, EOL, "+", "-", "*", "/", ")"}
+    Expr: . Expr "/" Expr: Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: Expr "/" . Expr: Set{AAEnd, EOL, "+", "-", "*", "/", ")"}
+    Expr: . "(" Expr ")": Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: . "-" Expr: Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: . NUMBER: Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: . ID ?(self.variables.contains_key($1.id())?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: . ID: Set{AAEnd, EOL, "+", "-", "*", "/"}
+  Parser Action Table:
+    "-": shift: -> State<8>
+    NUMBER: shift: -> State<9>
+    ID: shift: -> State<17>
+    "(": shift: -> State<7>
+  Go To Table:
+    Expr -> State<22>
+  Error Recovery State: <none>
+State<15>:
+  Grammar Items:
+    Line: SetUp ID "=" . Expr ?(self.errors == 0?): Set{AAEnd, EOL}
+    Line: SetUp ID "=" . Expr: Set{AAEnd, EOL}
+    Expr: . Expr "+" Expr ?($1.value() == 0.0?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: . Expr "+" Expr ?($3.value() == 0.0?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: . Expr "+" Expr: Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: . Expr "-" Expr ?($1.value() == 0.0?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: . Expr "-" Expr ?($3.value() == 0.0?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: . Expr "-" Expr: Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: . Expr "*" Expr ?($1.value() == 0.0 || $3.value() == 0.0?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: . Expr "*" Expr ?($1.value() == 1.0?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: . Expr "*" Expr ?($3.value() == 1.0?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: . Expr "*" Expr: Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: . Expr "/" Expr ?($3.value() == 1.0?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: . Expr "/" Expr ?($3.value() == 0.0?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: . Expr "/" Expr ?($1.value() == 0.0?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: . Expr "/" Expr: Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: . "(" Expr ")": Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: . "-" Expr: Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: . NUMBER: Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: . ID ?(self.variables.contains_key($1.id())?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: . ID: Set{AAEnd, EOL, "+", "-", "*", "/"}
+  Parser Action Table:
+    "-": shift: -> State<8>
+    NUMBER: shift: -> State<9>
+    ID: shift: -> State<17>
+    "(": shift: -> State<7>
+  Go To Table:
+    Expr -> State<23>
+  Error Recovery State: <none>
+State<16>:
+  Grammar Items:
+    Expr: Expr . "+" Expr ?($1.value() == 0.0?): Set{"+", "-", "*", "/", ")"}
+    Expr: Expr . "+" Expr ?($3.value() == 0.0?): Set{"+", "-", "*", "/", ")"}
+    Expr: Expr . "+" Expr: Set{"+", "-", "*", "/", ")"}
+    Expr: Expr . "-" Expr ?($1.value() == 0.0?): Set{"+", "-", "*", "/", ")"}
+    Expr: Expr . "-" Expr ?($3.value() == 0.0?): Set{"+", "-", "*", "/", ")"}
+    Expr: Expr . "-" Expr: Set{"+", "-", "*", "/", ")"}
+    Expr: Expr . "*" Expr ?($1.value() == 0.0 || $3.value() == 0.0?): Set{"+", "-", "*", "/", ")"}
+    Expr: Expr . "*" Expr ?($1.value() == 1.0?): Set{"+", "-", "*", "/", ")"}
+    Expr: Expr . "*" Expr ?($3.value() == 1.0?): Set{"+", "-", "*", "/", ")"}
+    Expr: Expr . "*" Expr: Set{"+", "-", "*", "/", ")"}
+    Expr: Expr . "/" Expr ?($3.value() == 1.0?): Set{"+", "-", "*", "/", ")"}
+    Expr: Expr . "/" Expr ?($3.value() == 0.0?): Set{"+", "-", "*", "/", ")"}
+    Expr: Expr . "/" Expr ?($1.value() == 0.0?): Set{"+", "-", "*", "/", ")"}
+    Expr: Expr . "/" Expr: Set{"+", "-", "*", "/", ")"}
+    Expr: "(" Expr . ")": Set{AAEnd, EOL, "+", "-", "*", "/", ")"}
+  Parser Action Table:
+    "+": shift: -> State<11>
+    "-": shift: -> State<12>
+    "*": shift: -> State<13>
+    "/": shift: -> State<14>
+    ")": shift: -> State<24>
+  Go To Table:
+    <empty>
+  Error Recovery State: <none>
+State<17>:
+  Grammar Items:
+    Expr: ID .  ?(self.variables.contains_key($1.id())?): Set{AAEnd, EOL, "+", "-", "*", "/", ")"}
+    Expr: ID . : Set{AAEnd, EOL, "+", "-", "*", "/", ")"}
+  Parser Action Table:
+    AAEnd: reduce: Expr: ID ?(self.variables.contains_key($1.id())?)
+    AAEnd: reduce: Expr: ID
+    EOL: reduce: Expr: ID ?(self.variables.contains_key($1.id())?)
+    EOL: reduce: Expr: ID
+    "+": reduce: Expr: ID ?(self.variables.contains_key($1.id())?)
+    "+": reduce: Expr: ID
+    "-": reduce: Expr: ID ?(self.variables.contains_key($1.id())?)
+    "-": reduce: Expr: ID
+    "*": reduce: Expr: ID ?(self.variables.contains_key($1.id())?)
+    "*": reduce: Expr: ID
+    "/": reduce: Expr: ID ?(self.variables.contains_key($1.id())?)
+    "/": reduce: Expr: ID
+    ")": reduce: Expr: ID ?(self.variables.contains_key($1.id())?)
+    ")": reduce: Expr: ID
+  Go To Table:
+    <empty>
+  Error Recovery State: <none>
+State<18>:
+  Grammar Items:
+    Expr: Expr . "+" Expr ?($1.value() == 0.0?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: Expr . "+" Expr ?($3.value() == 0.0?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: Expr . "+" Expr: Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: Expr . "-" Expr ?($1.value() == 0.0?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: Expr . "-" Expr ?($3.value() == 0.0?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: Expr . "-" Expr: Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: Expr . "*" Expr ?($1.value() == 0.0 || $3.value() == 0.0?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: Expr . "*" Expr ?($1.value() == 1.0?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: Expr . "*" Expr ?($3.value() == 1.0?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: Expr . "*" Expr: Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: Expr . "/" Expr ?($3.value() == 1.0?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: Expr . "/" Expr ?($3.value() == 0.0?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: Expr . "/" Expr ?($1.value() == 0.0?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: Expr . "/" Expr: Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: "-" Expr . : Set{AAEnd, EOL, "+", "-", "*", "/", ")"}
+  Parser Action Table:
+    AAEnd: reduce: Expr: "-" Expr
+    EOL: reduce: Expr: "-" Expr
+    "+": reduce: Expr: "-" Expr
+    "-": reduce: Expr: "-" Expr
+    "*": reduce: Expr: "-" Expr
+    "/": reduce: Expr: "-" Expr
+    ")": reduce: Expr: "-" Expr
+  Go To Table:
+    <empty>
+  Error Recovery State: <none>
+State<19>:
+  Grammar Items:
+    Expr: Expr . "+" Expr ?($1.value() == 0.0?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: Expr "+" Expr .  ?($1.value() == 0.0?): Set{AAEnd, EOL, "+", "-", ")"}
+    Expr: Expr . "+" Expr ?($3.value() == 0.0?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: Expr "+" Expr .  ?($3.value() == 0.0?): Set{AAEnd, EOL, "+", "-", ")"}
+    Expr: Expr . "+" Expr: Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: Expr "+" Expr . : Set{AAEnd, EOL, "+", "-", ")"}
+    Expr: Expr . "-" Expr ?($1.value() == 0.0?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: Expr . "-" Expr ?($3.value() == 0.0?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: Expr . "-" Expr: Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: Expr . "*" Expr ?($1.value() == 0.0 || $3.value() == 0.0?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: Expr . "*" Expr ?($1.value() == 1.0?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: Expr . "*" Expr ?($3.value() == 1.0?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: Expr . "*" Expr: Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: Expr . "/" Expr ?($3.value() == 1.0?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: Expr . "/" Expr ?($3.value() == 0.0?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: Expr . "/" Expr ?($1.value() == 0.0?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: Expr . "/" Expr: Set{AAEnd, EOL, "+", "-", "*", "/"}
+  Parser Action Table:
+    AAEnd: reduce: Expr: Expr "+" Expr ?($1.value() == 0.0?)
+    AAEnd: reduce: Expr: Expr "+" Expr ?($3.value() == 0.0?)
+    AAEnd: reduce: Expr: Expr "+" Expr
+    EOL: reduce: Expr: Expr "+" Expr ?($1.value() == 0.0?)
+    EOL: reduce: Expr: Expr "+" Expr ?($3.value() == 0.0?)
+    EOL: reduce: Expr: Expr "+" Expr
+    "+": reduce: Expr: Expr "+" Expr ?($1.value() == 0.0?)
+    "+": reduce: Expr: Expr "+" Expr ?($3.value() == 0.0?)
+    "+": reduce: Expr: Expr "+" Expr
+    "-": reduce: Expr: Expr "+" Expr ?($1.value() == 0.0?)
+    "-": reduce: Expr: Expr "+" Expr ?($3.value() == 0.0?)
+    "-": reduce: Expr: Expr "+" Expr
+    "*": shift: -> State<13>
+    "/": shift: -> State<14>
+    ")": reduce: Expr: Expr "+" Expr ?($1.value() == 0.0?)
+    ")": reduce: Expr: Expr "+" Expr ?($3.value() == 0.0?)
+    ")": reduce: Expr: Expr "+" Expr
+  Go To Table:
+    <empty>
+  Error Recovery State: <none>
+State<20>:
+  Grammar Items:
+    Expr: Expr . "+" Expr ?($1.value() == 0.0?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: Expr . "+" Expr ?($3.value() == 0.0?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: Expr . "+" Expr: Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: Expr . "-" Expr ?($1.value() == 0.0?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: Expr "-" Expr .  ?($1.value() == 0.0?): Set{AAEnd, EOL, "+", "-", ")"}
+    Expr: Expr . "-" Expr ?($3.value() == 0.0?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: Expr "-" Expr .  ?($3.value() == 0.0?): Set{AAEnd, EOL, "+", "-", ")"}
+    Expr: Expr . "-" Expr: Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: Expr "-" Expr . : Set{AAEnd, EOL, "+", "-", ")"}
+    Expr: Expr . "*" Expr ?($1.value() == 0.0 || $3.value() == 0.0?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: Expr . "*" Expr ?($1.value() == 1.0?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: Expr . "*" Expr ?($3.value() == 1.0?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: Expr . "*" Expr: Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: Expr . "/" Expr ?($3.value() == 1.0?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: Expr . "/" Expr ?($3.value() == 0.0?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: Expr . "/" Expr ?($1.value() == 0.0?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: Expr . "/" Expr: Set{AAEnd, EOL, "+", "-", "*", "/"}
+  Parser Action Table:
+    AAEnd: reduce: Expr: Expr "-" Expr ?($1.value() == 0.0?)
+    AAEnd: reduce: Expr: Expr "-" Expr ?($3.value() == 0.0?)
+    AAEnd: reduce: Expr: Expr "-" Expr
+    EOL: reduce: Expr: Expr "-" Expr ?($1.value() == 0.0?)
+    EOL: reduce: Expr: Expr "-" Expr ?($3.value() == 0.0?)
+    EOL: reduce: Expr: Expr "-" Expr
+    "+": reduce: Expr: Expr "-" Expr ?($1.value() == 0.0?)
+    "+": reduce: Expr: Expr "-" Expr ?($3.value() == 0.0?)
+    "+": reduce: Expr: Expr "-" Expr
+    "-": reduce: Expr: Expr "-" Expr ?($1.value() == 0.0?)
+    "-": reduce: Expr: Expr "-" Expr ?($3.value() == 0.0?)
+    "-": reduce: Expr: Expr "-" Expr
+    "*": shift: -> State<13>
+    "/": shift: -> State<14>
+    ")": reduce: Expr: Expr "-" Expr ?($1.value() == 0.0?)
+    ")": reduce: Expr: Expr "-" Expr ?($3.value() == 0.0?)
+    ")": reduce: Expr: Expr "-" Expr
+  Go To Table:
+    <empty>
+  Error Recovery State: <none>
+State<21>:
+  Grammar Items:
+    Expr: Expr . "+" Expr ?($1.value() == 0.0?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: Expr . "+" Expr ?($3.value() == 0.0?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: Expr . "+" Expr: Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: Expr . "-" Expr ?($1.value() == 0.0?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: Expr . "-" Expr ?($3.value() == 0.0?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: Expr . "-" Expr: Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: Expr . "*" Expr ?($1.value() == 0.0 || $3.value() == 0.0?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: Expr "*" Expr .  ?($1.value() == 0.0 || $3.value() == 0.0?): Set{AAEnd, EOL, "+", "-", "*", "/", ")"}
+    Expr: Expr . "*" Expr ?($1.value() == 1.0?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: Expr "*" Expr .  ?($1.value() == 1.0?): Set{AAEnd, EOL, "+", "-", "*", "/", ")"}
+    Expr: Expr . "*" Expr ?($3.value() == 1.0?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: Expr "*" Expr .  ?($3.value() == 1.0?): Set{AAEnd, EOL, "+", "-", "*", "/", ")"}
+    Expr: Expr . "*" Expr: Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: Expr "*" Expr . : Set{AAEnd, EOL, "+", "-", "*", "/", ")"}
+    Expr: Expr . "/" Expr ?($3.value() == 1.0?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: Expr . "/" Expr ?($3.value() == 0.0?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: Expr . "/" Expr ?($1.value() == 0.0?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: Expr . "/" Expr: Set{AAEnd, EOL, "+", "-", "*", "/"}
+  Parser Action Table:
+    AAEnd: reduce: Expr: Expr "*" Expr ?($1.value() == 0.0 || $3.value() == 0.0?)
+    AAEnd: reduce: Expr: Expr "*" Expr ?($1.value() == 1.0?)
+    AAEnd: reduce: Expr: Expr "*" Expr ?($3.value() == 1.0?)
+    AAEnd: reduce: Expr: Expr "*" Expr
+    EOL: reduce: Expr: Expr "*" Expr ?($1.value() == 0.0 || $3.value() == 0.0?)
+    EOL: reduce: Expr: Expr "*" Expr ?($1.value() == 1.0?)
+    EOL: reduce: Expr: Expr "*" Expr ?($3.value() == 1.0?)
+    EOL: reduce: Expr: Expr "*" Expr
+    "+": reduce: Expr: Expr "*" Expr ?($1.value() == 0.0 || $3.value() == 0.0?)
+    "+": reduce: Expr: Expr "*" Expr ?($1.value() == 1.0?)
+    "+": reduce: Expr: Expr "*" Expr ?($3.value() == 1.0?)
+    "+": reduce: Expr: Expr "*" Expr
+    "-": reduce: Expr: Expr "*" Expr ?($1.value() == 0.0 || $3.value() == 0.0?)
+    "-": reduce: Expr: Expr "*" Expr ?($1.value() == 1.0?)
+    "-": reduce: Expr: Expr "*" Expr ?($3.value() == 1.0?)
+    "-": reduce: Expr: Expr "*" Expr
+    "*": reduce: Expr: Expr "*" Expr ?($1.value() == 0.0 || $3.value() == 0.0?)
+    "*": reduce: Expr: Expr "*" Expr ?($1.value() == 1.0?)
+    "*": reduce: Expr: Expr "*" Expr ?($3.value() == 1.0?)
+    "*": reduce: Expr: Expr "*" Expr
+    "/": reduce: Expr: Expr "*" Expr ?($1.value() == 0.0 || $3.value() == 0.0?)
+    "/": reduce: Expr: Expr "*" Expr ?($1.value() == 1.0?)
+    "/": reduce: Expr: Expr "*" Expr ?($3.value() == 1.0?)
+    "/": reduce: Expr: Expr "*" Expr
+    ")": reduce: Expr: Expr "*" Expr ?($1.value() == 0.0 || $3.value() == 0.0?)
+    ")": reduce: Expr: Expr "*" Expr ?($1.value() == 1.0?)
+    ")": reduce: Expr: Expr "*" Expr ?($3.value() == 1.0?)
+    ")": reduce: Expr: Expr "*" Expr
+  Go To Table:
+    <empty>
+  Error Recovery State: <none>
+State<22>:
+  Grammar Items:
+    Expr: Expr . "+" Expr ?($1.value() == 0.0?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: Expr . "+" Expr ?($3.value() == 0.0?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: Expr . "+" Expr: Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: Expr . "-" Expr ?($1.value() == 0.0?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: Expr . "-" Expr ?($3.value() == 0.0?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: Expr . "-" Expr: Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: Expr . "*" Expr ?($1.value() == 0.0 || $3.value() == 0.0?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: Expr . "*" Expr ?($1.value() == 1.0?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: Expr . "*" Expr ?($3.value() == 1.0?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: Expr . "*" Expr: Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: Expr . "/" Expr ?($3.value() == 1.0?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: Expr "/" Expr .  ?($3.value() == 1.0?): Set{AAEnd, EOL, "+", "-", "*", "/", ")"}
+    Expr: Expr . "/" Expr ?($3.value() == 0.0?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: Expr "/" Expr .  ?($3.value() == 0.0?): Set{AAEnd, EOL, "+", "-", "*", "/", ")"}
+    Expr: Expr . "/" Expr ?($1.value() == 0.0?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: Expr "/" Expr .  ?($1.value() == 0.0?): Set{AAEnd, EOL, "+", "-", "*", "/", ")"}
+    Expr: Expr . "/" Expr: Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: Expr "/" Expr . : Set{AAEnd, EOL, "+", "-", "*", "/", ")"}
+  Parser Action Table:
+    AAEnd: reduce: Expr: Expr "/" Expr ?($3.value() == 1.0?)
+    AAEnd: reduce: Expr: Expr "/" Expr ?($3.value() == 0.0?)
+    AAEnd: reduce: Expr: Expr "/" Expr ?($1.value() == 0.0?)
+    AAEnd: reduce: Expr: Expr "/" Expr
+    EOL: reduce: Expr: Expr "/" Expr ?($3.value() == 1.0?)
+    EOL: reduce: Expr: Expr "/" Expr ?($3.value() == 0.0?)
+    EOL: reduce: Expr: Expr "/" Expr ?($1.value() == 0.0?)
+    EOL: reduce: Expr: Expr "/" Expr
+    "+": reduce: Expr: Expr "/" Expr ?($3.value() == 1.0?)
+    "+": reduce: Expr: Expr "/" Expr ?($3.value() == 0.0?)
+    "+": reduce: Expr: Expr "/" Expr ?($1.value() == 0.0?)
+    "+": reduce: Expr: Expr "/" Expr
+    "-": reduce: Expr: Expr "/" Expr ?($3.value() == 1.0?)
+    "-": reduce: Expr: Expr "/" Expr ?($3.value() == 0.0?)
+    "-": reduce: Expr: Expr "/" Expr ?($1.value() == 0.0?)
+    "-": reduce: Expr: Expr "/" Expr
+    "*": reduce: Expr: Expr "/" Expr ?($3.value() == 1.0?)
+    "*": reduce: Expr: Expr "/" Expr ?($3.value() == 0.0?)
+    "*": reduce: Expr: Expr "/" Expr ?($1.value() == 0.0?)
+    "*": reduce: Expr: Expr "/" Expr
+    "/": reduce: Expr: Expr "/" Expr ?($3.value() == 1.0?)
+    "/": reduce: Expr: Expr "/" Expr ?($3.value() == 0.0?)
+    "/": reduce: Expr: Expr "/" Expr ?($1.value() == 0.0?)
+    "/": reduce: Expr: Expr "/" Expr
+    ")": reduce: Expr: Expr "/" Expr ?($3.value() == 1.0?)
+    ")": reduce: Expr: Expr "/" Expr ?($3.value() == 0.0?)
+    ")": reduce: Expr: Expr "/" Expr ?($1.value() == 0.0?)
+    ")": reduce: Expr: Expr "/" Expr
+  Go To Table:
+    <empty>
+  Error Recovery State: <none>
+State<23>:
+  Grammar Items:
+    Line: SetUp ID "=" Expr .  ?(self.errors == 0?): Set{AAEnd, EOL}
+    Line: SetUp ID "=" Expr . : Set{AAEnd, EOL}
+    Expr: Expr . "+" Expr ?($1.value() == 0.0?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: Expr . "+" Expr ?($3.value() == 0.0?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: Expr . "+" Expr: Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: Expr . "-" Expr ?($1.value() == 0.0?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: Expr . "-" Expr ?($3.value() == 0.0?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: Expr . "-" Expr: Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: Expr . "*" Expr ?($1.value() == 0.0 || $3.value() == 0.0?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: Expr . "*" Expr ?($1.value() == 1.0?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: Expr . "*" Expr ?($3.value() == 1.0?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: Expr . "*" Expr: Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: Expr . "/" Expr ?($3.value() == 1.0?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: Expr . "/" Expr ?($3.value() == 0.0?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: Expr . "/" Expr ?($1.value() == 0.0?): Set{AAEnd, EOL, "+", "-", "*", "/"}
+    Expr: Expr . "/" Expr: Set{AAEnd, EOL, "+", "-", "*", "/"}
+  Parser Action Table:
+    AAEnd: reduce: Line: SetUp ID "=" Expr ?(self.errors == 0?)
+    AAEnd: reduce: Line: SetUp ID "=" Expr
+    EOL: reduce: Line: SetUp ID "=" Expr ?(self.errors == 0?)
+    EOL: reduce: Line: SetUp ID "=" Expr
+    "+": shift: -> State<11>
+    "-": shift: -> State<12>
+    "*": shift: -> State<13>
+    "/": shift: -> State<14>
+  Go To Table:
+    <empty>
+  Error Recovery State: <none>
+State<24>:
+  Grammar Items:
+    Expr: "(" Expr ")" . : Set{AAEnd, EOL, "+", "-", "*", "/", ")"}
+  Parser Action Table:
+    AAEnd: reduce: Expr: "(" Expr ")"
+    EOL: reduce: Expr: "(" Expr ")"
+    "+": reduce: Expr: "(" Expr ")"
+    "-": reduce: Expr: "(" Expr ")"
+    "*": reduce: Expr: "(" Expr ")"
+    "/": reduce: Expr: "(" Expr ")"
+    ")": reduce: Expr: "(" Expr ")"
+  Go To Table:
+    <empty>
+  Error Recovery State: <none>

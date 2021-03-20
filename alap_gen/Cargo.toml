@@ -1,5 +1,5 @@
 [package]
-name = "alapgen"
+name = "alap_gen"
 version = "0.1.0"
 authors = ["Peter Williams <pwil3058@gmail.com>"]
 edition = "2018"
@@ -16,5 +16,7 @@ clap = "2"
 regex = "1"
 structopt = "0.3.2"
 
-lexan = { git = "https://github.com/pwil3058/rs_lexan.git" }
-lalr1plus = { git = "https://github.com/pwil3058/rs_lalr1plus.git" }
+#lexan = { git = "https://github.com/pwil3058/rs_lexan.git" }
+#lalr1_plus = { git = "https://github.com/pwil3058/rs_lalr1plus.git" }
+lexan = { path = "../lexan" }
+lalr1_plus = { path = "../lalr1_plus" }

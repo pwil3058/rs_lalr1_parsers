@@ -9,4 +9,5 @@ edition = "2018"
 [dependencies]
 lazy_static = "1.3.0"
 
-lexan = { git = "https://github.com/pwil3058/rs_lexan.git" }
+#lexan = { git = "https://github.com/pwil3058/rs_lexan.git" }
+lexan = { path = "../lexan" }

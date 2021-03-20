@@ -1,5 +1,5 @@
 [package]
-name = "calc"
+name = "test_calc"
 version = "0.1.0"
 authors = ["Peter Williams <pwil3058@gmail.com>"]
 edition = "2018"
@@ -9,6 +9,6 @@ edition = "2018"
 [dependencies]
 lazy_static = "1.3.0"
 
-lexan = { path = "../../../../CRATES/rs_lexan.git" }
-ordered_collections = { path = "../../../../CRATES/rs_ordered_collections.git" }
-lalr1plus = { path = "../../../../CRATES/rs_lalr1plus.git" }
+lexan = { path = "../lexan" }
+#ordered_collections = { path = "../../../../CRATES/rs_ordered_collections.git" }
+lalr1_plus = { path = "../lalr1_plus" }

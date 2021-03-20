@@ -141,13 +141,13 @@ impl From<lexan::Token<AATerminal>> for AttributeData {
     }
 }
 
-impl From<lalr1plus::Error<AATerminal>> for AttributeData {
-    fn from(error: lalr1plus::Error<AATerminal>) -> Self {
+impl From<lalr1_plus::Error<AATerminal>> for AttributeData {
+    fn from(error: lalr1_plus::Error<AATerminal>) -> Self {
         match error {
-            lalr1plus::Error::LexicalError(error, expected) => {
+            lalr1_plus::Error::LexicalError(error, expected) => {
                 AttributeData::LexicalError(error, expected)
             }
-            lalr1plus::Error::SyntaxError(token, expected) => {
+            lalr1_plus::Error::SyntaxError(token, expected) => {
                 AttributeData::SyntaxError(token, expected)
             }
         }

@@ -3,7 +3,7 @@ extern crate lazy_static;
 
 mod calc;
 
-use lalr1plus::Parser;
+use lalr1_plus::Parser;
 
 fn main() {
     let mut calc = calc::Calc::new();

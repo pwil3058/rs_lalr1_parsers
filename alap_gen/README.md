@@ -4,7 +4,7 @@
 tool (in the vein of *yacc*, *bison*, *dunnart*, *lex*, *flex*, etc) written in
 and targeted at Rust.
 It takes a specification file as input and uses it to implement the
-[`lalr1plus::Parser`](https://github.com/pwil3058/rs_lalr1plus)
+[`lalr1_plus::Parser`](https://github.com/pwil3058/rs_lalr1plus)
 trait for a specified Rust type and to generate an instance of
 [`lexan::LexicalAnalyzer`](https://github.com/pwil3058/rs_lexan)
 for use by the parser.  The **alapgen** module that parses the specification file
@@ -50,7 +50,7 @@ use std::str::FromStr;
 #[derive(Debug, Clone)]
 pub enum AttributeData {
     Token(lexan::Token<AATerminal>),
-    Error(lalr1plus::Error<AATerminal>),
+    Error(lalr1_plus::Error<AATerminal>),
     Value(f64),
     Id(String),
     Default
@@ -94,8 +94,8 @@ impl From<lexan::Token<AATerminal>> for AttributeData {
     }
 }
 
-impl From<lalr1plus::Error<AATerminal>> for AttributeData {
-    fn from(error: lalr1plus::Error<AATerminal>) -> Self {
+impl From<lalr1_plus::Error<AATerminal>> for AttributeData {
+    fn from(error: lalr1_plus::Error<AATerminal>) -> Self {
         AttributeData::Error(error.clone())
     }
 }
@@ -111,7 +111,7 @@ pub struct Calc {
     variables: HashMap<String, f64>,
 }
 
-impl lalr1plus::ReportError<AATerminal> for Calc {}
+impl lalr1_plus::ReportError<AATerminal> for Calc {}
 
 impl Calc {
     pub fn new() -> Self {

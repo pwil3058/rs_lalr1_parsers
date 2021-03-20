@@ -1,0 +1,8 @@
+[workspace]
+
+members = [
+    "lexan",
+    "lalr1_plus",
+    "alap_gen",
+    "test_calc"
+]
