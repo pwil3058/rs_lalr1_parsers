@@ -5,6 +5,7 @@ use clap::crate_authors;
 use structopt::StructOpt;
 
 use std::{
+    convert::TryFrom,
     fs,
     io::prelude::*,
     path::{Path, PathBuf},
@@ -122,41 +123,18 @@ fn main() {
         }
     };
 
-    for symbol in grammar_specification.symbol_table.unused_symbols() {
-        let location = symbol.defined_at().unwrap();
-        grammar::report_warning(
-            &location,
-            &format!("Symbol \"{}\" is not used", symbol.name()),
-        );
-    }
-
-    let mut undefined_symbols = 0;
-    for symbol in grammar_specification.symbol_table.undefined_symbols() {
-        for location in symbol.used_at() {
-            grammar::report_error(
-                &location,
-                &format!("Symbol \"{}\" is not defined", symbol.name()),
-            );
-        }
-        undefined_symbols += 1;
-    }
-
-    if (undefined_symbols + grammar_specification.error_count) > 0 {
-        writeln!(
-            std::io::stderr(),
-            "Too man errors {} aborting.",
-            (undefined_symbols + grammar_specification.error_count)
-        )
-        .unwrap();
-        std::process::exit(3);
-    }
-
-    let grammar = match grammar::Grammar::new(grammar_specification) {
+    let grammar = match grammar::Grammar::try_from(grammar_specification) {
         Ok(grammar) => grammar,
-        Err(err) => {
-            writeln!(std::io::stderr(), "Grammar failed to build: {:?}.", err).unwrap();
-            std::process::exit(4);
-        }
+        Err(err) => match err {
+            grammar::Error::TooManyErrors(count) => {
+                writeln!(std::io::stderr(), "Too many errors: {:?}.", count).unwrap();
+                std::process::exit(4);
+            }
+            grammar::Error::UndefinedSymbols(count) => {
+                writeln!(std::io::stderr(), "Undefined symbols: {:?}.", count).unwrap();
+                std::process::exit(4);
+            }
+        },
     };
 
     if grammar.total_unresolved_conflicts() != expected_number_of_conflicts {

@@ -208,6 +208,15 @@ impl std::fmt::Display for GrammarItemKey {
     }
 }
 
+impl From<&Rc<Production>> for GrammarItemKey {
+    fn from(production: &Rc<Production>) -> Self {
+        Self {
+            production: Rc::clone(production),
+            dot: 0,
+        }
+    }
+}
+
 impl GrammarItemKey {
     pub fn new(production: Rc<Production>) -> Rc<Self> {
         Rc::new(Self { production, dot: 0 })
@@ -274,6 +283,12 @@ impl GrammarItemKey {
 
 pub struct GrammarItemSet(BTreeMap<Rc<GrammarItemKey>, BTreeSet<Rc<Symbol>>>);
 
+impl From<BTreeMap<Rc<GrammarItemKey>, BTreeSet<Rc<Symbol>>>> for GrammarItemSet {
+    fn from(key_look_ahead_set_map: BTreeMap<Rc<GrammarItemKey>, BTreeSet<Rc<Symbol>>>) -> Self {
+        Self(key_look_ahead_set_map)
+    }
+}
+
 pub fn format_set<T: Ord + std::fmt::Display>(set: &BTreeSet<T>) -> String {
     let mut set_string = "Set{".to_string();
     for (index, item) in set.iter().enumerate() {
@@ -305,10 +320,6 @@ struct Reductions {
 }
 
 impl GrammarItemSet {
-    pub fn new(map: BTreeMap<Rc<GrammarItemKey>, BTreeSet<Rc<Symbol>>>) -> Self {
-        GrammarItemSet(map)
-    }
-
     pub fn iter(&self) -> impl Iterator<Item = (&Rc<GrammarItemKey>, &BTreeSet<Rc<Symbol>>)> {
         self.0.iter()
     }

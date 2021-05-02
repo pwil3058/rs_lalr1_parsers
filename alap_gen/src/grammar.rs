@@ -1,5 +1,6 @@
 use std::{
     collections::{BTreeMap, BTreeSet},
+    convert::TryFrom,
     io::{self, stderr, Write},
     path::Path,
     rc::Rc,
@@ -15,9 +16,6 @@ use crate::symbols::{format_as_macro_call, FirstsData, Symbol, SymbolTable, Symb
 use crate::alapgen::*;
 #[cfg(feature = "bootstrap")]
 use crate::bootstrap::*;
-
-#[derive(Debug)]
-pub struct Error {}
 
 pub fn report_error(location: &lexan::Location, what: &str) {
     writeln!(stderr(), "{}: Error: {}.", location, what).expect("what?");
@@ -262,63 +260,94 @@ pub struct Grammar {
     unresolved_rr_conflicts: usize,
 }
 
-impl Grammar {
-    pub fn new(specification: GrammarSpecification) -> Result<Self, Error> {
-        let mut grammar = Self {
-            specification,
-            parser_states: vec![],
-            unresolved_rr_conflicts: 0,
-            unresolved_sr_conflicts: 0,
-        };
-        let start_item_key = GrammarItemKey::new(Rc::clone(&grammar.specification.productions[0]));
-        let mut start_look_ahead_set: BTreeSet<Rc<Symbol>> = BTreeSet::new();
-        start_look_ahead_set.insert(
-            grammar
-                .specification
+#[derive(Debug)]
+pub enum Error {
+    TooManyErrors(u32),
+    UndefinedSymbols(u32),
+}
+
+impl TryFrom<GrammarSpecification> for Grammar {
+    type Error = Error;
+
+    fn try_from(mut specification: GrammarSpecification) -> Result<Self, Error> {
+        for symbol in specification.symbol_table.unused_symbols() {
+            let location = symbol.defined_at().unwrap();
+            report_warning(
+                &location,
+                &format!("Symbol \"{}\" is not used", symbol.name()),
+            );
+        }
+
+        let mut undefined_symbols = 0;
+        for symbol in specification.symbol_table.undefined_symbols() {
+            for location in symbol.used_at() {
+                report_error(
+                    &location,
+                    &format!("Symbol \"{}\" is not defined", symbol.name()),
+                );
+            }
+            undefined_symbols += 1;
+        }
+
+        if undefined_symbols > 0 {
+            Err(Error::UndefinedSymbols(undefined_symbols))
+        } else if specification.error_count > 0 {
+            Err(Error::TooManyErrors(specification.error_count))
+        } else {
+            let start_item_key = Rc::new(GrammarItemKey::from(&specification.productions[0]));
+            let end_symbol = specification
                 .symbol_table
                 .use_symbol_named(&AATerminal::AAEnd.to_string(), &lexan::Location::default())
-                .unwrap(),
-        );
-        let mut map: BTreeMap<Rc<GrammarItemKey>, BTreeSet<Rc<Symbol>>> = BTreeMap::new();
-        map.insert(start_item_key, start_look_ahead_set);
-        let start_kernel = grammar.specification.closure(GrammarItemSet::new(map));
-        grammar.new_parser_state(start_kernel);
-
-        while let Some(unprocessed_state) = grammar.first_unprocessed_state() {
-            let first_time = unprocessed_state.is_unprocessed();
-            unprocessed_state.mark_as_processed();
-            let mut already_done: BTreeSet<Rc<Symbol>> = BTreeSet::new();
-            for item_key in unprocessed_state.non_kernel_keys().iter() {
-                let symbol_x = item_key.next_symbol().expect("not reducible");
-                if !already_done.insert(Rc::clone(symbol_x)) {
-                    continue;
-                };
-                let kernel_x = unprocessed_state.generate_goto_kernel(&symbol_x);
-                let item_set_x = grammar.specification.closure(kernel_x);
-                let goto_state =
-                    if let Some(equivalent_state) = grammar.equivalent_state(&item_set_x) {
-                        equivalent_state.merge_lookahead_sets(&item_set_x);
-                        Rc::clone(equivalent_state)
-                    } else {
-                        grammar.new_parser_state(item_set_x)
+                .unwrap();
+            let mut start_look_ahead_set = BTreeSet::<Rc<Symbol>>::new();
+            start_look_ahead_set.insert(end_symbol);
+            let mut map = BTreeMap::<Rc<GrammarItemKey>, BTreeSet<Rc<Symbol>>>::new();
+            map.insert(start_item_key, start_look_ahead_set);
+            let start_kernel = specification.closure(GrammarItemSet::from(map));
+            let mut grammar = Self {
+                specification,
+                parser_states: vec![],
+                unresolved_rr_conflicts: 0,
+                unresolved_sr_conflicts: 0,
+            };
+            grammar.new_parser_state(start_kernel);
+            while let Some(unprocessed_state) = grammar.first_unprocessed_state() {
+                let first_time = unprocessed_state.is_unprocessed();
+                unprocessed_state.mark_as_processed();
+                let mut already_done = BTreeSet::<Rc<Symbol>>::new();
+                for item_key in unprocessed_state.non_kernel_keys().iter() {
+                    let symbol_x = item_key.next_symbol().expect("not reducible");
+                    if !already_done.insert(Rc::clone(symbol_x)) {
+                        continue;
                     };
-                if first_time {
-                    if symbol_x.is_error_symbol() {
-                        unprocessed_state.set_error_recovery_state(&goto_state)
-                    };
-                    if symbol_x.is_token() {
-                        unprocessed_state.add_shift_action(Rc::clone(symbol_x), goto_state);
-                    } else {
-                        unprocessed_state.add_goto(Rc::clone(symbol_x), goto_state);
-                    };
+                    let kernel_x = unprocessed_state.generate_goto_kernel(&symbol_x);
+                    let item_set_x = grammar.specification.closure(kernel_x);
+                    let goto_state =
+                        if let Some(equivalent_state) = grammar.equivalent_state(&item_set_x) {
+                            equivalent_state.merge_lookahead_sets(&item_set_x);
+                            Rc::clone(equivalent_state)
+                        } else {
+                            grammar.new_parser_state(item_set_x)
+                        };
+                    if first_time {
+                        if symbol_x.is_error_symbol() {
+                            unprocessed_state.set_error_recovery_state(&goto_state)
+                        };
+                        if symbol_x.is_token() {
+                            unprocessed_state.add_shift_action(Rc::clone(symbol_x), goto_state);
+                        } else {
+                            unprocessed_state.add_goto(Rc::clone(symbol_x), goto_state);
+                        };
+                    }
                 }
             }
+            grammar.resolve_conflicts();
+            Ok(grammar)
         }
-        grammar.resolve_conflicts();
-
-        Ok(grammar)
     }
+}
 
+impl Grammar {
     fn resolve_conflicts(&mut self) {
         for parser_state in self.parser_states.iter_mut() {
             self.unresolved_sr_conflicts += parser_state.resolve_shift_reduce_conflicts();
