@@ -285,7 +285,7 @@ impl TryFrom<GrammarSpecification> for Grammar {
                 .use_symbol_named(&AATerminal::AAEnd.to_string(), &lexan::Location::default())
                 .unwrap();
             let mut start_look_ahead_set = SymbolSet::new();
-            start_look_ahead_set.insert(end_symbol);
+            start_look_ahead_set.insert(&end_symbol);
             let mut map = BTreeMap::<Rc<GrammarItemKey>, SymbolSet>::new();
             map.insert(start_item_key, start_look_ahead_set);
             let start_kernel = specification.closure(GrammarItemSet::from(map));

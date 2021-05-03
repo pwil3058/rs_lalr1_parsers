@@ -240,7 +240,7 @@ impl Symbol {
             mutable_data,
         });
         let mut token_set = SymbolSet::new();
-        token_set.insert(Rc::clone(&token));
+        token_set.insert(&token);
         token.set_firsts_data(FirstsData {
             token_set,
             transparent: false,
@@ -332,6 +332,7 @@ impl Symbol {
     }
 
     pub fn set_firsts_data(&self, firsts_data: FirstsData) {
+        debug_assert!(self.firsts_data_is_none());
         self.mutable_data.borrow_mut().firsts_data = Some(firsts_data);
     }
 }
@@ -357,7 +358,7 @@ impl SymbolSet {
                 return token_set;
             }
         }
-        token_set.insert(Rc::clone(token));
+        token_set.insert(token);
         token_set
     }
 
@@ -365,8 +366,8 @@ impl SymbolSet {
         self.0.contains(symbol)
     }
 
-    pub fn insert(&mut self, symbol: Rc<Symbol>) -> bool {
-        self.0.insert(symbol)
+    pub fn insert(&mut self, symbol: &Rc<Symbol>) -> bool {
+        self.0.insert(Rc::clone(symbol))
     }
 
     pub fn remove(&mut self, symbol: &Rc<Symbol>) -> bool {

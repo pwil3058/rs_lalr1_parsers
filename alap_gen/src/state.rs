@@ -432,7 +432,7 @@ impl GrammarItemSet {
                 }
             }
             let look_ahead_set = reductions.entry(productions).or_insert(SymbolSet::new());
-            look_ahead_set.insert(Rc::clone(token));
+            look_ahead_set.insert(token);
         }
         Reductions {
             reductions,
