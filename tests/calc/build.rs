@@ -3,7 +3,7 @@ use std::process::Command;
 
 fn main() {
     println!("cargo:rerun-if-changed=src/calc.alaps");
-    println!("cargo:rerun-if-changed=src/calc.rs");
+    println!("cargo:rerun-if-changed=../../target/debug/alap_gen");
     Command::new("../../target/debug/alap_gen")
         .args(&["-f", "-e1", "src/calc.alaps"])
         .status()

@@ -11,7 +11,7 @@ use lexan;
 
 use crate::state::{GrammarItemKey, GrammarItemSet, ParserState, Production, ProductionTail};
 use crate::symbols::{
-    format_as_macro_call, FirstsData, Symbol, SymbolSet, SymbolTable, SymbolType,
+    format_as_macro_call, SetFirstsData, Symbol, SymbolSet, SymbolTable, SymbolType,
 };
 
 #[cfg(not(feature = "bootstrap"))]
@@ -65,7 +65,7 @@ impl GrammarSpecification {
             .push(Rc::new(Production::new(ident, symbol, tail)));
         for symbol in spec.symbol_table.non_terminal_symbols() {
             if symbol.firsts_data_is_none() {
-                spec.set_firsts_data(symbol)
+                symbol.set_firsts_data(&spec.productions)
             }
         }
         Ok(spec)
@@ -111,49 +111,6 @@ impl GrammarSpecification {
         let ident = self.productions.len() as u32;
         self.productions
             .push(Rc::new(Production::new(ident, left_hand_side, tail)));
-    }
-
-    fn set_firsts_data(&self, symbol: &Rc<Symbol>) {
-        assert!(symbol.firsts_data_is_none());
-        assert!(symbol.is_non_terminal());
-        let relevant_productions: Vec<&Rc<Production>> = self
-            .productions
-            .iter()
-            .filter(|x| x.left_hand_side() == symbol)
-            .collect();
-        let mut transparent = relevant_productions.iter().any(|x| x.is_empty());
-        let mut token_set = SymbolSet::new();
-        let mut transparency_changed = true;
-        while transparency_changed {
-            transparency_changed = false;
-            for production in relevant_productions.iter() {
-                let mut transparent_production = true;
-                for rhs_symbol in production.right_hand_side_symbols() {
-                    if rhs_symbol == symbol {
-                        if transparent {
-                            continue;
-                        } else {
-                            transparent_production = false;
-                            break;
-                        }
-                    }
-                    if rhs_symbol.firsts_data_is_none() {
-                        self.set_firsts_data(rhs_symbol)
-                    }
-                    let firsts_data = rhs_symbol.firsts_data();
-                    token_set |= &firsts_data.token_set;
-                    if !firsts_data.transparent {
-                        transparent_production = false;
-                        break;
-                    }
-                }
-                if transparent_production {
-                    transparency_changed = !transparent;
-                    transparent = true;
-                }
-            }
-        }
-        symbol.set_firsts_data(FirstsData::new(token_set, transparent));
     }
 
     fn closure(&self, mut closure_set: GrammarItemSet) -> GrammarItemSet {

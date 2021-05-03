@@ -16,6 +16,7 @@ use lexan;
 use crate::alapgen::{AANonTerminal, AATerminal};
 #[cfg(feature = "bootstrap")]
 use crate::bootstrap::{AANonTerminal, AATerminal};
+use crate::state::Production;
 
 #[derive(Debug)]
 pub enum Error {
@@ -84,15 +85,6 @@ impl Default for AssociativePrecedence {
 pub struct FirstsData {
     pub token_set: SymbolSet,
     pub transparent: bool,
-}
-
-impl FirstsData {
-    pub fn new(token_set: SymbolSet, transparent: bool) -> Self {
-        Self {
-            token_set,
-            transparent,
-        }
-    }
 }
 
 impl fmt::Display for FirstsData {
@@ -241,7 +233,7 @@ impl Symbol {
         });
         let mut token_set = SymbolSet::new();
         token_set.insert(&token);
-        token.set_firsts_data(FirstsData {
+        token.mutable_data.borrow_mut().firsts_data = Some(FirstsData {
             token_set,
             transparent: false,
         });
@@ -330,10 +322,56 @@ impl Symbol {
     pub fn firsts_data_is_none(&self) -> bool {
         self.mutable_data.borrow().firsts_data.is_none()
     }
+}
 
-    pub fn set_firsts_data(&self, firsts_data: FirstsData) {
+pub trait SetFirstsData {
+    fn set_firsts_data(&self, productions: &[Rc<Production>]);
+}
+
+impl SetFirstsData for Rc<Symbol> {
+    fn set_firsts_data(&self, productions: &[Rc<Production>]) {
+        debug_assert!(self.is_non_terminal());
         debug_assert!(self.firsts_data_is_none());
-        self.mutable_data.borrow_mut().firsts_data = Some(firsts_data);
+        let relevant_productions: Vec<&Rc<Production>> = productions
+            .iter()
+            .filter(|x| x.left_hand_side() == self)
+            .collect();
+        let mut transparent = relevant_productions.iter().any(|x| x.is_empty());
+        let mut token_set = SymbolSet::new();
+        let mut transparency_changed = true;
+        while transparency_changed {
+            transparency_changed = false;
+            for production in relevant_productions.iter() {
+                let mut transparent_production = true;
+                for rhs_symbol in production.right_hand_side_symbols() {
+                    if rhs_symbol == self {
+                        if transparent {
+                            continue;
+                        } else {
+                            transparent_production = false;
+                            break;
+                        }
+                    }
+                    if rhs_symbol.firsts_data_is_none() {
+                        rhs_symbol.set_firsts_data(productions);
+                    }
+                    let firsts_data = rhs_symbol.firsts_data();
+                    token_set |= &firsts_data.token_set;
+                    if !firsts_data.transparent {
+                        transparent_production = false;
+                        break;
+                    }
+                }
+                if transparent_production {
+                    transparency_changed = !transparent;
+                    transparent = true;
+                }
+            }
+        }
+        self.mutable_data.borrow_mut().firsts_data = Some(FirstsData {
+            token_set,
+            transparent,
+        });
     }
 }
 
