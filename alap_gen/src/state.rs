@@ -7,7 +7,7 @@ use std::{
     str::FromStr,
 };
 
-use crate::symbols::{format_as_or_list, AssociativePrecedence, Associativity, Symbol};
+use crate::symbols::{format_as_or_list, AssociativePrecedence, Associativity, Symbol, SymbolSet};
 
 #[derive(Debug, Clone, Default)]
 pub struct ProductionTail {
@@ -281,10 +281,10 @@ impl GrammarItemKey {
     }
 }
 
-pub struct GrammarItemSet(BTreeMap<Rc<GrammarItemKey>, BTreeSet<Rc<Symbol>>>);
+pub struct GrammarItemSet(BTreeMap<Rc<GrammarItemKey>, SymbolSet>);
 
-impl From<BTreeMap<Rc<GrammarItemKey>, BTreeSet<Rc<Symbol>>>> for GrammarItemSet {
-    fn from(key_look_ahead_set_map: BTreeMap<Rc<GrammarItemKey>, BTreeSet<Rc<Symbol>>>) -> Self {
+impl From<BTreeMap<Rc<GrammarItemKey>, SymbolSet>> for GrammarItemSet {
+    fn from(key_look_ahead_set_map: BTreeMap<Rc<GrammarItemKey>, SymbolSet>) -> Self {
         Self(key_look_ahead_set_map)
     }
 }
@@ -306,7 +306,7 @@ impl std::fmt::Display for GrammarItemSet {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let mut string = "GrammarItemSet{\n".to_string();
         for (key, set) in self.0.iter() {
-            string += &format!("    {}: {}\n", key, format_set(set));
+            string += &format!("    {}: {}\n", key, set);
         }
         string += "}";
         write!(f, "{}", string)
@@ -315,16 +315,16 @@ impl std::fmt::Display for GrammarItemSet {
 
 #[derive(Debug)]
 struct Reductions {
-    reductions: BTreeMap<BTreeSet<Rc<Production>>, BTreeSet<Rc<Symbol>>>,
-    expected_tokens: BTreeSet<Rc<Symbol>>,
+    reductions: BTreeMap<BTreeSet<Rc<Production>>, SymbolSet>,
+    expected_tokens: SymbolSet,
 }
 
 impl GrammarItemSet {
-    pub fn iter(&self) -> impl Iterator<Item = (&Rc<GrammarItemKey>, &BTreeSet<Rc<Symbol>>)> {
+    pub fn iter(&self) -> impl Iterator<Item = (&Rc<GrammarItemKey>, &SymbolSet)> {
         self.0.iter()
     }
 
-    pub fn closables(&self) -> Vec<(Rc<GrammarItemKey>, BTreeSet<Rc<Symbol>>)> {
+    pub fn closables(&self) -> Vec<(Rc<GrammarItemKey>, SymbolSet)> {
         let mut closables = vec![];
         for (key, set) in self.0.iter().filter(|x| x.0.is_closable()) {
             closables.push((Rc::clone(key), set.clone()));
@@ -370,15 +370,15 @@ impl GrammarItemSet {
         self.0.keys().cloned().collect()
     }
 
-    pub fn get_mut(&mut self, key: &Rc<GrammarItemKey>) -> Option<&mut BTreeSet<Rc<Symbol>>> {
+    pub fn get_mut(&mut self, key: &Rc<GrammarItemKey>) -> Option<&mut SymbolSet> {
         self.0.get_mut(key)
     }
 
     pub fn insert(
         &mut self,
         key: Rc<GrammarItemKey>,
-        look_ahead_set: BTreeSet<Rc<Symbol>>,
-    ) -> Option<BTreeSet<Rc<Symbol>>> {
+        look_ahead_set: SymbolSet,
+    ) -> Option<SymbolSet> {
         self.0.insert(key, look_ahead_set)
     }
 
@@ -386,7 +386,7 @@ impl GrammarItemSet {
         &self,
         key1: &GrammarItemKey,
         key2: &GrammarItemKey,
-    ) -> BTreeSet<Rc<Symbol>> {
+    ) -> SymbolSet {
         self.0
             .get(key1)
             .unwrap()
@@ -395,11 +395,7 @@ impl GrammarItemSet {
             .collect()
     }
 
-    pub fn remove_look_ahead_symbols(
-        &mut self,
-        key: &GrammarItemKey,
-        symbols: &BTreeSet<Rc<Symbol>>,
-    ) {
+    pub fn remove_look_ahead_symbols(&mut self, key: &GrammarItemKey, symbols: &SymbolSet) {
         let look_ahead_set = self.0.get_mut(key).unwrap();
         *look_ahead_set = look_ahead_set.difference(symbols).cloned().collect();
     }
@@ -417,18 +413,17 @@ impl GrammarItemSet {
         false
     }
 
-    fn reducible_look_ahead_set(&self) -> BTreeSet<Rc<Symbol>> {
-        let mut set = BTreeSet::new();
+    fn reducible_look_ahead_set(&self) -> SymbolSet {
+        let mut set = SymbolSet::new();
         for (_, look_ahead_set) in self.0.iter().filter(|x| x.0.is_reducible()) {
-            set = &set | look_ahead_set;
+            set |= look_ahead_set;
         }
         set
     }
 
     fn reductions(&self) -> Reductions {
         let expected_tokens = self.reducible_look_ahead_set();
-        let mut reductions: BTreeMap<BTreeSet<Rc<Production>>, BTreeSet<Rc<Symbol>>> =
-            BTreeMap::new();
+        let mut reductions: BTreeMap<BTreeSet<Rc<Production>>, SymbolSet> = BTreeMap::new();
         for token in expected_tokens.iter() {
             let mut productions: BTreeSet<Rc<Production>> = BTreeSet::new();
             for (item_key, look_ahead_set) in self.0.iter().filter(|x| x.0.is_reducible()) {
@@ -436,9 +431,7 @@ impl GrammarItemSet {
                     productions.insert(Rc::clone(&item_key.production));
                 }
             }
-            let look_ahead_set = reductions
-                .entry(productions)
-                .or_insert(BTreeSet::<Rc<Symbol>>::new());
+            let look_ahead_set = reductions.entry(productions).or_insert(SymbolSet::new());
             look_ahead_set.insert(Rc::clone(token));
         }
         Reductions {
@@ -462,20 +455,9 @@ pub struct ParserState {
     goto_table: RefCell<BTreeMap<Rc<Symbol>, Rc<ParserState>>>,
     error_recovery_state: RefCell<Option<Rc<ParserState>>>,
     processed_state: Cell<ProcessedState>,
-    shift_reduce_conflicts: RefCell<
-        Vec<(
-            Rc<Symbol>,
-            Rc<ParserState>,
-            Rc<GrammarItemKey>,
-            BTreeSet<Rc<Symbol>>,
-        )>,
-    >,
-    reduce_reduce_conflicts: RefCell<
-        Vec<(
-            (Rc<GrammarItemKey>, Rc<GrammarItemKey>),
-            BTreeSet<Rc<Symbol>>,
-        )>,
-    >,
+    shift_reduce_conflicts:
+        RefCell<Vec<(Rc<Symbol>, Rc<ParserState>, Rc<GrammarItemKey>, SymbolSet)>>,
+    reduce_reduce_conflicts: RefCell<Vec<((Rc<GrammarItemKey>, Rc<GrammarItemKey>), SymbolSet)>>,
 }
 
 impl fmt::Debug for ParserState {
@@ -528,7 +510,7 @@ impl ParserState {
         for (key, other_look_ahead_set) in item_set.iter().filter(|(k, _)| k.is_kernel_item()) {
             if let Some(look_ahead_set) = self.grammar_items.borrow_mut().get_mut(key) {
                 let current_len = look_ahead_set.len();
-                *look_ahead_set = &*look_ahead_set | other_look_ahead_set;
+                *look_ahead_set |= other_look_ahead_set;
                 additions += look_ahead_set.len() - current_len;
             } else {
                 panic!("key sets should be identical to get here")
@@ -676,7 +658,7 @@ impl ParserState {
         false
     }
 
-    pub fn look_ahead_set(&self) -> BTreeSet<Rc<Symbol>> {
+    pub fn look_ahead_set(&self) -> SymbolSet {
         self.grammar_items
             .borrow()
             .reducible_look_ahead_set()
@@ -796,7 +778,7 @@ impl ParserState {
     pub fn description(&self) -> String {
         let mut string = format!("State<{}>:\n  Grammar Items:\n", self.ident);
         for (key, look_ahead_set) in self.grammar_items.borrow().iter() {
-            string += &format!("    {}: {}\n", key, format_set(look_ahead_set));
+            string += &format!("    {}: {}\n", key, look_ahead_set);
         }
         string += "  Parser Action Table:\n";
         let look_ahead_set = self.look_ahead_set();
@@ -831,7 +813,7 @@ impl ParserState {
         }
         if let Some(ref state) = self.error_recovery_state.borrow().clone() {
             string += &format!("  Error Recovery State: State<{}>\n", state.ident);
-            string += &format!("    Look Ahead: {}\n", format_set(&state.look_ahead_set()));
+            string += &format!("    Look Ahead: {}\n", state.look_ahead_set());
         } else {
             string += "  Error Recovery State: <none>\n";
         }
@@ -844,24 +826,23 @@ impl ParserState {
                 string += &format!("      shift -> State<{}>\n", goto_state.ident);
                 string += &format!(
                     "      reduce {}: {}",
-                    reducible_item.production,
-                    format_set(look_ahead_set)
+                    reducible_item.production, look_ahead_set
                 );
             }
         }
         if self.reduce_reduce_conflicts.borrow().len() > 0 {
             string += "  Reduce/Reduce Conflicts:\n";
             for (items, intersection) in self.reduce_reduce_conflicts.borrow().iter() {
-                string += &format!("    {}\n", format_set(intersection));
+                string += &format!("    {}\n", intersection);
                 string += &format!(
                     "      reduce {} : {}\n",
                     items.0,
-                    format_set(&self.grammar_items.borrow().0[&Rc::clone(&items.0)])
+                    &self.grammar_items.borrow().0[&Rc::clone(&items.0)]
                 );
                 string += &format!(
                     "      reduce {} : {}\n",
                     items.1,
-                    format_set(&self.grammar_items.borrow().0[&Rc::clone(&items.1)])
+                    &self.grammar_items.borrow().0[&Rc::clone(&items.1)]
                 );
             }
         }

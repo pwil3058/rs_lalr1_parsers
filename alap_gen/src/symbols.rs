@@ -1,7 +1,12 @@
 use std::{
     cell::RefCell,
-    collections::{BTreeSet, HashMap},
+    collections::{
+        btree_set::{self, Difference, Intersection, Union},
+        BTreeSet, HashMap,
+    },
     fmt,
+    iter::FromIterator,
+    ops::{BitOr, BitOrAssign},
     rc::Rc,
 };
 
@@ -77,12 +82,12 @@ impl Default for AssociativePrecedence {
 
 #[derive(Debug, Clone, Default)]
 pub struct FirstsData {
-    pub token_set: BTreeSet<Rc<Symbol>>,
+    pub token_set: SymbolSet,
     pub transparent: bool,
 }
 
 impl FirstsData {
-    pub fn new(token_set: BTreeSet<Rc<Symbol>>, transparent: bool) -> Self {
+    pub fn new(token_set: SymbolSet, transparent: bool) -> Self {
         Self {
             token_set,
             transparent,
@@ -92,12 +97,7 @@ impl FirstsData {
 
 impl fmt::Display for FirstsData {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(
-            f,
-            "{}:({})",
-            crate::state::format_set(&self.token_set),
-            self.transparent
-        )
+        write!(f, "{}:({})", self.token_set, self.transparent)
     }
 }
 
@@ -239,7 +239,7 @@ impl Symbol {
             symbol_type,
             mutable_data,
         });
-        let mut token_set: BTreeSet<Rc<Symbol>> = BTreeSet::new();
+        let mut token_set = SymbolSet::new();
         token_set.insert(Rc::clone(&token));
         token.set_firsts_data(FirstsData {
             token_set,
@@ -336,7 +336,82 @@ impl Symbol {
     }
 }
 
-pub fn format_as_macro_call(symbol_set: &BTreeSet<Rc<Symbol>>) -> String {
+#[derive(Debug, Default, Clone)]
+pub struct SymbolSet(BTreeSet<Rc<Symbol>>);
+
+impl SymbolSet {
+    pub fn new() -> Self {
+        SymbolSet::default()
+    }
+
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+
+    pub fn first_all_caps(symbol_string: &[Rc<Symbol>], token: &Rc<Symbol>) -> Self {
+        let mut token_set = SymbolSet::new();
+        for symbol in symbol_string.iter() {
+            let firsts_data = symbol.firsts_data();
+            token_set |= &firsts_data.token_set;
+            if !firsts_data.transparent {
+                return token_set;
+            }
+        }
+        token_set.insert(Rc::clone(token));
+        token_set
+    }
+
+    pub fn contains(&self, symbol: &Rc<Symbol>) -> bool {
+        self.0.contains(symbol)
+    }
+
+    pub fn insert(&mut self, symbol: Rc<Symbol>) -> bool {
+        self.0.insert(symbol)
+    }
+
+    pub fn remove(&mut self, symbol: &Rc<Symbol>) -> bool {
+        self.0.remove(symbol)
+    }
+
+    pub fn difference<'a>(&'a self, other: &'a Self) -> Difference<'a, Rc<Symbol>> {
+        self.0.difference(&other.0)
+    }
+
+    pub fn intersection<'a>(&'a self, other: &'a Self) -> Intersection<'a, Rc<Symbol>> {
+        self.0.intersection(&other.0)
+    }
+
+    pub fn union<'a>(&'a self, other: &'a Self) -> Union<'a, Rc<Symbol>> {
+        self.0.union(&other.0)
+    }
+
+    pub fn iter(&self) -> btree_set::Iter<Rc<Symbol>> {
+        self.0.iter()
+    }
+}
+
+impl BitOrAssign<&Self> for SymbolSet {
+    fn bitor_assign(&mut self, rhs: &Self) {
+        self.0 = self.0.bitor(&rhs.0)
+    }
+}
+
+impl FromIterator<Rc<Symbol>> for SymbolSet {
+    fn from_iter<T>(iter: T) -> Self
+    where
+        T: IntoIterator<Item = Rc<Symbol>>,
+    {
+        Self(BTreeSet::<Rc<Symbol>>::from_iter(iter))
+    }
+}
+
+impl fmt::Display for SymbolSet {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", crate::state::format_set(&self.0))
+    }
+}
+
+pub fn format_as_macro_call(symbol_set: &SymbolSet) -> String {
     let mut string = "btree_set![".to_string();
     for (index, symbol) in symbol_set.iter().enumerate() {
         if index == 0 {
@@ -349,7 +424,7 @@ pub fn format_as_macro_call(symbol_set: &BTreeSet<Rc<Symbol>>) -> String {
     string
 }
 
-pub fn format_as_or_list(symbol_set: &BTreeSet<Rc<Symbol>>) -> String {
+pub fn format_as_or_list(symbol_set: &SymbolSet) -> String {
     let mut string = "".to_string();
     for (index, symbol) in symbol_set.iter().enumerate() {
         if index == 0 {

@@ -10,7 +10,9 @@ use lalr1_plus::{self, Parser};
 use lexan;
 
 use crate::state::{GrammarItemKey, GrammarItemSet, ParserState, Production, ProductionTail};
-use crate::symbols::{format_as_macro_call, FirstsData, Symbol, SymbolTable, SymbolType};
+use crate::symbols::{
+    format_as_macro_call, FirstsData, Symbol, SymbolSet, SymbolTable, SymbolType,
+};
 
 #[cfg(not(feature = "bootstrap"))]
 use crate::alapgen::*;
@@ -111,23 +113,6 @@ impl GrammarSpecification {
             .push(Rc::new(Production::new(ident, left_hand_side, tail)));
     }
 
-    fn first_allcaps(
-        &self,
-        symbol_string: &[Rc<Symbol>],
-        token: &Rc<Symbol>,
-    ) -> BTreeSet<Rc<Symbol>> {
-        let mut token_set: BTreeSet<Rc<Symbol>> = BTreeSet::new();
-        for symbol in symbol_string.iter() {
-            let firsts_data = symbol.firsts_data();
-            token_set = &token_set | &firsts_data.token_set;
-            if !firsts_data.transparent {
-                return token_set;
-            }
-        }
-        token_set.insert(Rc::clone(token));
-        token_set
-    }
-
     fn set_firsts_data(&self, symbol: &Rc<Symbol>) {
         assert!(symbol.firsts_data_is_none());
         assert!(symbol.is_non_terminal());
@@ -137,7 +122,7 @@ impl GrammarSpecification {
             .filter(|x| x.left_hand_side() == symbol)
             .collect();
         let mut transparent = relevant_productions.iter().any(|x| x.is_empty());
-        let mut token_set = BTreeSet::<Rc<Symbol>>::new();
+        let mut token_set = SymbolSet::new();
         let mut transparency_changed = true;
         while transparency_changed {
             transparency_changed = false;
@@ -156,7 +141,7 @@ impl GrammarSpecification {
                         self.set_firsts_data(rhs_symbol)
                     }
                     let firsts_data = rhs_symbol.firsts_data();
-                    token_set = &token_set | &firsts_data.token_set;
+                    token_set |= &firsts_data.token_set;
                     if !firsts_data.transparent {
                         transparent_production = false;
                         break;
@@ -179,7 +164,7 @@ impl GrammarSpecification {
             for (item_key, look_ahead_set) in closure_set.closables() {
                 let prospective_lhs = item_key.next_symbol().expect("it's closable");
                 for look_ahead_symbol in look_ahead_set.iter() {
-                    let firsts = self.first_allcaps(item_key.rhs_tail(), look_ahead_symbol);
+                    let firsts = SymbolSet::first_all_caps(item_key.rhs_tail(), look_ahead_symbol);
                     for production in self
                         .productions
                         .iter()
@@ -188,7 +173,7 @@ impl GrammarSpecification {
                         let prospective_key = GrammarItemKey::new(Rc::clone(production));
                         if let Some(set) = closure_set.get_mut(&prospective_key) {
                             let len = set.len();
-                            *set = &*set | &firsts;
+                            *set |= &firsts;
                             additions_made = additions_made || set.len() > len;
                         } else {
                             closure_set.insert(prospective_key, firsts.clone());
@@ -299,9 +284,9 @@ impl TryFrom<GrammarSpecification> for Grammar {
                 .symbol_table
                 .use_symbol_named(&AATerminal::AAEnd.to_string(), &lexan::Location::default())
                 .unwrap();
-            let mut start_look_ahead_set = BTreeSet::<Rc<Symbol>>::new();
+            let mut start_look_ahead_set = SymbolSet::new();
             start_look_ahead_set.insert(end_symbol);
-            let mut map = BTreeMap::<Rc<GrammarItemKey>, BTreeSet<Rc<Symbol>>>::new();
+            let mut map = BTreeMap::<Rc<GrammarItemKey>, SymbolSet>::new();
             map.insert(start_item_key, start_look_ahead_set);
             let start_kernel = specification.closure(GrammarItemSet::from(map));
             let mut grammar = Self {
