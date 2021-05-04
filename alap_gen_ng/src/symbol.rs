@@ -2,6 +2,10 @@
 use std::{
     cell::{Cell, RefCell},
     cmp::Ordering,
+    collections::{btree_set, BTreeSet},
+    fmt,
+    iter::FromIterator,
+    ops::{BitOr, BitOrAssign},
     rc::Rc,
 };
 
@@ -85,7 +89,7 @@ impl TokenData {
     }
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub enum Token {
     Literal(Rc<TokenData>),
     Regex(Rc<TokenData>),
@@ -142,5 +146,76 @@ impl PartialOrd for Token {
 impl Ord for Token {
     fn cmp(&self, other: &Self) -> Ordering {
         self.partial_cmp(other).unwrap()
+    }
+}
+
+#[derive(Debug, Default, Clone)]
+pub struct TokenSet(BTreeSet<Token>);
+
+impl TokenSet {
+    pub fn new() -> Self {
+        TokenSet::default()
+    }
+
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+
+    pub fn contains(&self, token: &Token) -> bool {
+        self.0.contains(token)
+    }
+
+    pub fn insert(&mut self, token: &Token) -> bool {
+        self.0.insert(token.clone())
+    }
+
+    pub fn remove(&mut self, token: &Token) -> bool {
+        self.0.remove(token)
+    }
+
+    pub fn difference<'a>(&'a self, other: &'a Self) -> btree_set::Difference<'a, Token> {
+        self.0.difference(&other.0)
+    }
+
+    pub fn intersection<'a>(&'a self, other: &'a Self) -> btree_set::Intersection<'a, Token> {
+        self.0.intersection(&other.0)
+    }
+
+    pub fn union<'a>(&'a self, other: &'a Self) -> btree_set::Union<'a, Token> {
+        self.0.union(&other.0)
+    }
+
+    pub fn iter(&self) -> btree_set::Iter<Token> {
+        self.0.iter()
+    }
+}
+
+impl BitOrAssign<&Self> for TokenSet {
+    fn bitor_assign(&mut self, rhs: &Self) {
+        self.0 = self.0.bitor(&rhs.0)
+    }
+}
+
+impl FromIterator<Token> for TokenSet {
+    fn from_iter<T>(iter: T) -> Self
+    where
+        T: IntoIterator<Item = Token>,
+    {
+        Self(BTreeSet::<Token>::from_iter(iter))
+    }
+}
+
+impl fmt::Display for TokenSet {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let mut set_string = "TokenSet{".to_string();
+        for (index, item) in self.iter().enumerate() {
+            if index == 0 {
+                set_string += &format!("{}", item.name());
+            } else {
+                set_string += &format!(", {}", item.name());
+            }
+        }
+        set_string += "}";
+        write!(f, "{}", set_string)
     }
 }
