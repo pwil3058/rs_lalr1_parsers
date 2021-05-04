@@ -1,3 +1,4 @@
+// Copyright 2021 Peter Williams <pwil3058@gmail.com> <pwil3058@bigpond.net.au>
 use clap::crate_authors;
 use structopt::StructOpt;
 
@@ -6,6 +7,8 @@ use std::{
     io::prelude::*,
     path::{Path, PathBuf},
 };
+
+mod symbol;
 
 fn with_changed_extension(path: &Path, new_extension: &str) -> PathBuf {
     let mut new_path = PathBuf::new();
@@ -19,7 +22,7 @@ fn with_changed_extension(path: &Path, new_extension: &str) -> PathBuf {
 
 #[derive(Debug, StructOpt)]
 #[structopt(
-    name = "alapgen",
+    name = "alap_gen_ng",
     about = "Augmented Lexical Analyzer and Parser Generator",
     author = crate_authors!(),
 )]
