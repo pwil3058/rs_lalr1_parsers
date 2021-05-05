@@ -235,6 +235,7 @@ impl fmt::Display for TokenSet {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Symbol {
     Terminal(Token),
     NonTerminal(NonTerminal),
