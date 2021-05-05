@@ -1,4 +1,5 @@
 // Copyright 2021 Peter Williams <pwil3058@gmail.com> <pwil3058@bigpond.net.au>
+use crate::symbol::non_terminal::NonTerminal;
 use std::{
     cell::{Cell, RefCell},
     cmp::Ordering,
@@ -8,6 +9,8 @@ use std::{
     ops::{BitOr, BitOrAssign},
     rc::Rc,
 };
+
+mod non_terminal;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Associativity {
@@ -33,7 +36,7 @@ impl std::fmt::Display for Associativity {
     }
 }
 
-#[derive(Debug, Default, PartialEq, Eq)]
+#[derive(Debug, Default)]
 pub struct TokenData {
     name: String,
     text: String,
@@ -89,7 +92,7 @@ impl TokenData {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, Clone)]
+#[derive(Debug, Clone)]
 pub enum Token {
     Literal(Rc<TokenData>),
     Regex(Rc<TokenData>),
@@ -137,6 +140,14 @@ impl Token {
     }
 }
 
+impl PartialEq for Token {
+    fn eq(&self, other: &Self) -> bool {
+        self.name() == other.name()
+    }
+}
+
+impl Eq for Token {}
+
 impl PartialOrd for Token {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         self.name().partial_cmp(other.name())
@@ -159,6 +170,10 @@ impl TokenSet {
 
     pub fn len(&self) -> usize {
         self.0.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.0.len() == 0
     }
 
     pub fn contains(&self, token: &Token) -> bool {
@@ -218,4 +233,9 @@ impl fmt::Display for TokenSet {
         set_string += "}";
         write!(f, "{}", set_string)
     }
+}
+
+pub enum Symbol {
+    Terminal(Token),
+    NonTerminal(NonTerminal),
 }

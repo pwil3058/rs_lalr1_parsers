@@ -1,0 +1,63 @@
+// Copyright 2021 Peter Williams <pwil3058@gmail.com> <pwil3058@bigpond.net.au>
+use std::{
+    cell::{Cell, RefCell},
+    fmt,
+    rc::Rc,
+};
+
+use crate::symbol::{Associativity, TokenSet};
+
+#[derive(Debug, Clone, Default)]
+pub struct FirstsData {
+    pub token_set: TokenSet,
+    pub transparent: bool,
+}
+
+impl fmt::Display for FirstsData {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}:({})", self.token_set, self.transparent)
+    }
+}
+
+#[derive(Debug, Default)]
+pub struct NonTerminalData {
+    name: String,
+    defined_at: RefCell<Vec<lexan::Location>>,
+    used_at: RefCell<Vec<lexan::Location>>,
+    firsts_data: RefCell<Option<FirstsData>>,
+    associativity: Cell<Associativity>,
+    precedence: Cell<u16>,
+}
+
+impl PartialEq for NonTerminalData {
+    fn eq(&self, other: &Self) -> bool {
+        self.name == other.name
+    }
+}
+
+impl Eq for NonTerminalData {}
+
+impl NonTerminalData {
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct NonTerminal(Rc<NonTerminalData>);
+
+impl NonTerminal {
+    pub fn new_defined(name: &str, defined_at: lexan::Location) -> Self {
+        let mut token_data = NonTerminalData::default();
+        token_data.name = name.to_string();
+        token_data.defined_at.borrow_mut().push(defined_at);
+        Self(Rc::new(token_data))
+    }
+
+    pub fn new_used(name: &str, used_at: lexan::Location) -> Self {
+        let mut token_data = NonTerminalData::default();
+        token_data.name = name.to_string();
+        token_data.used_at.borrow_mut().push(used_at);
+        Self(Rc::new(token_data))
+    }
+}
