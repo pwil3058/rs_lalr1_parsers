@@ -1,14 +1,15 @@
 // Copyright 2021 Peter Williams <pwil3058@gmail.com> <pwil3058@bigpond.net.au>
-use crate::symbol::non_terminal::NonTerminal;
 use std::{
     cell::{Cell, RefCell},
     cmp::Ordering,
-    collections::{btree_set, BTreeSet},
+    collections::{btree_set, BTreeMap, BTreeSet},
     fmt,
     iter::FromIterator,
     ops::{BitOr, BitOrAssign},
     rc::Rc,
 };
+
+use crate::symbol::non_terminal::NonTerminal;
 
 mod non_terminal;
 
@@ -47,11 +48,11 @@ pub struct TokenData {
 }
 
 impl TokenData {
-    pub fn new(name: &str, text: &str, defined_at: lexan::Location) -> Self {
+    pub fn new(name: &str, text: &str, defined_at: &lexan::Location) -> Self {
         let mut token_data = TokenData::default();
         token_data.name = name.to_string();
         token_data.text = text.to_string();
-        token_data.defined_at = defined_at;
+        token_data.defined_at = defined_at.clone();
         token_data
     }
 
@@ -99,12 +100,12 @@ pub enum Token {
 }
 
 impl Token {
-    pub fn new_literal_token(name: &str, text: &str, defined_at: lexan::Location) -> Self {
+    pub fn new_literal_token(name: &str, text: &str, defined_at: &lexan::Location) -> Self {
         let token_data = TokenData::new(name, text, defined_at);
         Token::Literal(Rc::new(token_data))
     }
 
-    pub fn new_regex_token(name: &str, text: &str, defined_at: lexan::Location) -> Self {
+    pub fn new_regex_token(name: &str, text: &str, defined_at: &lexan::Location) -> Self {
         let token_data = TokenData::new(name, text, defined_at);
         Token::Regex(Rc::new(token_data))
     }
@@ -112,6 +113,12 @@ impl Token {
     pub fn name(&self) -> &str {
         match self {
             Token::Literal(token_data) | Token::Regex(token_data) => token_data.name(),
+        }
+    }
+
+    pub fn defined_at(&self) -> &lexan::Location {
+        match self {
+            Token::Literal(token_data) | Token::Regex(token_data) => token_data.defined_at(),
         }
     }
 
@@ -239,4 +246,75 @@ impl fmt::Display for TokenSet {
 pub enum Symbol {
     Terminal(Token),
     NonTerminal(NonTerminal),
+}
+
+#[derive(Debug)]
+pub enum Error {
+    DuplicateToken(Token),
+    DuplicateTokenDefinition(Token),
+}
+
+impl fmt::Display for Error {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Error::DuplicateToken(token) => {
+                write!(
+                    f,
+                    "Token \"{}\" already defined at {}",
+                    token.name(),
+                    token.defined_at(),
+                )
+            }
+            Error::DuplicateTokenDefinition(token) => {
+                write!(
+                    f,
+                    "Token \"{}\" defined at {} has same definition",
+                    token.name(),
+                    token.defined_at(),
+                )
+            }
+        }
+    }
+}
+
+#[derive(Debug, Default)]
+pub struct SymbolTable {
+    tokens: BTreeMap<String, Token>,
+    literal_tokens: BTreeMap<String, Token>,
+    regex_tokens: BTreeMap<String, Token>,
+    non_terminals: BTreeMap<String, NonTerminal>,
+}
+
+impl SymbolTable {
+    pub fn new_literal_token(
+        &mut self,
+        name: &str,
+        text: &str,
+        defined_at: &lexan::Location,
+    ) -> Result<Token, Error> {
+        let token = Token::new_literal_token(name, text, defined_at);
+        if let Some(other) = self.tokens.insert(name.to_string(), token.clone()) {
+            Err(Error::DuplicateToken(other))
+        } else if let Some(other) = self.literal_tokens.insert(text.to_string(), token.clone()) {
+            Err(Error::DuplicateTokenDefinition(other))
+        } else {
+            Ok(token)
+        }
+    }
+
+    pub fn new_regex_token(
+        &mut self,
+        name: &str,
+        text: &str,
+        defined_at: &lexan::Location,
+    ) -> Result<Token, Error> {
+        let token = Token::new_regex_token(name, text, defined_at);
+        if let Some(other) = self.tokens.insert(name.to_string(), token.clone()) {
+            Err(Error::DuplicateToken(other))
+        } else if let Some(other) = self.regex_tokens.insert(text.to_string(), token.clone()) {
+            Err(Error::DuplicateTokenDefinition(other))
+        } else {
+            Ok(token)
+        }
+    }
 }
