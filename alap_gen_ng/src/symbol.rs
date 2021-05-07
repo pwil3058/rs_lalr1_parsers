@@ -10,9 +10,11 @@ use std::{
 };
 
 use crate::symbol::non_terminal::NonTerminal;
+use crate::symbol::tag::Tag;
 use crate::symbol::terminal::Token;
 
 mod non_terminal;
+mod tag;
 mod terminal;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -47,6 +49,7 @@ pub enum Symbol {
 
 #[derive(Debug)]
 pub enum Error {
+    DuplicateTag(Tag),
     DuplicateToken(Token),
     DuplicateTokenDefinition(Token),
     ConflictsWithToken(Token),
@@ -55,6 +58,14 @@ pub enum Error {
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
+            Error::DuplicateTag(tag) => {
+                write!(
+                    f,
+                    "Tag \"{}\" already defined at {}",
+                    tag.name(),
+                    tag.defined_at(),
+                )
+            }
             Error::DuplicateToken(token) => {
                 write!(
                     f,
@@ -85,6 +96,7 @@ impl fmt::Display for Error {
 
 #[derive(Debug, Default)]
 pub struct SymbolTable {
+    tags: BTreeMap<String, Tag>,
     tokens: BTreeMap<String, Token>,
     literal_tokens: BTreeMap<String, Token>,
     regex_tokens: BTreeMap<String, Token>,
@@ -92,6 +104,15 @@ pub struct SymbolTable {
 }
 
 impl SymbolTable {
+    pub fn new_tag(&mut self, name: &str, defined_at: &lexan::Location) -> Result<Tag, Error> {
+        let tag = Tag::new(name, defined_at);
+        if let Some(other) = self.tags.insert(name.to_string(), tag.clone()) {
+            Err(Error::DuplicateTag(other))
+        } else {
+            Ok(tag)
+        }
+    }
+
     pub fn new_literal_token(
         &mut self,
         name: &str,

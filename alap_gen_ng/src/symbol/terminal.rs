@@ -118,6 +118,14 @@ impl Token {
             }
         }
     }
+
+    pub fn precedence_has_been_set(&self) -> bool {
+        match self {
+            Token::Literal(token_data) | Token::Regex(token_data) => {
+                token_data.precedence.get() > 0
+            }
+        }
+    }
 }
 
 impl PartialEq for Token {
