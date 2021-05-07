@@ -8,6 +8,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
+mod production;
 mod symbol;
 
 fn with_changed_extension(path: &Path, new_extension: &str) -> PathBuf {

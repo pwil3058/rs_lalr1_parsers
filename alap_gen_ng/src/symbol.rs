@@ -13,7 +13,7 @@ use crate::symbol::non_terminal::NonTerminal;
 use crate::symbol::tag::Tag;
 use crate::symbol::terminal::Token;
 
-mod non_terminal;
+pub mod non_terminal;
 mod tag;
 mod terminal;
 

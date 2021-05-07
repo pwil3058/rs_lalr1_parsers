@@ -57,6 +57,14 @@ impl Token {
         }
     }
 
+    pub fn associativity_and_precedence(&self) -> (Associativity, u16) {
+        match self {
+            Token::Literal(token_data) | Token::Regex(token_data) => {
+                (token_data.associativity.get(), token_data.precedence.get())
+            }
+        }
+    }
+
     pub fn add_used_at(&self, used_at: &lexan::Location) {
         match self {
             Token::Literal(token_data) | Token::Regex(token_data) => {
