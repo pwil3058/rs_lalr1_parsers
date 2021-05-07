@@ -5,7 +5,7 @@ use std::{
     rc::Rc,
 };
 
-use crate::symbol::{Associativity, TokenSet};
+use crate::symbol::{terminal::TokenSet, Associativity};
 
 #[derive(Debug, Clone, Default)]
 pub struct FirstsData {
