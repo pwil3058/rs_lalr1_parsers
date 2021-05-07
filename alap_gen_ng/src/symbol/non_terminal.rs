@@ -37,27 +37,39 @@ impl PartialEq for NonTerminalData {
 
 impl Eq for NonTerminalData {}
 
-impl NonTerminalData {
-    pub fn name(&self) -> &str {
-        &self.name
-    }
-}
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct NonTerminal(Rc<NonTerminalData>);
 
 impl NonTerminal {
-    pub fn new_defined(name: &str, defined_at: lexan::Location) -> Self {
+    pub fn new(name: &str) -> Self {
         let mut token_data = NonTerminalData::default();
         token_data.name = name.to_string();
-        token_data.defined_at.borrow_mut().push(defined_at);
         Self(Rc::new(token_data))
     }
 
-    pub fn new_used(name: &str, used_at: lexan::Location) -> Self {
+    pub fn new_defined(name: &str, defined_at: &lexan::Location) -> Self {
         let mut token_data = NonTerminalData::default();
         token_data.name = name.to_string();
-        token_data.used_at.borrow_mut().push(used_at);
+        token_data.defined_at.borrow_mut().push(defined_at.clone());
         Self(Rc::new(token_data))
+    }
+
+    pub fn new_used(name: &str, used_at: &lexan::Location) -> Self {
+        let mut token_data = NonTerminalData::default();
+        token_data.name = name.to_string();
+        token_data.used_at.borrow_mut().push(used_at.clone());
+        Self(Rc::new(token_data))
+    }
+
+    pub fn name(&self) -> &str {
+        &self.0.name
+    }
+
+    pub fn add_defined_at(&self, defined_at: &lexan::Location) {
+        self.0.defined_at.borrow_mut().push(defined_at.clone())
+    }
+
+    pub fn add_used_at(&self, defined_at: &lexan::Location) {
+        self.0.used_at.borrow_mut().push(defined_at.clone())
     }
 }

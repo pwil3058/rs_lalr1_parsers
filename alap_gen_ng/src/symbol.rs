@@ -80,8 +80,8 @@ impl TokenData {
         self.precedence.get()
     }
 
-    pub fn add_used_at(&self, used_at: lexan::Location) {
-        self.used_at.borrow_mut().push(used_at)
+    pub fn add_used_at(&self, used_at: &lexan::Location) {
+        self.used_at.borrow_mut().push(used_at.clone())
     }
 
     pub fn set_associativity(&self, associativity: Associativity) {
@@ -122,7 +122,7 @@ impl Token {
         }
     }
 
-    pub fn add_used_at(&self, used_at: lexan::Location) {
+    pub fn add_used_at(&self, used_at: &lexan::Location) {
         match self {
             Token::Literal(token_data) | Token::Regex(token_data) => {
                 token_data.add_used_at(used_at)
@@ -252,6 +252,7 @@ pub enum Symbol {
 pub enum Error {
     DuplicateToken(Token),
     DuplicateTokenDefinition(Token),
+    ConflictsWithToken(Token),
 }
 
 impl fmt::Display for Error {
@@ -269,6 +270,14 @@ impl fmt::Display for Error {
                 write!(
                     f,
                     "Token \"{}\" defined at {} has same definition",
+                    token.name(),
+                    token.defined_at(),
+                )
+            }
+            Error::ConflictsWithToken(token) => {
+                write!(
+                    f,
+                    "NonTerminal \"{}\" conflicts with token defined at {}.",
                     token.name(),
                     token.defined_at(),
                 )
@@ -315,6 +324,39 @@ impl SymbolTable {
             Err(Error::DuplicateTokenDefinition(other))
         } else {
             Ok(token)
+        }
+    }
+
+    pub fn non_terminal_defined(
+        &mut self,
+        name: &str,
+        defined_at: &lexan::Location,
+    ) -> Result<NonTerminal, Error> {
+        if let Some(non_terminal) = self.non_terminals.get(name) {
+            non_terminal.add_defined_at(defined_at);
+            Ok(non_terminal.clone())
+        } else if let Some(token) = self.tokens.get(name) {
+            Err(Error::ConflictsWithToken(token.clone()))
+        } else {
+            let non_terminal = NonTerminal::new_defined(name, defined_at);
+            self.non_terminals
+                .insert(name.to_string(), non_terminal.clone());
+            Ok(non_terminal)
+        }
+    }
+
+    pub fn symbol_used_at(&mut self, name: &str, used_at: &lexan::Location) -> Symbol {
+        if let Some(token) = self.tokens.get(name) {
+            token.add_used_at(used_at);
+            Symbol::Terminal(token.clone())
+        } else if let Some(non_terminal) = self.non_terminals.get(name) {
+            non_terminal.add_used_at(used_at);
+            Symbol::NonTerminal(non_terminal.clone())
+        } else {
+            let non_terminal = NonTerminal::new_used(name, used_at);
+            self.non_terminals
+                .insert(name.to_string(), non_terminal.clone());
+            Symbol::NonTerminal(non_terminal)
         }
     }
 }
