@@ -28,42 +28,6 @@ impl TokenData {
         token_data.defined_at = defined_at.clone();
         token_data
     }
-
-    pub fn name(&self) -> &str {
-        &self.name
-    }
-
-    pub fn text(&self) -> &str {
-        &self.text
-    }
-
-    pub fn defined_at(&self) -> &lexan::Location {
-        &self.defined_at
-    }
-
-    pub fn used_at(&self) -> Vec<lexan::Location> {
-        self.used_at.borrow().clone()
-    }
-
-    pub fn associativity(&self) -> Associativity {
-        self.associativity.get()
-    }
-
-    pub fn precedence(&self) -> u16 {
-        self.precedence.get()
-    }
-
-    pub fn add_used_at(&self, used_at: &lexan::Location) {
-        self.used_at.borrow_mut().push(used_at.clone())
-    }
-
-    pub fn set_associativity(&self, associativity: Associativity) {
-        self.associativity.set(associativity)
-    }
-
-    pub fn set_precedence(&self, precedence: u16) {
-        self.precedence.set(precedence)
-    }
 }
 
 #[derive(Debug, Clone)]
@@ -74,31 +38,29 @@ pub enum Token {
 
 impl Token {
     pub fn new_literal_token(name: &str, text: &str, defined_at: &lexan::Location) -> Self {
-        let token_data = TokenData::new(name, text, defined_at);
-        Token::Literal(Rc::new(token_data))
+        Token::Literal(Rc::new(TokenData::new(name, text, defined_at)))
     }
 
     pub fn new_regex_token(name: &str, text: &str, defined_at: &lexan::Location) -> Self {
-        let token_data = TokenData::new(name, text, defined_at);
-        Token::Regex(Rc::new(token_data))
+        Token::Regex(Rc::new(TokenData::new(name, text, defined_at)))
     }
 
     pub fn name(&self) -> &str {
         match self {
-            Token::Literal(token_data) | Token::Regex(token_data) => token_data.name(),
+            Token::Literal(token_data) | Token::Regex(token_data) => &token_data.name,
         }
     }
 
     pub fn defined_at(&self) -> &lexan::Location {
         match self {
-            Token::Literal(token_data) | Token::Regex(token_data) => token_data.defined_at(),
+            Token::Literal(token_data) | Token::Regex(token_data) => &token_data.defined_at,
         }
     }
 
     pub fn add_used_at(&self, used_at: &lexan::Location) {
         match self {
             Token::Literal(token_data) | Token::Regex(token_data) => {
-                token_data.add_used_at(used_at)
+                token_data.used_at.borrow_mut().push(used_at.clone())
             }
         }
     }
@@ -106,15 +68,16 @@ impl Token {
     pub fn set_associativity(&self, associativity: Associativity) {
         match self {
             Token::Literal(token_data) | Token::Regex(token_data) => {
-                token_data.set_associativity(associativity)
+                token_data.associativity.set(associativity)
             }
         }
     }
 
     pub fn set_precedence(&self, precedence: u16) {
+        debug_assert!(precedence > 0);
         match self {
             Token::Literal(token_data) | Token::Regex(token_data) => {
-                token_data.set_precedence(precedence)
+                token_data.precedence.set(precedence)
             }
         }
     }
