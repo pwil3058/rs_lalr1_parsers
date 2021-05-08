@@ -14,8 +14,8 @@ use crate::symbol::tag::Tag;
 use crate::symbol::terminal::Token;
 
 pub mod non_terminal;
-mod tag;
-mod terminal;
+pub mod tag;
+pub mod terminal;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Associativity {
