@@ -9,8 +9,9 @@ use std::{
     rc::Rc,
 };
 
+use crate::alap_gen_ng::{AANonTerminal, AATerminal};
 use crate::symbol::non_terminal::NonTerminal;
-use crate::symbol::tag::Tag;
+use crate::symbol::tag::{Tag, TagOrToken};
 use crate::symbol::terminal::Token;
 
 pub mod non_terminal;
@@ -47,12 +48,25 @@ pub enum Symbol {
     NonTerminal(NonTerminal),
 }
 
+impl From<&Token> for Symbol {
+    fn from(token: &Token) -> Self {
+        Symbol::Terminal(token.clone())
+    }
+}
+
+impl From<&NonTerminal> for Symbol {
+    fn from(non_terminal: &NonTerminal) -> Self {
+        Symbol::NonTerminal(non_terminal.clone())
+    }
+}
+
 #[derive(Debug)]
 pub enum Error {
     DuplicateTag(Tag),
     DuplicateToken(Token),
     DuplicateTokenDefinition(Token),
     ConflictsWithToken(Token),
+    DuplicateSkipRule(String),
 }
 
 impl fmt::Display for Error {
@@ -90,17 +104,50 @@ impl fmt::Display for Error {
                     token.defined_at(),
                 )
             }
+            Error::DuplicateSkipRule(string) => {
+                write!(f, "Skip rule \"{}\" already defined.", string,)
+            }
         }
     }
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct SymbolTable {
     tags: BTreeMap<String, Tag>,
     tokens: BTreeMap<String, Token>,
     literal_tokens: BTreeMap<String, Token>,
     regex_tokens: BTreeMap<String, Token>,
     non_terminals: BTreeMap<String, NonTerminal>,
+    skip_rules: Vec<String>,
+    next_precedence: u16,
+}
+
+impl Default for SymbolTable {
+    fn default() -> Self {
+        let mut table = Self {
+            tags: BTreeMap::new(),
+            tokens: BTreeMap::new(),
+            literal_tokens: BTreeMap::new(),
+            regex_tokens: BTreeMap::new(),
+            non_terminals: BTreeMap::new(),
+            skip_rules: Vec::new(),
+            next_precedence: u16::MAX,
+        };
+
+        let start_location = lexan::Location::default();
+
+        table.non_terminal_defined_at(&AANonTerminal::AAStart.to_string(), &start_location);
+        table.non_terminal_defined_at(&AANonTerminal::AAError.to_string(), &start_location);
+        // table
+        //     .new_token(
+        //         &AATerminal::AAEnd.to_string(),
+        //         SymbolType::SpecialToken,
+        //         &start_location,
+        //     )
+        //     .expect("There should be no naming conflicts yet.");
+
+        table
+    }
 }
 
 impl SymbolTable {
@@ -145,6 +192,14 @@ impl SymbolTable {
         }
     }
 
+    pub fn get_token(&self, name: &str) -> Option<&Token> {
+        self.tokens.get(name)
+    }
+
+    pub fn get_literal_token(&self, lexeme: &str) -> Option<&Token> {
+        self.literal_tokens.get(lexeme)
+    }
+
     pub fn non_terminal_defined_at(
         &mut self,
         name: &str,
@@ -175,6 +230,36 @@ impl SymbolTable {
             self.non_terminals
                 .insert(name.to_string(), non_terminal.clone());
             Symbol::NonTerminal(non_terminal)
+        }
+    }
+
+    pub fn add_skip_rule(&mut self, skip_rule: &String) -> Result<(), Error> {
+        if self.skip_rules.contains(skip_rule) {
+            Err(Error::DuplicateSkipRule(skip_rule.to_string()))
+        } else {
+            self.skip_rules.push(skip_rule.to_string());
+            Ok(())
+        }
+    }
+
+    pub fn set_precedences(
+        &mut self,
+        associativity: Associativity,
+        tag_or_token_list: &[TagOrToken],
+    ) {
+        let precedence = self.next_precedence;
+        self.next_precedence -= 1;
+        for tag_or_token in tag_or_token_list.iter() {
+            match tag_or_token {
+                TagOrToken::Tag(tag) => {
+                    tag.set_associativity(associativity);
+                    tag.set_precedence(precedence);
+                }
+                TagOrToken::Token(token) => {
+                    token.set_associativity(associativity);
+                    token.set_precedence(precedence);
+                }
+            }
         }
     }
 }

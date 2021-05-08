@@ -8,6 +8,9 @@ use std::{
     path::{Path, PathBuf},
 };
 
+mod alap_gen_ng;
+mod attributes;
+mod grammar;
 mod production;
 mod state;
 mod symbol;

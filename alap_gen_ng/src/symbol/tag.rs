@@ -44,4 +44,17 @@ impl Tag {
 pub enum TagOrToken {
     Tag(Tag),
     Token(Token),
+    Invalid,
+}
+
+impl From<&Tag> for TagOrToken {
+    fn from(tag: &Tag) -> Self {
+        TagOrToken::Tag(tag.clone())
+    }
+}
+
+impl From<&Token> for TagOrToken {
+    fn from(token: &Token) -> Self {
+        TagOrToken::Token(token.clone())
+    }
 }
