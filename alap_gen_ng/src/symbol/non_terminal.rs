@@ -1,6 +1,7 @@
 // Copyright 2021 Peter Williams <pwil3058@gmail.com> <pwil3058@bigpond.net.au>
 use std::{
     cell::{Cell, RefCell},
+    cmp::Ordering,
     fmt,
     rc::Rc,
 };
@@ -37,7 +38,19 @@ impl PartialEq for NonTerminalData {
 
 impl Eq for NonTerminalData {}
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+impl PartialOrd for NonTerminalData {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        self.name.partial_cmp(&other.name)
+    }
+}
+
+impl Ord for NonTerminalData {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.partial_cmp(other).unwrap()
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct NonTerminal(Rc<NonTerminalData>);
 
 impl NonTerminal {
