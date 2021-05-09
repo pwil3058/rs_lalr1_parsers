@@ -47,6 +47,10 @@ impl Tag {
         self.0.precedence.get()
     }
 
+    pub fn is_unused(&self) -> bool {
+        self.0.used_at.borrow().is_empty()
+    }
+
     pub fn add_used_at(&self, used_at: &lexan::Location) {
         self.0.used_at.borrow_mut().push(used_at.clone())
     }

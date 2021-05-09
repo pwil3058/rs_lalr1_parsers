@@ -89,6 +89,10 @@ impl Production {
     pub fn is_empty(&self) -> bool {
         self.len() == 0
     }
+
+    pub fn left_hand_side(&self) -> &NonTerminal {
+        &self.left_hand_side
+    }
 }
 
 impl PartialEq for Production {
@@ -141,7 +145,39 @@ impl GrammarItemKey {
             dot,
         }
     }
+
+    pub fn next_symbol(&self) -> Option<&Symbol> {
+        self.production.tail.right_hand_side.get(self.dot)
+    }
+
+    pub fn rhs_tail(&self) -> &[Symbol] {
+        &self.production.tail.right_hand_side[self.dot + 1..]
+    }
 }
 
 #[derive(Debug, Default)]
 pub struct GrammarItemSet(BTreeMap<GrammarItemKey, TokenSet>);
+
+impl From<BTreeMap<GrammarItemKey, TokenSet>> for GrammarItemSet {
+    fn from(map: BTreeMap<GrammarItemKey, TokenSet>) -> Self {
+        Self(map)
+    }
+}
+
+impl GrammarItemSet {
+    pub fn iter(&self) -> impl Iterator<Item = (&GrammarItemKey, &TokenSet)> {
+        self.0.iter()
+    }
+
+    pub fn get_mut(&mut self, key: &GrammarItemKey) -> Option<&mut TokenSet> {
+        self.0.get_mut(key)
+    }
+
+    pub fn insert(
+        &mut self,
+        key: GrammarItemKey,
+        look_ahead_set: TokenSet,
+    ) -> Option<TokenSet> {
+        self.0.insert(key, look_ahead_set)
+    }
+}

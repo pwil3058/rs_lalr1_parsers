@@ -7,7 +7,7 @@ use std::fmt;
 use std::iter::FromIterator;
 use std::ops::{BitOr, BitOrAssign};
 
-use crate::symbol::Associativity;
+use crate::symbol::{Associativity, Symbol};
 use std::rc::Rc;
 
 #[derive(Debug, Default)]
@@ -34,6 +34,7 @@ impl TokenData {
 pub enum Token {
     Literal(Rc<TokenData>),
     Regex(Rc<TokenData>),
+    EndToken,
 }
 
 impl Token {
@@ -66,6 +67,14 @@ impl Token {
     pub fn precedence(&self) -> u16 {
         match self {
             Token::Literal(token_data) | Token::Regex(token_data) => token_data.precedence.get(),
+        }
+    }
+
+    pub fn is_unused(&self) -> bool {
+        match self {
+            Token::Literal(token_data) | Token::Regex(token_data) => {
+                token_data.used_at.borrow().is_empty()
+            }
         }
     }
 
@@ -145,6 +154,27 @@ impl TokenSet {
 
     pub fn is_empty(&self) -> bool {
         self.0.len() == 0
+    }
+
+    pub fn first_all_caps(symbol_string: &[Symbol], token: &Token) -> Self {
+        let mut token_set = TokenSet::new();
+        for symbol in symbol_string.iter() {
+            match symbol {
+                Symbol::NonTerminal(non_terminal) => {
+                    let firsts_data = non_terminal.firsts_data();
+                    token_set |= &firsts_data.token_set;
+                    if !firsts_data.transparent {
+                        return token_set;
+                    }
+                }
+                Symbol::Terminal(token) => {
+                    token_set.insert(token);
+                    return token_set;
+                }
+            }
+        }
+        token_set.insert(token);
+        token_set
     }
 
     pub fn contains(&self, token: &Token) -> bool {

@@ -42,7 +42,7 @@ impl std::fmt::Display for Associativity {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Symbol {
     Terminal(Token),
     NonTerminal(NonTerminal),
@@ -159,6 +159,10 @@ impl SymbolTable {
         self.tags.get(name)
     }
 
+    pub fn tags(&self) -> impl Iterator<Item = &Tag> {
+        self.tags.values()
+    }
+
     pub fn new_literal_token(
         &mut self,
         name: &str,
@@ -199,6 +203,10 @@ impl SymbolTable {
         self.literal_tokens.get(lexeme)
     }
 
+    pub fn tokens(&self) -> impl Iterator<Item = &Token> {
+        self.tokens.values()
+    }
+
     pub fn non_terminal_defined_at(
         &mut self,
         name: &str,
@@ -215,6 +223,10 @@ impl SymbolTable {
                 .insert(name.to_string(), non_terminal.clone());
             Ok(non_terminal)
         }
+    }
+
+    pub fn non_terminals(&self) -> impl Iterator<Item = &NonTerminal> {
+        self.non_terminals.values()
     }
 
     pub fn symbol_used_at(&mut self, name: &str, used_at: &lexan::Location) -> Symbol {

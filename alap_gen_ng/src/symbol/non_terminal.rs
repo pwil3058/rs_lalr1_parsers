@@ -78,8 +78,20 @@ impl NonTerminal {
         &self.0.name
     }
 
+    pub fn is_unused(&self) -> bool {
+        self.0.used_at.borrow().is_empty()
+    }
+
+    pub fn is_undefined(&self) -> bool {
+        self.0.defined_at.borrow().is_empty()
+    }
+
     pub fn first_definition(&self) -> Option<lexan::Location> {
         Some(self.0.defined_at.borrow().first()?.clone())
+    }
+
+    pub fn used_at(&self) -> Vec<lexan::Location> {
+        self.0.used_at.borrow().iter().collect()
     }
 
     pub fn add_defined_at(&self, defined_at: &lexan::Location) {
