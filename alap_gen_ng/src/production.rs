@@ -5,8 +5,8 @@ use std::cmp::Ordering;
 use std::collections::{BTreeMap, BTreeSet};
 use std::rc::Rc;
 
-#[derive(Debug, Clone, Default)]
-pub struct ProductionTail {
+#[derive(Debug, Default)]
+pub struct ProductionTailData {
     right_hand_side: Vec<Symbol>,
     predicate: Option<String>,
     associativity: Associativity,
@@ -14,13 +14,26 @@ pub struct ProductionTail {
     action: Option<String>,
 }
 
+#[derive(Debug, Default, Clone)]
+pub struct ProductionTail(Rc<ProductionTailData>);
+
 impl ProductionTail {
     pub fn new(
-        right_hand_side: Vec<Symbol>,
-        predicate: Option<String>,
+        right_hand_side: &[Symbol],
+        o_predicate: Option<&str>,
         associative_precedence: Option<(Associativity, u16)>,
-        action: Option<String>,
+        o_action: Option<&str>,
     ) -> Self {
+        let predicate = if let Some(predicate) = o_predicate {
+            Some(predicate.to_string())
+        } else {
+            None
+        };
+        let action = if let Some(action) = o_action {
+            Some(action.to_string())
+        } else {
+            None
+        };
         let (associativity, precedence) = if let Some(tuple) = associative_precedence {
             tuple
         } else if let Some(tuple) = rhs_associated_precedence(&right_hand_side) {
@@ -28,13 +41,13 @@ impl ProductionTail {
         } else {
             (Associativity::default(), 0)
         };
-        Self {
-            right_hand_side,
+        Self(Rc::new(ProductionTailData {
+            right_hand_side: right_hand_side.to_vec(),
             predicate,
             action,
             associativity,
             precedence,
-        }
+        }))
     }
 }
 
@@ -70,7 +83,7 @@ impl Production {
     }
 
     pub fn len(&self) -> usize {
-        self.0.tail.right_hand_side.len()
+        self.0.tail.0.right_hand_side.len()
     }
 
     pub fn is_empty(&self) -> bool {

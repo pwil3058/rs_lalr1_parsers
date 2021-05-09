@@ -57,6 +57,18 @@ impl Token {
         }
     }
 
+    pub fn associativity(&self) -> Associativity {
+        match self {
+            Token::Literal(token_data) | Token::Regex(token_data) => token_data.associativity.get(),
+        }
+    }
+
+    pub fn precedence(&self) -> u16 {
+        match self {
+            Token::Literal(token_data) | Token::Regex(token_data) => token_data.precedence.get(),
+        }
+    }
+
     pub fn associativity_and_precedence(&self) -> (Associativity, u16) {
         match self {
             Token::Literal(token_data) | Token::Regex(token_data) => {

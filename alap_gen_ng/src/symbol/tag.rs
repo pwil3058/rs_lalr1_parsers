@@ -38,6 +38,26 @@ impl Tag {
     pub fn defined_at(&self) -> &lexan::Location {
         &self.0.defined_at
     }
+
+    pub fn associativity(&self) -> Associativity {
+        self.0.associativity.get()
+    }
+
+    pub fn precedence(&self) -> u16 {
+        self.0.precedence.get()
+    }
+
+    pub fn add_used_at(&self, used_at: &lexan::Location) {
+        self.0.used_at.borrow_mut().push(used_at.clone())
+    }
+
+    pub fn set_associativity(&self, associativity: Associativity) {
+        self.0.associativity.set(associativity)
+    }
+
+    pub fn set_precedence(&self, precedence: u16) {
+        self.0.precedence.set(precedence)
+    }
 }
 
 #[derive(Debug, Clone)]

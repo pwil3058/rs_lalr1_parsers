@@ -78,6 +78,10 @@ impl NonTerminal {
         &self.0.name
     }
 
+    pub fn first_definition(&self) -> Option<lexan::Location> {
+        Some(self.0.defined_at.borrow().first()?.clone())
+    }
+
     pub fn add_defined_at(&self, defined_at: &lexan::Location) {
         self.0.defined_at.borrow_mut().push(defined_at.clone())
     }

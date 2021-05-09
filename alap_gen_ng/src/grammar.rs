@@ -4,7 +4,7 @@ use crate::alap_gen_ng::{AANonTerminal, AATerminal};
 use crate::production::{Production, ProductionTail};
 use crate::symbol::non_terminal::NonTerminal;
 use crate::symbol::SymbolTable;
-use std::io::stderr;
+use std::io::{self, stderr, Write};
 
 pub fn report_error(location: &lexan::Location, what: &str) {
     writeln!(stderr(), "{}: Error: {}.", location, what).expect("what?");
@@ -48,13 +48,12 @@ impl Specification {
 
     pub fn new_production(&mut self, left_hand_side: &NonTerminal, tail: &ProductionTail) {
         if self.productions.len() == 0 {
-            let location = left_hand_side.defined_at().expect("should be defined");
+            let location = left_hand_side
+                .first_definition()
+                .expect("should be defined");
             left_hand_side.add_used_at(&location);
-            let start_symbol = self
-                .symbol_table
-                .use_symbol_named(&AANonTerminal::AAStart.to_string(), &location)
-                .unwrap();
-            let start_tail = ProductionTail::new(vec![left_hand_side.into()], None, None, None);
+            let start_symbol = self.symbol_table.start_non_terminal_used_at(&location);
+            let start_tail = ProductionTail::new(&[left_hand_side.into()], None, None, None);
             let start_production = Production::new(0, start_symbol, start_tail);
             self.productions.push(start_production);
         }

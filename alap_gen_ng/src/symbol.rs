@@ -120,11 +120,18 @@ pub struct SymbolTable {
     non_terminals: BTreeMap<String, NonTerminal>,
     skip_rules: Vec<String>,
     next_precedence: u16,
+    start_non_terminal: NonTerminal,
+    error_non_terminal: NonTerminal,
 }
 
 impl Default for SymbolTable {
     fn default() -> Self {
-        let mut table = Self {
+        let start_location = lexan::Location::default();
+        let start_non_terminal =
+            NonTerminal::new_defined(&AANonTerminal::AAStart.to_string(), &start_location);
+        let error_non_terminal =
+            NonTerminal::new_defined(&AANonTerminal::AAError.to_string(), &start_location);
+        Self {
             tags: BTreeMap::new(),
             tokens: BTreeMap::new(),
             literal_tokens: BTreeMap::new(),
@@ -132,21 +139,9 @@ impl Default for SymbolTable {
             non_terminals: BTreeMap::new(),
             skip_rules: Vec::new(),
             next_precedence: u16::MAX,
-        };
-
-        let start_location = lexan::Location::default();
-
-        table.non_terminal_defined_at(&AANonTerminal::AAStart.to_string(), &start_location);
-        table.non_terminal_defined_at(&AANonTerminal::AAError.to_string(), &start_location);
-        // table
-        //     .new_token(
-        //         &AATerminal::AAEnd.to_string(),
-        //         SymbolType::SpecialToken,
-        //         &start_location,
-        //     )
-        //     .expect("There should be no naming conflicts yet.");
-
-        table
+            start_non_terminal,
+            error_non_terminal,
+        }
     }
 }
 
@@ -158,6 +153,10 @@ impl SymbolTable {
         } else {
             Ok(tag)
         }
+    }
+
+    pub fn get_tag(&self, name: &str) -> Option<&Tag> {
+        self.tags.get(name)
     }
 
     pub fn new_literal_token(
@@ -233,6 +232,16 @@ impl SymbolTable {
         }
     }
 
+    pub fn error_symbol_used_at(&self, used_at: &lexan::Location) -> Symbol {
+        self.error_non_terminal.add_used_at(used_at);
+        Symbol::from(&self.error_non_terminal)
+    }
+
+    pub fn start_non_terminal_used_at(&self, used_at: &lexan::Location) -> NonTerminal {
+        self.start_non_terminal.add_used_at(used_at);
+        self.start_non_terminal.clone()
+    }
+
     pub fn add_skip_rule(&mut self, skip_rule: &String) -> Result<(), Error> {
         if self.skip_rules.contains(skip_rule) {
             Err(Error::DuplicateSkipRule(skip_rule.to_string()))
@@ -259,6 +268,7 @@ impl SymbolTable {
                     token.set_associativity(associativity);
                     token.set_precedence(precedence);
                 }
+                TagOrToken::Invalid => (),
             }
         }
     }
