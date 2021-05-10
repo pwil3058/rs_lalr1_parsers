@@ -1,15 +1,7 @@
 // Copyright 2021 Peter Williams <pwil3058@gmail.com> <pwil3058@bigpond.net.au>
-use std::{
-    cell::{Cell, RefCell},
-    cmp::Ordering,
-    collections::{btree_set, BTreeMap, BTreeSet},
-    fmt,
-    iter::FromIterator,
-    ops::{BitOr, BitOrAssign},
-    rc::Rc,
-};
+use std::{collections::BTreeMap, fmt};
 
-use crate::alap_gen_ng::{AANonTerminal, AATerminal};
+use crate::alap_gen_ng::AANonTerminal;
 use crate::symbol::non_terminal::NonTerminal;
 use crate::symbol::tag::{Tag, TagOrToken};
 use crate::symbol::terminal::Token;
@@ -64,13 +56,6 @@ impl Symbol {
     pub fn is_non_terminal(&self) -> bool {
         match self {
             Symbol::NonTerminal(_) => true,
-            _ => false,
-        }
-    }
-
-    pub fn is_terminal(&self) -> bool {
-        match self {
-            Symbol::Terminal(_) => true,
             _ => false,
         }
     }

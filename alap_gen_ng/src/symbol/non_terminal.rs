@@ -6,7 +6,6 @@ use std::{
     rc::Rc,
 };
 
-use crate::alap_gen_ng::AANonTerminal;
 use crate::production::Production;
 use crate::symbol::{terminal::TokenSet, Associativity, Symbol};
 
@@ -60,12 +59,6 @@ pub enum NonTerminal {
 }
 
 impl NonTerminal {
-    pub fn new(name: &str) -> Self {
-        let mut non_terminal_data = NonTerminalData::default();
-        non_terminal_data.name = name.to_string();
-        NonTerminal::UserDefined(Rc::new(non_terminal_data))
-    }
-
     pub fn new_defined(name: &str, defined_at: &lexan::Location) -> Self {
         let mut non_terminal_data = NonTerminalData::default();
         non_terminal_data.name = name.to_string();
@@ -224,7 +217,9 @@ impl NonTerminal {
                                             break;
                                         }
                                     }
-                                    non_terminal.set_firsts_data(productions);
+                                    if !non_terminal.firsts_data_is_set() {
+                                        non_terminal.set_firsts_data(productions);
+                                    }
                                     let firsts_data = non_terminal.firsts_data();
                                     token_set |= &firsts_data.token_set;
                                     if !firsts_data.transparent {

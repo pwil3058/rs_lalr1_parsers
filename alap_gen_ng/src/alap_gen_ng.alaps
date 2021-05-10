@@ -3,7 +3,7 @@
 // alap_gen_ng Specification for alap_gen_ng grammar Specification language
 
 %{
-use std::{fs::File, io::Read, rc::Rc};
+use std::{fs::File, io::Read};
 
 use crate::{
     attributes::*,
@@ -201,6 +201,10 @@ Tag: LITERAL
             let lexeme = $1.matched_text();
             if let Some(token) = self.symbol_table.get_literal_token(lexeme) {
                 $$ = AttributeData::TagOrToken(token.into());
+                if token.precedence_has_been_set() {
+                    let msg = format!("Token \"{}\" precedence has been set already", lexeme);
+                    self.error($1.location(), &msg);
+                }
             } else {
                 let msg = format!("Literal token \"{}\" is not known", lexeme);
                 self.error($1.location(), &msg);
@@ -212,6 +216,10 @@ Tag: LITERAL
             let name = $1.matched_text();
             if let Some(token) = self.symbol_table.get_token(name) {
                 $$ = AttributeData::TagOrToken(token.into());
+                if token.precedence_has_been_set() {
+                    let msg = format!("Token \"{}\" precedence has been set already", name);
+                    self.error($1.location(), &msg);
+                }
             } else {
                 let location = $1.location();
                 if !Self::is_allowable_name(name) {

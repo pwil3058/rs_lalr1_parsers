@@ -162,10 +162,6 @@ impl TokenSet {
         self.0.len()
     }
 
-    pub fn is_empty(&self) -> bool {
-        self.0.len() == 0
-    }
-
     pub fn first_all_caps(symbol_string: &[Symbol], token: &Token) -> Self {
         let mut token_set = TokenSet::new();
         for symbol in symbol_string.iter() {
@@ -205,10 +201,6 @@ impl TokenSet {
 
     pub fn intersection<'a>(&'a self, other: &'a Self) -> btree_set::Intersection<'a, Token> {
         self.0.intersection(&other.0)
-    }
-
-    pub fn union<'a>(&'a self, other: &'a Self) -> btree_set::Union<'a, Token> {
-        self.0.union(&other.0)
     }
 
     pub fn iter(&self) -> btree_set::Iter<Token> {

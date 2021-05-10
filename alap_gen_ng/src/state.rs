@@ -60,6 +60,7 @@ impl Ord for ParserState {
 impl ParserState {
     pub fn new(ident: u32, grammar_items: GrammarItemSet) -> Self {
         let mut data = ParserStateData::default();
+        data.ident = ident;
         *data.grammar_items.borrow_mut() = grammar_items;
         Self(Rc::new(data))
     }
@@ -67,13 +68,6 @@ impl ParserState {
     pub fn is_processed(&self) -> bool {
         match self.0.processed_state.get() {
             ProcessedState::Processed => true,
-            _ => false,
-        }
-    }
-
-    pub fn is_unprocessed(&self) -> bool {
-        match self.0.processed_state.get() {
-            ProcessedState::Unprocessed => true,
             _ => false,
         }
     }

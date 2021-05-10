@@ -56,7 +56,7 @@ fn main() {
         .unwrap();
         std::process::exit(1);
     }
-    let _expected_number_of_conflicts = if let Some(number) = cl_options.expect {
+    let expected_number_of_conflicts = if let Some(number) = cl_options.expect {
         number
     } else {
         0
@@ -108,4 +108,14 @@ fn main() {
             }
         },
     };
+
+    if grammar.total_unresolved_conflicts() != expected_number_of_conflicts {
+        writeln!(
+            std::io::stderr(),
+            "Unexpected conflicts ({}) aborting",
+            grammar.total_unresolved_conflicts()
+        )
+        .unwrap();
+        std::process::exit(5);
+    }
 }

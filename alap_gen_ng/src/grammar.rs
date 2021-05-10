@@ -1,6 +1,6 @@
 // Copyright 2021 Peter Williams <pwil3058@gmail.com> <pwil3058@bigpond.net.au>
 
-use crate::alap_gen_ng::{AANonTerminal, AATerminal};
+use crate::alap_gen_ng::AATerminal;
 use crate::production::{GrammarItemKey, GrammarItemSet, Production, ProductionTail};
 use crate::state::ParserState;
 use crate::symbol::non_terminal::NonTerminal;
@@ -9,7 +9,7 @@ use crate::symbol::{Symbol, SymbolTable};
 use lalr1_plus::Parser;
 use std::collections::{BTreeMap, BTreeSet};
 use std::convert::TryFrom;
-use std::io::{self, stderr, Write};
+use std::io::{stderr, Write};
 
 pub fn report_error(location: &lexan::Location, what: &str) {
     writeln!(stderr(), "{}: Error: {}.", location, what).expect("what?");
@@ -145,7 +145,7 @@ pub enum Error {
 impl TryFrom<Specification> for Grammar {
     type Error = Error;
 
-    fn try_from(mut specification: Specification) -> Result<Self, Error> {
+    fn try_from(specification: Specification) -> Result<Self, Error> {
         for token in specification
             .symbol_table
             .tokens()
@@ -283,5 +283,9 @@ impl Grammar {
             }
         };
         None
+    }
+
+    pub fn total_unresolved_conflicts(&self) -> usize {
+        self.unresolved_rr_conflicts + self.unresolved_sr_conflicts
     }
 }
