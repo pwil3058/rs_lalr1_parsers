@@ -94,6 +94,10 @@ impl Production {
         &self.0.left_hand_side
     }
 
+    pub fn right_hand_side_symbols(&self) -> impl Iterator<Item = &Symbol> {
+        self.0.tail.0.right_hand_side.iter()
+    }
+
     pub fn associativity(&self) -> Associativity {
         self.0.tail.0.associativity
     }

@@ -6,6 +6,7 @@ use crate::state::ParserState;
 use crate::symbol::non_terminal::NonTerminal;
 use crate::symbol::terminal::{Token, TokenSet};
 use crate::symbol::{Symbol, SymbolTable};
+use lalr1_plus::Parser;
 use std::collections::{BTreeMap, BTreeSet};
 use std::convert::TryFrom;
 use std::io::{self, stderr, Write};
@@ -32,6 +33,25 @@ pub struct Specification {
 impl lalr1_plus::ReportError<AATerminal> for Specification {}
 
 impl Specification {
+    pub fn new(text: String, label: String) -> Result<Self, lalr1_plus::Error<AATerminal>> {
+        let mut spec = Specification::default();
+        spec.attribute_type = "AttributeData".to_string();
+        spec.target_type = "Specification".to_string();
+        spec.parse_text(text, label)?;
+        // Add dummy error production last so that it has lowest precedence during conflict resolution
+        let symbol = spec.symbol_table.error_non_terminal.clone();
+        let ident = spec.productions.len() as u32;
+        let tail = ProductionTail::default();
+        // TODO: is this necessary if %error is never used?
+        spec.productions.push(Production::new(ident, symbol, tail));
+        for non_terminal in spec.symbol_table.non_terminals() {
+            //if non_terminal.firsts_data_is_none() {
+            non_terminal.set_firsts_data(&spec.productions)
+            //}
+        }
+        Ok(spec)
+    }
+
     pub fn is_allowable_name(name: &str) -> bool {
         !(name.starts_with("aa") || name.starts_with("AA"))
     }

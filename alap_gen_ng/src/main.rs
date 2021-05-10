@@ -3,6 +3,7 @@ use clap::crate_authors;
 use structopt::StructOpt;
 
 use std::{
+    convert::TryFrom,
     fs,
     io::prelude::*,
     path::{Path, PathBuf},
@@ -72,8 +73,8 @@ fn main() {
             std::process::exit(2);
         }
     };
-    let mut specification = String::new();
-    if let Err(error) = file.read_to_string(&mut specification) {
+    let mut specification_text = String::new();
+    if let Err(error) = file.read_to_string(&mut specification_text) {
         writeln!(
             std::io::stderr(),
             "Error reading specification file: {:?}",
@@ -81,5 +82,30 @@ fn main() {
         )
         .unwrap();
         std::process::exit(2);
+    };
+
+    let specification = match grammar::Specification::new(
+        specification_text,
+        cl_options.specification.to_string_lossy().to_string(),
+    ) {
+        Ok(spec) => spec,
+        Err(error) => {
+            writeln!(std::io::stderr(), "Parse failed: {:?}", error).unwrap();
+            std::process::exit(2);
+        }
+    };
+
+    let grammar = match grammar::Grammar::try_from(specification) {
+        Ok(grammar) => grammar,
+        Err(err) => match err {
+            grammar::Error::TooManyErrors(count) => {
+                writeln!(std::io::stderr(), "Too many errors: {:?}.", count).unwrap();
+                std::process::exit(4);
+            }
+            grammar::Error::UndefinedSymbols(count) => {
+                writeln!(std::io::stderr(), "Undefined symbols: {:?}.", count).unwrap();
+                std::process::exit(4);
+            }
+        },
     };
 }

@@ -7,7 +7,8 @@ use std::{
 };
 
 use crate::alap_gen_ng::AANonTerminal;
-use crate::symbol::{terminal::TokenSet, Associativity};
+use crate::production::Production;
+use crate::symbol::{terminal::TokenSet, Associativity, Symbol};
 
 #[derive(Debug, Clone, Default)]
 pub struct FirstsData {
@@ -86,6 +87,12 @@ impl NonTerminal {
         let mut non_terminal_data = NonTerminalData::default();
         non_terminal_data.name = name.to_string();
         NonTerminal::Error(Rc::new(non_terminal_data))
+    }
+
+    pub fn new_start(name: &str) -> Self {
+        let mut non_terminal_data = NonTerminalData::default();
+        non_terminal_data.name = name.to_string();
+        NonTerminal::Start(Rc::new(non_terminal_data))
     }
 
     pub fn name(&self) -> &str {
@@ -172,6 +179,76 @@ impl NonTerminal {
             | NonTerminal::Error(non_terminal_data)
             | NonTerminal::Start(non_terminal_data) => {
                 non_terminal_data.firsts_data.borrow().clone().expect(&msg)
+            }
+        }
+    }
+
+    fn firsts_data_is_set(&self) -> bool {
+        match self {
+            NonTerminal::UserDefined(non_terminal_data)
+            | NonTerminal::Error(non_terminal_data)
+            | NonTerminal::Start(non_terminal_data) => {
+                non_terminal_data.firsts_data.borrow().is_some()
+            }
+        }
+    }
+
+    pub fn set_firsts_data(&self, productions: &[Production]) {
+        match self {
+            NonTerminal::UserDefined(non_terminal_data)
+            | NonTerminal::Error(non_terminal_data)
+            | NonTerminal::Start(non_terminal_data) => {
+                if non_terminal_data.firsts_data.borrow().is_some() {
+                    return;
+                }
+                let relevant_productions: Vec<Production> = productions
+                    .iter()
+                    .filter(|x| x.left_hand_side() == self)
+                    .cloned()
+                    .collect();
+                let mut transparent = relevant_productions.iter().any(|x| x.is_empty());
+                let mut token_set = TokenSet::new();
+                let mut transparency_changed = true;
+                while transparency_changed {
+                    transparency_changed = false;
+                    for production in relevant_productions.iter() {
+                        let mut transparent_production = true;
+                        for rhs_symbol in production.right_hand_side_symbols() {
+                            match rhs_symbol {
+                                Symbol::NonTerminal(non_terminal) => {
+                                    if non_terminal == self {
+                                        if transparent {
+                                            continue;
+                                        } else {
+                                            transparent_production = false;
+                                            break;
+                                        }
+                                    }
+                                    non_terminal.set_firsts_data(productions);
+                                    let firsts_data = non_terminal.firsts_data();
+                                    token_set |= &firsts_data.token_set;
+                                    if !firsts_data.transparent {
+                                        transparent_production = false;
+                                        break;
+                                    }
+                                }
+                                Symbol::Terminal(token) => {
+                                    token_set.insert(token);
+                                    transparent_production = false;
+                                    break;
+                                }
+                            }
+                        }
+                        if transparent_production {
+                            transparency_changed = !transparent;
+                            transparent = true;
+                        }
+                    }
+                }
+                *non_terminal_data.firsts_data.borrow_mut() = Some(FirstsData {
+                    token_set,
+                    transparent,
+                });
             }
         }
     }

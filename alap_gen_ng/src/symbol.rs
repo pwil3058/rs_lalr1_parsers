@@ -137,16 +137,13 @@ pub struct SymbolTable {
     skip_rules: Vec<String>,
     next_precedence: u16,
     start_non_terminal: NonTerminal,
-    error_non_terminal: NonTerminal,
+    pub error_non_terminal: NonTerminal,
 }
 
 impl Default for SymbolTable {
     fn default() -> Self {
-        let start_location = lexan::Location::default();
-        let start_non_terminal =
-            NonTerminal::new_defined(&AANonTerminal::AAStart.to_string(), &start_location);
-        let error_non_terminal =
-            NonTerminal::new_defined(&AANonTerminal::AAError.to_string(), &start_location);
+        let start_non_terminal = NonTerminal::new_start(&AANonTerminal::AAStart.to_string());
+        let error_non_terminal = NonTerminal::new_error(&AANonTerminal::AAError.to_string());
         Self {
             tags: BTreeMap::new(),
             tokens: BTreeMap::new(),
