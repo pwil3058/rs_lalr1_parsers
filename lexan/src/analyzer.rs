@@ -6,14 +6,14 @@ pub use std::{
 use crate::lexicon::Lexicon;
 
 /// Data for use in user friendly lexical analysis error messages
-#[derive(Debug, Clone, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, PartialEq, Eq, Default, PartialOrd, Ord)]
 pub struct Location {
+    /// A label describing the source of the string in which this location occurs
+    label: String,
     /// Human friendly line number of this location
     line_number: usize,
     /// Human friendly offset of this location within its line
     offset: usize,
-    /// A label describing the source of the string in which this location occurs
-    label: String,
 }
 
 impl Location {
