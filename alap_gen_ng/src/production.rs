@@ -91,7 +91,26 @@ impl Production {
     }
 
     pub fn left_hand_side(&self) -> &NonTerminal {
-        &self.left_hand_side
+        &self.0.left_hand_side
+    }
+
+    pub fn associativity(&self) -> Associativity {
+        self.0.tail.0.associativity
+    }
+
+    pub fn precedence(&self) -> u16 {
+        self.0.tail.0.precedence
+    }
+
+    pub fn has_error_recovery_tail(&self) -> bool {
+        if let Some(symbol) = self.0.tail.0.right_hand_side.last() {
+            match symbol {
+                Symbol::Terminal(_) => false,
+                Symbol::NonTerminal(non_terminal) => non_terminal.is_error(),
+            }
+        } else {
+            false
+        }
     }
 }
 
@@ -121,7 +140,7 @@ struct Reductions {
     expected_tokens: TokenSet,
 }
 
-#[derive(Debug, PartialOrd, Ord, PartialEq, Eq)]
+#[derive(Debug, PartialOrd, Ord, PartialEq, Eq, Clone)]
 pub struct GrammarItemKey {
     production: Production,
     dot: usize,
@@ -146,12 +165,52 @@ impl GrammarItemKey {
         }
     }
 
+    pub fn is_closable(&self) -> bool {
+        if let Some(symbol) = self.production.0.tail.0.right_hand_side.get(self.dot) {
+            symbol.is_non_terminal()
+        } else {
+            false
+        }
+    }
+
+    pub fn is_kernel_item(&self) -> bool {
+        self.dot > 0 || self.production.0.left_hand_side.is_start()
+    }
+
+    pub fn is_reducible(&self) -> bool {
+        self.dot >= self.production.0.tail.0.right_hand_side.len()
+    }
+
     pub fn next_symbol(&self) -> Option<&Symbol> {
-        self.production.tail.right_hand_side.get(self.dot)
+        self.production.0.tail.0.right_hand_side.get(self.dot)
+    }
+
+    pub fn next_symbol_is(&self, symbol: &Symbol) -> bool {
+        if let Some(next_symbol) = self.next_symbol() {
+            next_symbol == symbol
+        } else {
+            false
+        }
     }
 
     pub fn rhs_tail(&self) -> &[Symbol] {
-        &self.production.tail.right_hand_side[self.dot + 1..]
+        &self.production.0.tail.0.right_hand_side[self.dot + 1..]
+    }
+
+    pub fn associativity(&self) -> Associativity {
+        self.production.associativity()
+    }
+
+    pub fn precedence(&self) -> u16 {
+        self.production.precedence()
+    }
+
+    pub fn has_no_predicate(&self) -> bool {
+        self.production.0.tail.0.predicate.is_none()
+    }
+
+    pub fn has_error_recovery_tail(&self) -> bool {
+        self.production.has_error_recovery_tail()
     }
 }
 
@@ -169,15 +228,73 @@ impl GrammarItemSet {
         self.0.iter()
     }
 
+    pub fn closable_set(&self) -> Vec<(GrammarItemKey, TokenSet)> {
+        let mut closables = vec![];
+        for (key, set) in self.0.iter().filter(|x| x.0.is_closable()) {
+            closables.push((key.clone(), set.clone()));
+        }
+        closables
+    }
+
+    pub fn generate_goto_kernel(&self, symbol: &Symbol) -> GrammarItemSet {
+        // TODO: be more itery
+        let mut map = BTreeMap::new();
+        for (item_key, look_ahead_set) in self.0.iter() {
+            if item_key.next_symbol_is(symbol) {
+                map.insert(item_key.shifted(), look_ahead_set.clone());
+            }
+        }
+        GrammarItemSet(map)
+    }
+
+    pub fn kernel_key_set(&self) -> BTreeSet<GrammarItemKey> {
+        // TODO: be more itery
+        let mut keys = BTreeSet::new();
+        for key in self.0.keys().filter(|x| x.is_kernel_item()) {
+            keys.insert(key.clone());
+        }
+        keys
+    }
+
+    pub fn irreducible_key_set(&self) -> BTreeSet<GrammarItemKey> {
+        self.0
+            .keys()
+            .filter(|x| !x.is_reducible())
+            .cloned()
+            .collect()
+    }
+
+    pub fn reducible_key_set(&self) -> BTreeSet<GrammarItemKey> {
+        self.0
+            .keys()
+            .filter(|x| x.is_reducible())
+            .cloned()
+            .collect()
+    }
+
     pub fn get_mut(&mut self, key: &GrammarItemKey) -> Option<&mut TokenSet> {
         self.0.get_mut(key)
     }
 
-    pub fn insert(
-        &mut self,
-        key: GrammarItemKey,
-        look_ahead_set: TokenSet,
-    ) -> Option<TokenSet> {
+    pub fn insert(&mut self, key: GrammarItemKey, look_ahead_set: TokenSet) -> Option<TokenSet> {
         self.0.insert(key, look_ahead_set)
+    }
+
+    pub fn look_ahead_intersection(
+        &self,
+        key1: &GrammarItemKey,
+        key2: &GrammarItemKey,
+    ) -> TokenSet {
+        self.0
+            .get(key1)
+            .unwrap()
+            .intersection(self.0.get(key2).unwrap())
+            .cloned()
+            .collect()
+    }
+
+    pub fn remove_look_ahead_symbols(&mut self, key: &GrammarItemKey, symbols: &TokenSet) {
+        let look_ahead_set = self.0.get_mut(key).unwrap();
+        *look_ahead_set = look_ahead_set.difference(symbols).cloned().collect();
     }
 }

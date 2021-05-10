@@ -30,7 +30,27 @@ impl TokenData {
     }
 }
 
-#[derive(Debug, Clone)]
+impl PartialEq for TokenData {
+    fn eq(&self, other: &Self) -> bool {
+        self.name == other.name
+    }
+}
+
+impl Eq for TokenData {}
+
+impl PartialOrd for TokenData {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        self.name.partial_cmp(&other.name)
+    }
+}
+
+impl Ord for TokenData {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.partial_cmp(other).unwrap()
+    }
+}
+
+#[derive(Debug, Clone, PartialOrd, Ord, PartialEq, Eq)]
 pub enum Token {
     Literal(Rc<TokenData>),
     Regex(Rc<TokenData>),
@@ -49,24 +69,28 @@ impl Token {
     pub fn name(&self) -> &str {
         match self {
             Token::Literal(token_data) | Token::Regex(token_data) => &token_data.name,
+            Token::EndToken => panic!("should not be asking end token's name"),
         }
     }
 
     pub fn defined_at(&self) -> &lexan::Location {
         match self {
             Token::Literal(token_data) | Token::Regex(token_data) => &token_data.defined_at,
+            Token::EndToken => panic!("should not be asking end token's definition location"),
         }
     }
 
     pub fn associativity(&self) -> Associativity {
         match self {
             Token::Literal(token_data) | Token::Regex(token_data) => token_data.associativity.get(),
+            Token::EndToken => Associativity::default(),
         }
     }
 
     pub fn precedence(&self) -> u16 {
         match self {
             Token::Literal(token_data) | Token::Regex(token_data) => token_data.precedence.get(),
+            Token::EndToken => 0,
         }
     }
 
@@ -75,6 +99,7 @@ impl Token {
             Token::Literal(token_data) | Token::Regex(token_data) => {
                 token_data.used_at.borrow().is_empty()
             }
+            Token::EndToken => false,
         }
     }
 
@@ -83,6 +108,7 @@ impl Token {
             Token::Literal(token_data) | Token::Regex(token_data) => {
                 (token_data.associativity.get(), token_data.precedence.get())
             }
+            Token::EndToken => (Associativity::default(), 0),
         }
     }
 
@@ -91,6 +117,7 @@ impl Token {
             Token::Literal(token_data) | Token::Regex(token_data) => {
                 token_data.used_at.borrow_mut().push(used_at.clone())
             }
+            Token::EndToken => panic!("should not be trying to modify end token's usage locations"),
         }
     }
 
@@ -99,6 +126,7 @@ impl Token {
             Token::Literal(token_data) | Token::Regex(token_data) => {
                 token_data.associativity.set(associativity)
             }
+            Token::EndToken => panic!("should not be trying to set end token's associativity"),
         }
     }
 
@@ -108,6 +136,7 @@ impl Token {
             Token::Literal(token_data) | Token::Regex(token_data) => {
                 token_data.precedence.set(precedence)
             }
+            Token::EndToken => panic!("should not be trying to set end token's precedence"),
         }
     }
 
@@ -116,27 +145,8 @@ impl Token {
             Token::Literal(token_data) | Token::Regex(token_data) => {
                 token_data.precedence.get() > 0
             }
+            Token::EndToken => false,
         }
-    }
-}
-
-impl PartialEq for Token {
-    fn eq(&self, other: &Self) -> bool {
-        self.name() == other.name()
-    }
-}
-
-impl Eq for Token {}
-
-impl PartialOrd for Token {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        self.name().partial_cmp(other.name())
-    }
-}
-
-impl Ord for Token {
-    fn cmp(&self, other: &Self) -> Ordering {
-        self.partial_cmp(other).unwrap()
     }
 }
 

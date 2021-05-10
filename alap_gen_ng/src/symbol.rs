@@ -60,6 +60,22 @@ impl From<&NonTerminal> for Symbol {
     }
 }
 
+impl Symbol {
+    pub fn is_non_terminal(&self) -> bool {
+        match self {
+            Symbol::NonTerminal(_) => true,
+            _ => false,
+        }
+    }
+
+    pub fn is_terminal(&self) -> bool {
+        match self {
+            Symbol::Terminal(_) => true,
+            _ => false,
+        }
+    }
+}
+
 #[derive(Debug)]
 pub enum Error {
     DuplicateTag(Tag),

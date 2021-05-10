@@ -71,11 +71,12 @@ impl Specification {
         while additions_made {
             additions_made = false;
             // Closables extraction as a new separate map necessary to avoid borrow conflict
-            for (item_key, look_ahead_set) in closure_set.iter() {
+            for (item_key, look_ahead_set) in closure_set.closable_set() {
                 if let Some(symbol) = item_key.next_symbol() {
                     match symbol {
-                        Symbol::Terminal(_) => (),
+                        Symbol::Terminal(_) => debug_assert!(!item_key.is_closable()),
                         Symbol::NonTerminal(prospective_lhs) => {
+                            debug_assert!(item_key.is_closable());
                             for look_ahead_symbol in look_ahead_set.iter() {
                                 let firsts = TokenSet::first_all_caps(
                                     item_key.rhs_tail(),
@@ -99,6 +100,8 @@ impl Specification {
                             }
                         }
                     }
+                } else {
+                    debug_assert!(!item_key.is_closable());
                 }
             }
         }
@@ -187,13 +190,11 @@ impl TryFrom<Specification> for Grammar {
                 unresolved_sr_conflicts: 0,
             };
             grammar.new_parser_state(start_kernel);
-            while let Some(unprocessed_state) =
-                grammar.parser_states.iter().find(|x| !x.is_processed())
-            {
-                let first_time = unprocessed_state.is_unprocessed();
+            while let Some(unprocessed_state) = grammar.first_unprocessed_state() {
+                let first_time = !unprocessed_state.needs_reprocessing();
                 unprocessed_state.mark_as_processed();
                 let mut already_done = BTreeSet::<Symbol>::new();
-                for item_key in unprocessed_state.non_kernel_keys().iter() {
+                for item_key in unprocessed_state.non_kernel_key_set().iter() {
                     let symbol_x = item_key.next_symbol().expect("not reducible");
                     if !already_done.insert(symbol_x.clone()) {
                         continue;
@@ -210,13 +211,13 @@ impl TryFrom<Specification> for Grammar {
                     if first_time {
                         match symbol_x {
                             Symbol::Terminal(token) => {
-                                unprocessed_state.add_shift_action(token, goto_state)
+                                unprocessed_state.add_shift_action(token.clone(), goto_state)
                             }
                             Symbol::NonTerminal(non_terminal) => {
-                                if non_terminal.is_error_non_terminal() {
+                                if non_terminal.is_error() {
                                     unprocessed_state.set_error_recovery_state(&goto_state);
                                 }
-                                unprocessed_state.add_goto(non_terminal, goto_state);
+                                unprocessed_state.add_goto(non_terminal.clone(), goto_state);
                             }
                         }
                     }
@@ -229,11 +230,20 @@ impl TryFrom<Specification> for Grammar {
 }
 
 impl Grammar {
-    fn first_unprocessed_state(&self) -> Option<ParserState> {
-        match self.parser_states.iter().find(|x| !x.is_processed()) {
-            Some(unprocessed_state) => Some(unprocessed_state.clone()),
-            None => None,
+    fn resolve_conflicts(&mut self) {
+        for parser_state in self.parser_states.iter_mut() {
+            self.unresolved_sr_conflicts += parser_state.resolve_shift_reduce_conflicts();
+            self.unresolved_rr_conflicts += parser_state.resolve_reduce_reduce_conflicts();
         }
+    }
+
+    fn first_unprocessed_state(&self) -> Option<ParserState> {
+        Some(
+            self.parser_states
+                .iter()
+                .find(|x| !x.is_processed())?
+                .clone(),
+        )
     }
 
     fn new_parser_state(&mut self, grammar_items: GrammarItemSet) -> ParserState {
@@ -244,10 +254,10 @@ impl Grammar {
     }
 
     fn equivalent_state(&self, item_set: &GrammarItemSet) -> Option<&ParserState> {
-        let target_keys = item_set.kernel_keys();
-        if target_keys.len() > 0 {
+        let target_key_set = item_set.kernel_key_set();
+        if target_key_set.len() > 0 {
             for parser_state in self.parser_states.iter() {
-                if target_keys == parser_state.kernel_keys() {
+                if target_key_set == parser_state.kernel_key_set() {
                     return Some(parser_state);
                 }
             }
