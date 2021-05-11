@@ -7,4 +7,4 @@ members = [
     "alap_gen_ng",
 ]
 
-exclude = ["tests"]
+exclude = ["tests", "tests_ng"]

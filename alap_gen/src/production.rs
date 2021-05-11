@@ -417,10 +417,11 @@ impl GrammarItemSet {
     }
 
     pub fn error_recovery_look_ahead_set_contains(&self, token: &Rc<Symbol>) -> bool {
-        for (_, look_ahead_set) in self
+        for look_ahead_set in self
             .0
             .iter()
             .filter(|x| x.0.has_reducible_error_recovery_tail())
+            .map(|x| x.1)
         {
             if look_ahead_set.contains(token) {
                 return true;
