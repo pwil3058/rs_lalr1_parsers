@@ -393,7 +393,7 @@ impl Grammar {
         wtr.write(b"impl std::fmt::Display for AATerminal {\n")?;
         wtr.write(b"    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {\n")?;
         wtr.write(b"        match self {\n")?;
-        wtr.write(b"            AATerminal::AAEnd => ###\"AAEnd\"###,\n")?;
+        wtr.write(b"            AATerminal::AAEnd => write!(f, r###\"AAEnd\"###),\n")?;
         for token in self.specification.symbol_table.tokens() {
             wtr.write(b"            AATerminal::")?;
             match token {
@@ -418,6 +418,8 @@ impl Grammar {
         self.write_lexical_analyzer_code(wtr)?;
         wtr.write(b"#[derive(Debug, Clone, Copy, PartialOrd, Ord, PartialEq, Eq)]\n")?;
         wtr.write(b"pub enum AANonTerminal {\n")?;
+        wtr.write(b"    AAStart,\n")?;
+        wtr.write(b"    AAError,\n")?;
         for non_terminal in self.specification.symbol_table.non_terminals() {
             wtr.write_fmt(format_args!("    {},\n", non_terminal.name()))?;
         }
@@ -425,6 +427,8 @@ impl Grammar {
         wtr.write(b"impl std::fmt::Display for AANonTerminal {\n")?;
         wtr.write(b"    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {\n")?;
         wtr.write(b"        match self {\n")?;
+        wtr.write(b"            AANonTerminal::AAStart => write!(f, r###\"AAStart\"###),\n")?;
+        wtr.write(b"            AANonTerminal::AAError => write!(f, r###\"AAError\"###),\n")?;
         for non_terminal in self.specification.symbol_table.non_terminals() {
             wtr.write(b"            AANonTerminal::")?;
             let name = non_terminal.name();

@@ -91,7 +91,8 @@ impl NonTerminal {
     pub fn name(&self) -> &str {
         match self {
             NonTerminal::UserDefined(non_terminal) => &non_terminal.name,
-            _ => panic!("should not be asking the name of special symbols"),
+            NonTerminal::Start(non_terminal) => &non_terminal.name,
+            NonTerminal::Error(non_terminal) => &non_terminal.name,
         }
     }
 
