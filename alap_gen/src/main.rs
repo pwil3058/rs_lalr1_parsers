@@ -42,6 +42,7 @@ mod attributes;
 #[cfg(feature = "bootstrap")]
 mod bootstrap;
 mod grammar;
+mod production;
 mod state;
 mod symbols;
 

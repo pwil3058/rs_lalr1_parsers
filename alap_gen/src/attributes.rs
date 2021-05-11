@@ -6,7 +6,7 @@ use lexan;
 use crate::alapgen::AATerminal;
 #[cfg(feature = "bootstrap")]
 use crate::bootstrap::AATerminal;
-use crate::state::ProductionTail;
+use crate::production::ProductionTail;
 use crate::symbols::*;
 
 #[derive(Debug, Clone)]

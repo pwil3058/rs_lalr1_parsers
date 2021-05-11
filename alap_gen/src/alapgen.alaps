@@ -7,7 +7,7 @@ use std::{fs::File, io::Read, rc::Rc};
 use crate::{
     attributes::*,
     grammar::GrammarSpecification,
-    state::ProductionTail,
+    production::ProductionTail,
     symbols::{AssociativePrecedence, Associativity, SymbolType},
 };
 %}

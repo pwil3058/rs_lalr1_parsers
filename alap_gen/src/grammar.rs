@@ -9,7 +9,8 @@ use std::{
 use lalr1_plus::{self, Parser};
 use lexan;
 
-use crate::state::{GrammarItemKey, GrammarItemSet, ParserState, Production, ProductionTail};
+use crate::production::{GrammarItemKey, GrammarItemSet, Production, ProductionTail};
+use crate::state::ParserState;
 use crate::symbols::{
     format_as_macro_call, SetFirstsData, Symbol, SymbolSet, SymbolTable, SymbolType,
 };

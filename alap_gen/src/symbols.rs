@@ -16,7 +16,7 @@ use lexan;
 use crate::alapgen::{AANonTerminal, AATerminal};
 #[cfg(feature = "bootstrap")]
 use crate::bootstrap::{AANonTerminal, AATerminal};
-use crate::state::Production;
+use crate::production::Production;
 
 #[derive(Debug)]
 pub enum Error {
@@ -446,7 +446,7 @@ impl FromIterator<Rc<Symbol>> for SymbolSet {
 
 impl fmt::Display for SymbolSet {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", crate::state::format_set(&self.0))
+        write!(f, "{}", crate::production::format_set(&self.0))
     }
 }
 
