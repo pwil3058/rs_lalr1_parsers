@@ -1,9 +1,12 @@
 // Copyright 2021 Peter Williams <pwil3058@gmail.com> <pwil3058@bigpond.net.au>
 
+use crate::symbol::terminal::Token;
 use crate::symbol::{non_terminal::NonTerminal, terminal::TokenSet, Associativity, Symbol};
+use lazy_static::lazy_static;
 use std::cmp::Ordering;
 use std::collections::{BTreeMap, BTreeSet};
 use std::rc::Rc;
+use std::str::FromStr;
 
 #[derive(Debug, Default)]
 pub struct ProductionTailData {
@@ -73,6 +76,10 @@ pub struct ProductionData {
 #[derive(Debug, Clone)]
 pub struct Production(Rc<ProductionData>);
 
+lazy_static! {
+    static ref RHS_CRE: regex::Regex = regex::Regex::new(r"\$(\d+)").unwrap();
+}
+
 impl Production {
     pub fn new(ident: u32, left_hand_side: NonTerminal, tail: ProductionTail) -> Self {
         Self(Rc::new(ProductionData {
@@ -80,6 +87,10 @@ impl Production {
             left_hand_side,
             tail,
         }))
+    }
+
+    pub fn ident(&self) -> u32 {
+        self.0.ident
     }
 
     pub fn len(&self) -> usize {
@@ -106,6 +117,28 @@ impl Production {
         self.0.tail.0.precedence
     }
 
+    pub fn has_predicate(&self) -> bool {
+        self.0.tail.0.predicate.is_some()
+    }
+
+    pub fn expanded_predicate(&self) -> Option<String> {
+        if let Some(predicate) = &self.0.tail.0.predicate {
+            let rhs_len = self.0.tail.0.right_hand_side.len();
+            let string = RHS_CRE
+                .replace_all(&predicate, |caps: &regex::Captures| {
+                    format!(
+                        "aa_attributes.at_len_minus_n({})",
+                        rhs_len + 1 - usize::from_str(&caps[1]).unwrap()
+                    )
+                })
+                .to_string();
+            let string = string.replace("$?", "aa_tag");
+            Some(string)
+        } else {
+            None
+        }
+    }
+
     pub fn has_error_recovery_tail(&self) -> bool {
         if let Some(symbol) = self.0.tail.0.right_hand_side.last() {
             match symbol {
@@ -114,6 +147,22 @@ impl Production {
             }
         } else {
             false
+        }
+    }
+
+    pub fn expanded_action(&self) -> Option<String> {
+        // TODO: move action expansion to RHS creation
+        if let Some(action) = &self.0.tail.0.action {
+            let string = action.replace("$$", "aa_lhs");
+            let string = string.replace("$INJECT", "aa_inject");
+            let string = RHS_CRE
+                .replace_all(&string, |caps: &regex::Captures| {
+                    format!("aa_rhs[{}]", usize::from_str(&caps[1]).unwrap() - 1)
+                })
+                .to_string();
+            Some(string)
+        } else {
+            None
         }
     }
 }
@@ -138,10 +187,33 @@ impl Ord for Production {
     }
 }
 
+impl std::fmt::Display for Production {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let mut string = format!("{}:", self.left_hand_side().name());
+        if self.0.tail.0.right_hand_side.len() == 0 {
+            string += " <empty>";
+        } else {
+            for symbol in self.0.tail.0.right_hand_side.iter() {
+                string += &format!(" {}", symbol);
+            }
+        };
+        if let Some(predicate) = &self.0.tail.0.predicate {
+            string += &format!(" ?({}?)", predicate);
+        };
+        write!(f, "{}", string)
+    }
+}
+
 #[derive(Debug, Default)]
-struct Reductions {
+pub struct Reductions {
     reductions: BTreeMap<BTreeSet<Production>, TokenSet>,
     expected_tokens: TokenSet,
+}
+
+impl Reductions {
+    pub fn reductions(&self) -> impl Iterator<Item = (&BTreeSet<Production>, &TokenSet)> {
+        self.reductions.iter()
+    }
 }
 
 #[derive(Debug, PartialOrd, Ord, PartialEq, Eq, Clone)]
@@ -215,6 +287,10 @@ impl GrammarItemKey {
 
     pub fn has_error_recovery_tail(&self) -> bool {
         self.production.has_error_recovery_tail()
+    }
+
+    pub fn has_reducible_error_recovery_tail(&self) -> bool {
+        self.is_reducible() && self.production.has_error_recovery_tail()
     }
 }
 
@@ -300,5 +376,46 @@ impl GrammarItemSet {
     pub fn remove_look_ahead_symbols(&mut self, key: &GrammarItemKey, symbols: &TokenSet) {
         let look_ahead_set = self.0.get_mut(key).unwrap();
         *look_ahead_set = look_ahead_set.difference(symbols).cloned().collect();
+    }
+
+    pub fn error_recovery_look_ahead_set_contains(&self, token: &Token) -> bool {
+        for look_ahead_set in self
+            .0
+            .iter()
+            .filter(|x| x.0.has_reducible_error_recovery_tail())
+            .map(|x| x.1)
+        {
+            if look_ahead_set.contains(token) {
+                return true;
+            }
+        }
+        false
+    }
+
+    pub fn reducible_look_ahead_set(&self) -> TokenSet {
+        let mut set = TokenSet::new();
+        for (_, look_ahead_set) in self.0.iter().filter(|x| x.0.is_reducible()) {
+            set |= look_ahead_set;
+        }
+        set
+    }
+
+    pub fn reductions(&self) -> Reductions {
+        let expected_tokens = self.reducible_look_ahead_set();
+        let mut reductions: BTreeMap<BTreeSet<Production>, TokenSet> = BTreeMap::new();
+        for token in expected_tokens.iter() {
+            let mut productions: BTreeSet<Production> = BTreeSet::new();
+            for (item_key, look_ahead_set) in self.0.iter().filter(|x| x.0.is_reducible()) {
+                if look_ahead_set.contains(token) {
+                    productions.insert(item_key.production.clone());
+                }
+            }
+            let look_ahead_set = reductions.entry(productions).or_insert(TokenSet::new());
+            look_ahead_set.insert(token);
+        }
+        Reductions {
+            reductions,
+            expected_tokens,
+        }
     }
 }

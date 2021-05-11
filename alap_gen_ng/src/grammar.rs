@@ -9,7 +9,9 @@ use crate::symbol::{Symbol, SymbolTable};
 use lalr1_plus::Parser;
 use std::collections::{BTreeMap, BTreeSet};
 use std::convert::TryFrom;
+use std::io;
 use std::io::{stderr, Write};
+use std::path::Path;
 
 pub fn report_error(location: &lexan::Location, what: &str) {
     writeln!(stderr(), "{}: Error: {}.", location, what).expect("what?");
@@ -126,6 +128,63 @@ impl Specification {
             }
         }
         closure_set
+    }
+
+    pub fn write_preamble_text<W: Write>(&self, wtr: &mut W) -> io::Result<()> {
+        wtr.write(self.preamble.as_bytes())?;
+        wtr.write(b"\n")?;
+        Ok(())
+    }
+
+    pub fn write_production_data_code<W: Write>(&self, wtr: &mut W) -> io::Result<()> {
+        wtr.write(b"    fn production_data(production_id: u32) -> (AANonTerminal, usize) {\n")?;
+        wtr.write(b"        match production_id {\n")?;
+        for production in self.productions.iter() {
+            wtr.write_fmt(format_args!(
+                "            {} => (AANonTerminal::{}, {}),\n",
+                production.ident(),
+                production.left_hand_side().name(),
+                production.len(),
+            ))?;
+        }
+        wtr.write(b"            _ => panic!(\"malformed production data table\"),\n")?;
+        wtr.write(b"        }\n")?;
+        wtr.write(b"    }\n\n")?;
+        Ok(())
+    }
+
+    pub fn write_semantic_action_code<W: Write>(&self, wtr: &mut W) -> io::Result<()> {
+        wtr.write(b"    fn do_semantic_action<F: FnMut(String, String)>(\n")?;
+        wtr.write(b"        &mut self,\n")?;
+        wtr.write(b"        aa_production_id: u32,\n")?;
+        wtr.write_fmt(format_args!(
+            "        aa_rhs: Vec<{}>,\n",
+            self.attribute_type
+        ))?;
+        wtr.write(b"        mut aa_inject: F,\n")?;
+        wtr.write_fmt(format_args!("    ) -> {} {{\n", self.attribute_type))?;
+        wtr.write(b"        let mut aa_lhs = if let Some(a) = aa_rhs.first() {\n")?;
+        wtr.write(b"            a.clone()\n")?;
+        wtr.write(b"        } else {\n")?;
+        wtr.write_fmt(format_args!(
+            "           {}::default()\n",
+            self.attribute_type
+        ))?;
+        wtr.write(b"        };\n")?;
+        wtr.write(b"        match aa_production_id {\n")?;
+        for production in self.productions.iter() {
+            if let Some(action_code) = production.expanded_action() {
+                wtr.write_fmt(format_args!("            {} => {{\n", production.ident()))?;
+                wtr.write_fmt(format_args!("                // {}\n", production))?;
+                wtr.write_fmt(format_args!("                {}\n", action_code))?;
+                wtr.write(b"            }\n")?;
+            }
+        }
+        wtr.write(b"            _ => aa_inject(String::new(), String::new()),\n")?;
+        wtr.write(b"        };\n")?;
+        wtr.write(b"        aa_lhs\n")?;
+        wtr.write(b"    }\n\n")?;
+        Ok(())
     }
 }
 
@@ -287,5 +346,263 @@ impl Grammar {
 
     pub fn total_unresolved_conflicts(&self) -> usize {
         self.unresolved_rr_conflicts + self.unresolved_sr_conflicts
+    }
+}
+
+impl Grammar {
+    fn write_parser_code<W: Write>(&self, wtr: &mut W) -> io::Result<()> {
+        self.specification.write_preamble_text(wtr)?;
+        self.write_symbol_enum_code(wtr)?;
+        self.write_parser_implementation_code(wtr)?;
+        Ok(())
+    }
+
+    pub fn write_parser_code_to_file(&self, file_path: &Path) -> io::Result<()> {
+        let mut file = std::fs::File::create(file_path)?;
+        self.write_parser_code(&mut file)?;
+        Ok(())
+    }
+
+    fn write_symbol_enum_code<W: Write>(&self, wtr: &mut W) -> io::Result<()> {
+        wtr.write(b"use std::collections::BTreeSet;\n\n")?;
+
+        wtr.write(b"macro_rules! btree_set {\n")?;
+        wtr.write(b"    () => { BTreeSet::new() };\n")?;
+        wtr.write(b"    ( $( $x:expr ),* ) => {\n")?;
+        wtr.write(b"        {\n")?;
+        wtr.write(b"            let mut set = BTreeSet::new();\n")?;
+        wtr.write(b"            $( set.insert($x); )*\n")?;
+        wtr.write(b"            set\n")?;
+        wtr.write(b"        }\n")?;
+        wtr.write(b"    };\n")?;
+        wtr.write(b"    ( $( $x:expr ),+ , ) => {\n")?;
+        wtr.write(b"        btree_set![ $( $x ), * ]\n")?;
+        wtr.write(b"    };\n")?;
+        wtr.write(b"}\n\n")?;
+        wtr.write(b"use lalr1_plus;\n")?;
+        wtr.write(b"use lexan;\n\n")?;
+        wtr.write(b"#[derive(Debug, Clone, Copy, PartialOrd, Ord, PartialEq, Eq)]\n")?;
+        wtr.write(b"pub enum AATerminal {\n")?;
+        wtr.write(b"    AAEnd,\n")?;
+        for token in self.specification.symbol_table.tokens() {
+            wtr.write_fmt(format_args!("    {},\n", token.name()))?;
+        }
+        wtr.write(b"}\n\n")?;
+        wtr.write(b"impl std::fmt::Display for AATerminal {\n")?;
+        wtr.write(b"    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {\n")?;
+        wtr.write(b"        match self {\n")?;
+        wtr.write(b"            AATerminal::AAEnd => ###\"AAEnd\"###,\n")?;
+        for token in self.specification.symbol_table.tokens() {
+            wtr.write(b"            AATerminal::")?;
+            match token {
+                Token::Literal(token_data) => {
+                    wtr.write_fmt(format_args!(
+                        "{} => write!(f, r###\"{}\"###),\n",
+                        token_data.name, token_data.text
+                    ))?;
+                }
+                Token::Regex(token_data) => {
+                    wtr.write_fmt(format_args!(
+                        "{} => write!(f, r###\"{}\"###),\n",
+                        token_data.name, token_data.name
+                    ))?;
+                }
+                Token::EndToken => panic!("end token should be in tokens table"),
+            }
+        }
+        wtr.write(b"        }\n")?;
+        wtr.write(b"    }\n")?;
+        wtr.write(b"}\n\n")?;
+        self.write_lexical_analyzer_code(wtr)?;
+        wtr.write(b"#[derive(Debug, Clone, Copy, PartialOrd, Ord, PartialEq, Eq)]\n")?;
+        wtr.write(b"pub enum AANonTerminal {\n")?;
+        for non_terminal in self.specification.symbol_table.non_terminals() {
+            wtr.write_fmt(format_args!("    {},\n", non_terminal.name()))?;
+        }
+        wtr.write(b"}\n\n")?;
+        wtr.write(b"impl std::fmt::Display for AANonTerminal {\n")?;
+        wtr.write(b"    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {\n")?;
+        wtr.write(b"        match self {\n")?;
+        for non_terminal in self.specification.symbol_table.non_terminals() {
+            wtr.write(b"            AANonTerminal::")?;
+            let name = non_terminal.name();
+            wtr.write_fmt(format_args!("{} => write!(f, r\"{}\"),\n", name, name))?;
+        }
+        wtr.write(b"        }\n")?;
+        wtr.write(b"    }\n")?;
+        wtr.write(b"}\n\n")?;
+        Ok(())
+    }
+
+    fn write_lexical_analyzer_code<W: Write>(&self, wtr: &mut W) -> io::Result<()> {
+        wtr.write(b"lazy_static! {\n")?;
+        wtr.write(b"    static ref AALEXAN: lexan::LexicalAnalyzer<AATerminal> = {\n")?;
+        wtr.write(b"        use AATerminal::*;\n")?;
+        wtr.write(b"        lexan::LexicalAnalyzer::new(\n")?;
+        wtr.write(b"            &[\n")?;
+        for token in self.specification.symbol_table.literal_tokens() {
+            wtr.write(b"                ")?;
+            wtr.write_fmt(format_args!(
+                "({}, r###{}###),\n",
+                token.name(),
+                token.text()
+            ))?;
+        }
+        wtr.write(b"            ],\n")?;
+        wtr.write(b"            &[\n")?;
+        for token in self.specification.symbol_table.regex_tokens() {
+            wtr.write(b"                ")?;
+            wtr.write_fmt(format_args!(
+                "({}, r###\"{}\"###),\n",
+                token.name(),
+                token.text()
+            ))?;
+        }
+        wtr.write(b"            ],\n")?;
+        wtr.write(b"            &[\n")?;
+        for skip_rule in self.specification.symbol_table.skip_rules() {
+            wtr.write(b"                ")?;
+            wtr.write_fmt(format_args!("r###\"{}\"###,\n", skip_rule))?;
+        }
+        wtr.write(b"            ],\n")?;
+        wtr.write_fmt(format_args!("            {},\n", AATerminal::AAEnd))?;
+        wtr.write(b"        )\n")?;
+        wtr.write(b"    };\n")?;
+        wtr.write(b"}\n\n")?;
+        Ok(())
+    }
+
+    fn write_parser_implementation_code<W: Write>(&self, wtr: &mut W) -> io::Result<()> {
+        let attr = &self.specification.attribute_type;
+        let parser = &self.specification.target_type;
+        let text = format!(
+            "impl lalr1_plus::Parser<AATerminal, AANonTerminal, {}> for {} {{\n",
+            attr, parser
+        );
+        wtr.write(text.as_bytes())?;
+        wtr.write(b"    fn lexical_analyzer(&self) -> &lexan::LexicalAnalyzer<AATerminal> {\n")?;
+        wtr.write(b"        &AALEXAN\n")?;
+        wtr.write(b"    }\n\n")?;
+        self.write_error_recovery_code(wtr)?;
+        self.write_look_ahead_set_code(wtr)?;
+        self.write_next_action_code(wtr)?;
+        self.specification.write_production_data_code(wtr)?;
+        self.write_goto_table_code(wtr)?;
+        self.specification.write_semantic_action_code(wtr)?;
+        wtr.write(b"}\n")?;
+        Ok(())
+    }
+
+    fn error_recovery_state_set_for_token(&self, token: &Token) -> BTreeSet<u32> {
+        self.parser_states
+            .iter()
+            .filter(|x| x.is_recovery_state_for_token(token))
+            .map(|x| x.ident())
+            .collect()
+    }
+
+    fn format_u32_set(set: &BTreeSet<u32>) -> String {
+        let mut string = "btree_set![".to_string();
+        for (index, number) in set.iter().enumerate() {
+            if index == 0 {
+                string += &format!("{}", number);
+            } else {
+                string += &format!(", {}", number);
+            }
+        }
+        string += "]";
+        string
+    }
+
+    fn write_error_recovery_code<W: Write>(&self, wtr: &mut W) -> io::Result<()> {
+        wtr.write(b"    fn viable_error_recovery_states(token: &AATerminal) -> BTreeSet<u32> {\n")?;
+        wtr.write(b"        match token {\n")?;
+        let mut default_required = false;
+        for token in self.specification.symbol_table.tokens() {
+            let set = self.error_recovery_state_set_for_token(token);
+            if set.len() > 0 {
+                wtr.write_fmt(format_args!(
+                    "            AATerminal::{} => {},\n",
+                    token.name(),
+                    Self::format_u32_set(&set)
+                ))?;
+            } else {
+                default_required = true;
+            }
+        }
+        if default_required {
+            wtr.write(b"            _ => btree_set![],\n")?;
+        }
+        wtr.write(b"        }\n")?;
+        wtr.write(b"    }\n\n")?;
+        wtr.write(b"    fn error_goto_state(state: u32) -> u32 {\n")?;
+        wtr.write(b"        match state {\n")?;
+        for parser_state in self.parser_states.iter() {
+            if let Some(goto_state_id) = parser_state.error_goto_state_ident() {
+                wtr.write_fmt(format_args!(
+                    "            {:1} => {:1},\n",
+                    parser_state.ident(),
+                    goto_state_id
+                ))?;
+            }
+        }
+        wtr.write(b"            _ => panic!(\"No error go to state for {}\", state),\n")?;
+        wtr.write(b"        }\n")?;
+        wtr.write(b"    }\n\n")?;
+        Ok(())
+    }
+
+    fn write_look_ahead_set_code<W: Write>(&self, wtr: &mut W) -> io::Result<()> {
+        wtr.write(b"    fn look_ahead_set(state: u32) -> BTreeSet<AATerminal> {\n")?;
+        wtr.write(b"        use AATerminal::*;\n")?;
+        wtr.write(b"        return match state {\n")?;
+        for parser_state in self.parser_states.iter() {
+            wtr.write_fmt(format_args!(
+                "            {} => {},\n",
+                parser_state.ident(),
+                parser_state.look_ahead_set().formated_as_macro_call()
+            ))?;
+        }
+        wtr.write(b"            _ => panic!(\"illegal state: {}\", state),\n")?;
+        wtr.write(b"        }\n")?;
+        wtr.write(b"    }\n\n")?;
+        Ok(())
+    }
+
+    fn write_next_action_code<W: Write>(&self, wtr: &mut W) -> io::Result<()> {
+        wtr.write(b"    fn next_action(\n")?;
+        wtr.write(b"        &self,\n")?;
+        wtr.write(b"        aa_state: u32,\n")?;
+        wtr.write_fmt(format_args!(
+            "        aa_attributes: &lalr1_plus::ParseStack<AATerminal, AANonTerminal, {}>,\n",
+            self.specification.attribute_type
+        ))?;
+        wtr.write(b"        aa_token: &lexan::Token<AATerminal>,\n")?;
+        wtr.write(b"    ) -> lalr1_plus::Action {\n")?;
+        wtr.write(b"        use lalr1_plus::Action;\n")?;
+        wtr.write(b"        use AATerminal::*;\n")?;
+        wtr.write(b"        let aa_tag = *aa_token.tag();\n")?;
+        wtr.write(b"        return match aa_state {\n")?;
+        for parser_state in self.parser_states.iter() {
+            parser_state.write_next_action_code(wtr, "            ")?;
+        }
+        wtr.write(b"            _ => panic!(\"illegal state: {}\", aa_state),\n")?;
+        wtr.write(b"        }\n")?;
+        wtr.write(b"    }\n\n")?;
+        Ok(())
+    }
+
+    fn write_goto_table_code<W: Write>(&self, wtr: &mut W) -> io::Result<()> {
+        wtr.write(b"    fn goto_state(lhs: &AANonTerminal, current_state: u32) -> u32 {\n")?;
+        wtr.write(b"        return match current_state {\n")?;
+        for parser_state in self.parser_states.iter() {
+            parser_state.write_goto_table_code(wtr, "            ")?;
+        }
+        wtr.write(
+            b"            _ => panic!(\"Malformed goto table: ({}, {})\", lhs, current_state),\n",
+        )?;
+        wtr.write(b"        }\n")?;
+        wtr.write(b"    }\n\n")?;
+        Ok(())
     }
 }

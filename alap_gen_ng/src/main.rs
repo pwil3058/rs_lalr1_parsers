@@ -118,4 +118,16 @@ fn main() {
         .unwrap();
         std::process::exit(5);
     }
+
+    if let Err(err) = grammar.write_parser_code_to_file(&output_path) {
+        writeln!(
+            std::io::stderr(),
+            "{}: problems writing file: {:?}.",
+            output_path.to_string_lossy(),
+            err
+        )
+        .unwrap();
+        std::process::exit(6);
+    }
+
 }

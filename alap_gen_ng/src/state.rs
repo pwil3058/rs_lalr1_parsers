@@ -7,6 +7,7 @@ use crate::symbol::{Associativity, Symbol};
 use std::cell::{Cell, RefCell};
 use std::cmp::Ordering;
 use std::collections::{BTreeMap, BTreeSet};
+use std::io::Write;
 use std::rc::Rc;
 
 #[derive(Debug, Clone, Copy)]
@@ -65,6 +66,10 @@ impl ParserState {
         Self(Rc::new(data))
     }
 
+    pub fn ident(&self) -> u32 {
+        self.0.ident
+    }
+
     pub fn is_processed(&self) -> bool {
         match self.0.processed_state.get() {
             ProcessedState::Processed => true,
@@ -111,6 +116,10 @@ impl ParserState {
 
     pub fn set_error_recovery_state(&self, state: &ParserState) {
         *self.0.error_recovery_state.borrow_mut() = Some(state.clone());
+    }
+
+    pub fn error_goto_state_ident(&self) -> Option<u32> {
+        Some(self.0.error_recovery_state.borrow().clone()?.ident())
     }
 
     pub fn kernel_key_set(&self) -> BTreeSet<GrammarItemKey> {
@@ -225,5 +234,133 @@ impl ParserState {
             }
         }
         reduce_reduce_conflicts.len()
+    }
+
+    pub fn look_ahead_set(&self) -> TokenSet {
+        self.0
+            .grammar_items
+            .borrow()
+            .reducible_look_ahead_set()
+            .union(&self.0.shift_list.borrow().keys().cloned().collect())
+            .cloned()
+            .collect()
+    }
+
+    pub fn is_recovery_state_for_token(&self, token: &Token) -> bool {
+        if let Some(recovery_state) = self.0.error_recovery_state.borrow().clone() {
+            if recovery_state
+                .0
+                .grammar_items
+                .borrow()
+                .error_recovery_look_ahead_set_contains(token)
+            {
+                return true;
+            }
+        };
+        false
+    }
+
+    pub fn write_next_action_code<W: Write>(
+        &self,
+        wtr: &mut W,
+        indent: &str,
+    ) -> std::io::Result<()> {
+        let reductions = self.0.grammar_items.borrow().reductions();
+        wtr.write_fmt(format_args!(
+            "{}{} => match aa_tag {{\n",
+            indent,
+            self.ident()
+        ))?;
+        for (token, state) in self.0.shift_list.borrow().iter() {
+            wtr.write_fmt(format_args!(
+                "{}    {} => Action::Shift({}),\n",
+                indent,
+                token.name(),
+                state.ident()
+            ))?;
+        }
+        for (productions, look_ahead_set) in reductions.reductions() {
+            if productions.len() == 1 {
+                let production = productions.iter().next().expect("len() == 1");
+                debug_assert!(!production.has_predicate());
+                wtr.write_fmt(format_args!("{}    // {}\n", indent, production))?;
+                if production.ident() == 0 {
+                    wtr.write_fmt(format_args!(
+                        "{}    {} => Action::Accept,\n",
+                        indent,
+                        look_ahead_set.formated_as_or_list(),
+                    ))?;
+                } else {
+                    wtr.write_fmt(format_args!(
+                        "{}    {} => Action::Reduce({}),\n",
+                        indent,
+                        look_ahead_set.formated_as_or_list(),
+                        production.ident(),
+                    ))?;
+                }
+            } else {
+                wtr.write_fmt(format_args!(
+                    "{}    {} => {{\n",
+                    indent,
+                    look_ahead_set.formated_as_or_list()
+                ))?;
+                for (i, production) in productions.iter().enumerate() {
+                    if i == 0 {
+                        wtr.write_fmt(format_args!(
+                            "{}        if {} {{\n",
+                            indent,
+                            production.expanded_predicate().expect("more than one")
+                        ))?;
+                    } else if production.has_predicate() {
+                        wtr.write_fmt(format_args!(
+                            "{}        }} else if {} {{\n",
+                            indent,
+                            production.expanded_predicate().expect("more than one")
+                        ))?;
+                    } else {
+                        wtr.write_fmt(format_args!("{}        }} else {{\n", indent,))?;
+                    }
+                    wtr.write_fmt(format_args!("{}            // {}\n", indent, production))?;
+                    if production.ident() == 0 {
+                        wtr.write_fmt(format_args!("{}            Action::Accept\n", indent,))?;
+                    } else {
+                        wtr.write_fmt(format_args!(
+                            "{}            Action::Reduce({})\n",
+                            indent,
+                            production.ident(),
+                        ))?;
+                    }
+                }
+                wtr.write_fmt(format_args!("{}        }}\n", indent))?;
+                wtr.write_fmt(format_args!("{}    }}\n", indent))?;
+            }
+        }
+        wtr.write_fmt(format_args!("{}    _ => Action::SyntaxError,\n", indent,))?;
+        wtr.write_fmt(format_args!("{}}},\n", indent))?;
+        Ok(())
+    }
+
+    pub fn write_goto_table_code<W: Write>(
+        &self,
+        wtr: &mut W,
+        indent: &str,
+    ) -> std::io::Result<()> {
+        if self.0.goto_table.borrow().len() > 0 {
+            wtr.write_fmt(format_args!("{}{} => match lhs {{\n", indent, self.ident()))?;
+            for (non_terminal, state) in self.0.goto_table.borrow().iter() {
+                wtr.write_fmt(format_args!(
+                    "{}    AANonTerminal::{} => {},\n",
+                    indent,
+                    non_terminal.name(),
+                    state.ident()
+                ))?;
+            }
+            wtr.write_fmt(format_args!(
+                "{}    _ => panic!(\"Malformed goto table: ({{}}, {{}})\", lhs, current_state),\n",
+                indent
+            ))?;
+            wtr.write_fmt(format_args!("{}}},\n", indent))?;
+        };
+        Ok(())
     }
 }

@@ -52,6 +52,18 @@ impl From<&NonTerminal> for Symbol {
     }
 }
 
+impl fmt::Display for Symbol {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Symbol::NonTerminal(non_terminal) => write!(f, "{}", non_terminal.name()),
+            Symbol::Terminal(token) => match token {
+                Token::Literal(token_data) => write!(f, "{}", token_data.text),
+                _ => write!(f, "{}", token.name()),
+            },
+        }
+    }
+}
+
 impl Symbol {
     pub fn is_non_terminal(&self) -> bool {
         match self {
@@ -205,6 +217,14 @@ impl SymbolTable {
         self.tokens.values()
     }
 
+    pub fn literal_tokens(&self) -> impl Iterator<Item = &Token> {
+        self.literal_tokens.values()
+    }
+
+    pub fn regex_tokens(&self) -> impl Iterator<Item = &Token> {
+        self.regex_tokens.values()
+    }
+
     pub fn non_terminal_defined_at(
         &mut self,
         name: &str,
@@ -259,6 +279,10 @@ impl SymbolTable {
             self.skip_rules.push(skip_rule.to_string());
             Ok(())
         }
+    }
+
+    pub fn skip_rules(&self) -> impl Iterator<Item = &String> {
+        self.skip_rules.iter()
     }
 
     pub fn set_precedences(

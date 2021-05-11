@@ -12,8 +12,8 @@ use std::rc::Rc;
 
 #[derive(Debug, Default)]
 pub struct TokenData {
-    name: String,
-    text: String,
+    pub name: String,
+    pub text: String,
     defined_at: lexan::Location,
     used_at: RefCell<Vec<lexan::Location>>,
     associativity: Cell<Associativity>,
@@ -69,6 +69,13 @@ impl Token {
     pub fn name(&self) -> &str {
         match self {
             Token::Literal(token_data) | Token::Regex(token_data) => &token_data.name,
+            Token::EndToken => panic!("should not be asking end token's name"),
+        }
+    }
+
+    pub fn text(&self) -> &str {
+        match self {
+            Token::Literal(token_data) | Token::Regex(token_data) => &token_data.text,
             Token::EndToken => panic!("should not be asking end token's name"),
         }
     }
@@ -203,8 +210,37 @@ impl TokenSet {
         self.0.intersection(&other.0)
     }
 
+    pub fn union<'a>(&'a self, other: &'a Self) -> btree_set::Union<'a, Token> {
+        self.0.union(&other.0)
+    }
+
     pub fn iter(&self) -> btree_set::Iter<Token> {
         self.0.iter()
+    }
+
+    pub fn formated_as_macro_call(&self) -> String {
+        let mut string = "btree_set![".to_string();
+        for (index, token) in self.0.iter().enumerate() {
+            if index == 0 {
+                string += &format!("{}", token.name());
+            } else {
+                string += &format!(", {}", token.name());
+            }
+        }
+        string += "]";
+        string
+    }
+
+    pub fn formated_as_or_list(&self) -> String {
+        let mut string = "".to_string();
+        for (index, token) in self.0.iter().enumerate() {
+            if index == 0 {
+                string += &format!("{}", token.name());
+            } else {
+                string += &format!(" | {}", token.name());
+            }
+        }
+        string
     }
 }
 
