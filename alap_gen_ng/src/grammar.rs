@@ -366,8 +366,10 @@ impl Grammar {
     }
 
     fn write_symbol_enum_code<W: Write>(&self, wtr: &mut W) -> io::Result<()> {
-        wtr.write(b"use std::collections::BTreeSet;\n\n")?;
+        let special_tokens = [Token::EndToken];
+        let special_non_terminals = [NonTerminal::new_start(), NonTerminal::new_error()];
 
+        wtr.write(b"use std::collections::BTreeSet;\n\n")?;
         wtr.write(b"macro_rules! btree_set {\n")?;
         wtr.write(b"    () => { BTreeSet::new() };\n")?;
         wtr.write(b"    ( $( $x:expr ),* ) => {\n")?;
@@ -385,16 +387,20 @@ impl Grammar {
         wtr.write(b"use lexan;\n\n")?;
         wtr.write(b"#[derive(Debug, Clone, Copy, PartialOrd, Ord, PartialEq, Eq)]\n")?;
         wtr.write(b"pub enum AATerminal {\n")?;
-        wtr.write(b"    AAEnd,\n")?;
-        for token in self.specification.symbol_table.tokens() {
+        for token in special_tokens
+            .iter()
+            .chain(self.specification.symbol_table.tokens())
+        {
             wtr.write_fmt(format_args!("    {},\n", token.name()))?;
         }
         wtr.write(b"}\n\n")?;
         wtr.write(b"impl std::fmt::Display for AATerminal {\n")?;
         wtr.write(b"    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {\n")?;
         wtr.write(b"        match self {\n")?;
-        wtr.write(b"            AATerminal::AAEnd => write!(f, r###\"AAEnd\"###),\n")?;
-        for token in self.specification.symbol_table.tokens() {
+        for token in special_tokens
+            .iter()
+            .chain(self.specification.symbol_table.tokens())
+        {
             wtr.write(b"            AATerminal::")?;
             match token {
                 Token::Literal(token_data) => {
@@ -409,7 +415,13 @@ impl Grammar {
                         token_data.name, token_data.name
                     ))?;
                 }
-                Token::EndToken => panic!("end token should be in tokens table"),
+                Token::EndToken => {
+                    wtr.write_fmt(format_args!(
+                        "{} => write!(f, r###\"{}\"###),\n",
+                        token.name(),
+                        token.name()
+                    ))?;
+                }
             }
         }
         wtr.write(b"        }\n")?;
@@ -418,18 +430,20 @@ impl Grammar {
         self.write_lexical_analyzer_code(wtr)?;
         wtr.write(b"#[derive(Debug, Clone, Copy, PartialOrd, Ord, PartialEq, Eq)]\n")?;
         wtr.write(b"pub enum AANonTerminal {\n")?;
-        wtr.write(b"    AAStart,\n")?;
-        wtr.write(b"    AAError,\n")?;
-        for non_terminal in self.specification.symbol_table.non_terminals() {
+        for non_terminal in special_non_terminals
+            .iter()
+            .chain(self.specification.symbol_table.non_terminals())
+        {
             wtr.write_fmt(format_args!("    {},\n", non_terminal.name()))?;
         }
         wtr.write(b"}\n\n")?;
         wtr.write(b"impl std::fmt::Display for AANonTerminal {\n")?;
         wtr.write(b"    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {\n")?;
         wtr.write(b"        match self {\n")?;
-        wtr.write(b"            AANonTerminal::AAStart => write!(f, r###\"AAStart\"###),\n")?;
-        wtr.write(b"            AANonTerminal::AAError => write!(f, r###\"AAError\"###),\n")?;
-        for non_terminal in self.specification.symbol_table.non_terminals() {
+        for non_terminal in special_non_terminals
+            .iter()
+            .chain(self.specification.symbol_table.non_terminals())
+        {
             wtr.write(b"            AANonTerminal::")?;
             let name = non_terminal.name();
             wtr.write_fmt(format_args!("{} => write!(f, r\"{}\"),\n", name, name))?;
@@ -471,7 +485,7 @@ impl Grammar {
             wtr.write_fmt(format_args!("r###\"{}\"###,\n", skip_rule))?;
         }
         wtr.write(b"            ],\n")?;
-        wtr.write_fmt(format_args!("            {},\n", AATerminal::AAEnd))?;
+        wtr.write_fmt(format_args!("            {},\n", Token::EndToken.name()))?;
         wtr.write(b"        )\n")?;
         wtr.write(b"    };\n")?;
         wtr.write(b"}\n\n")?;

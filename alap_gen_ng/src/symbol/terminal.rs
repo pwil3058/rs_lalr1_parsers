@@ -76,7 +76,7 @@ impl Token {
     pub fn text(&self) -> &str {
         match self {
             Token::Literal(token_data) | Token::Regex(token_data) => &token_data.text,
-            Token::EndToken => panic!("should not be asking end token's name"),
+            Token::EndToken => "AAEnd",
         }
     }
 

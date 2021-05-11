@@ -76,15 +76,15 @@ impl NonTerminal {
         NonTerminal::UserDefined(Rc::new(non_terminal_data))
     }
 
-    pub fn new_error(name: &str) -> Self {
+    pub fn new_error() -> Self {
         let mut non_terminal_data = NonTerminalData::default();
-        non_terminal_data.name = name.to_string();
+        non_terminal_data.name = "AAError".to_string();
         NonTerminal::Error(Rc::new(non_terminal_data))
     }
 
-    pub fn new_start(name: &str) -> Self {
+    pub fn new_start() -> Self {
         let mut non_terminal_data = NonTerminalData::default();
-        non_terminal_data.name = name.to_string();
+        non_terminal_data.name = "AAStart".to_string();
         NonTerminal::Start(Rc::new(non_terminal_data))
     }
 

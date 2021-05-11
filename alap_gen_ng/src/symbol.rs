@@ -1,7 +1,6 @@
 // Copyright 2021 Peter Williams <pwil3058@gmail.com> <pwil3058@bigpond.net.au>
 use std::{collections::BTreeMap, fmt};
 
-use crate::alap_gen_ng::AANonTerminal;
 use crate::symbol::non_terminal::NonTerminal;
 use crate::symbol::tag::{Tag, TagOrToken};
 use crate::symbol::terminal::Token;
@@ -139,8 +138,6 @@ pub struct SymbolTable {
 
 impl Default for SymbolTable {
     fn default() -> Self {
-        let start_non_terminal = NonTerminal::new_start(&AANonTerminal::AAStart.to_string());
-        let error_non_terminal = NonTerminal::new_error(&AANonTerminal::AAError.to_string());
         Self {
             tags: BTreeMap::new(),
             tokens: BTreeMap::new(),
@@ -149,8 +146,8 @@ impl Default for SymbolTable {
             non_terminals: BTreeMap::new(),
             skip_rules: Vec::new(),
             next_precedence: u16::MAX,
-            start_non_terminal,
-            error_non_terminal,
+            start_non_terminal: NonTerminal::new_start(),
+            error_non_terminal: NonTerminal::new_error(),
         }
     }
 }
