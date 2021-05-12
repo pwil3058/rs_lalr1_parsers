@@ -538,7 +538,10 @@ impl Grammar {
         wtr.write(b"    fn viable_error_recovery_states(token: &AATerminal) -> BTreeSet<u32> {\n")?;
         wtr.write(b"        match token {\n")?;
         let mut default_required = false;
-        for token in self.specification.symbol_table.tokens() {
+        for token in [Token::EndToken]
+            .iter()
+            .chain(self.specification.symbol_table.tokens())
+        {
             let set = self.error_recovery_state_set_for_token(token);
             if set.len() > 0 {
                 wtr.write_fmt(format_args!(
