@@ -156,8 +156,20 @@ impl SymbolTable {
     pub fn start_non_terminal(&self) -> &NonTerminal {
         &self.start_non_terminal
     }
+
     pub fn error_non_terminal(&self) -> &NonTerminal {
         &self.error_non_terminal
+    }
+
+    pub fn used_non_terminal_specials(&self) -> Vec<NonTerminal> {
+        if self.error_non_terminal.is_unused() {
+            vec![self.start_non_terminal.clone()]
+        } else {
+            vec![
+                self.start_non_terminal.clone(),
+                self.error_non_terminal.clone(),
+            ]
+        }
     }
 
     pub fn new_tag(&mut self, name: &str, defined_at: &lexan::Location) -> Result<Tag, Error> {
@@ -333,12 +345,10 @@ impl SymbolTable {
             );
         }
         string += "  Non Terminal Symbols:\n";
-        for non_terminal in [
-            self.start_non_terminal.clone(),
-            self.error_non_terminal.clone(),
-        ]
-        .iter()
-        .chain(self.non_terminals())
+        for non_terminal in self
+            .used_non_terminal_specials()
+            .iter()
+            .chain(self.non_terminals())
         {
             string += &format!(
                 "    {}: {}\n",

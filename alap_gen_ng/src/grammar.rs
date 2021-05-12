@@ -45,7 +45,9 @@ impl Specification {
         let ident = spec.productions.len() as u32;
         let tail = ProductionTail::default();
         // TODO: is this necessary if %error is never used?
-        spec.productions.push(Production::new(ident, symbol, tail));
+        if !spec.symbol_table.error_non_terminal().is_unused() {
+            spec.productions.push(Production::new(ident, symbol, tail));
+        }
         spec.symbol_table
             .start_non_terminal()
             .set_firsts_data(&spec.productions);
@@ -373,7 +375,7 @@ impl Grammar {
 
     fn write_symbol_enum_code<W: Write>(&self, wtr: &mut W) -> io::Result<()> {
         let special_tokens = [Token::EndToken];
-        let special_non_terminals = [NonTerminal::new_start(), NonTerminal::new_error()];
+        let special_non_terminals = self.specification.symbol_table.used_non_terminal_specials();
 
         wtr.write(b"use std::collections::BTreeSet;\n\n")?;
         wtr.write(b"macro_rules! btree_set {\n")?;
