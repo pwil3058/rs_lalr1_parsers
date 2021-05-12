@@ -5,6 +5,7 @@ use crate::symbol::{non_terminal::NonTerminal, terminal::TokenSet, Associativity
 use lazy_static::lazy_static;
 use std::cmp::Ordering;
 use std::collections::{BTreeMap, BTreeSet};
+use std::ops::Index;
 use std::rc::Rc;
 use std::str::FromStr;
 
@@ -139,17 +140,6 @@ impl Production {
         }
     }
 
-    pub fn has_error_recovery_tail(&self) -> bool {
-        if let Some(symbol) = self.0.tail.0.right_hand_side.last() {
-            match symbol {
-                Symbol::Terminal(_) => false,
-                Symbol::NonTerminal(non_terminal) => non_terminal.is_error(),
-            }
-        } else {
-            false
-        }
-    }
-
     pub fn expanded_action(&self) -> Option<String> {
         // TODO: move action expansion to RHS creation
         if let Some(action) = &self.0.tail.0.action {
@@ -163,6 +153,17 @@ impl Production {
             Some(string)
         } else {
             None
+        }
+    }
+
+    pub fn has_error_recovery_tail(&self) -> bool {
+        if let Some(symbol) = self.0.tail.0.right_hand_side.last() {
+            match symbol {
+                Symbol::Terminal(_) => false,
+                Symbol::NonTerminal(non_terminal) => non_terminal.is_error(),
+            }
+        } else {
+            false
         }
     }
 }
@@ -222,6 +223,30 @@ pub struct GrammarItemKey {
     dot: usize,
 }
 
+impl std::fmt::Display for GrammarItemKey {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let mut string = format!("{}:", self.production.0.left_hand_side.name());
+        if self.production.0.tail.0.right_hand_side.len() == 0 {
+            string += " . <empty>";
+        } else {
+            for (index, symbol) in self.production.0.tail.0.right_hand_side.iter().enumerate() {
+                if index == self.dot {
+                    string += &format!(" . {}", symbol);
+                } else {
+                    string += &format!(" {}", symbol);
+                }
+            }
+            if self.dot >= self.production.0.tail.0.right_hand_side.len() {
+                string += " . ";
+            }
+        };
+        if let Some(predicate) = &self.production.0.tail.0.predicate {
+            string += &format!(" ?({}?)", predicate);
+        };
+        write!(f, "{}", string)
+    }
+}
+
 impl From<&Production> for GrammarItemKey {
     fn from(production: &Production) -> Self {
         Self {
@@ -232,6 +257,10 @@ impl From<&Production> for GrammarItemKey {
 }
 
 impl GrammarItemKey {
+    pub fn production(&self) -> &Production {
+        &self.production
+    }
+
     pub fn shifted(&self) -> Self {
         debug_assert!(self.dot < self.production.len());
         let dot = self.dot + 1;
@@ -300,6 +329,14 @@ pub struct GrammarItemSet(BTreeMap<GrammarItemKey, TokenSet>);
 impl From<BTreeMap<GrammarItemKey, TokenSet>> for GrammarItemSet {
     fn from(map: BTreeMap<GrammarItemKey, TokenSet>) -> Self {
         Self(map)
+    }
+}
+
+impl Index<&GrammarItemKey> for GrammarItemSet {
+    type Output = TokenSet;
+
+    fn index(&self, key: &GrammarItemKey) -> &TokenSet {
+        self.0.index(key)
     }
 }
 

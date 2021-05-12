@@ -46,6 +46,12 @@ impl Specification {
         let tail = ProductionTail::default();
         // TODO: is this necessary if %error is never used?
         spec.productions.push(Production::new(ident, symbol, tail));
+        spec.symbol_table
+            .start_non_terminal()
+            .set_firsts_data(&spec.productions);
+        spec.symbol_table
+            .error_non_terminal()
+            .set_firsts_data(&spec.productions);
         for non_terminal in spec.symbol_table.non_terminals() {
             //if non_terminal.firsts_data_is_none() {
             non_terminal.set_firsts_data(&spec.productions)
@@ -626,6 +632,15 @@ impl Grammar {
         )?;
         wtr.write(b"        }\n")?;
         wtr.write(b"    }\n\n")?;
+        Ok(())
+    }
+
+    pub fn write_description(&self, file_path: &Path) -> io::Result<()> {
+        let mut file = std::fs::File::create(file_path)?;
+        file.write(self.specification.symbol_table.description().as_bytes())?;
+        for parser_state in self.parser_states.iter() {
+            file.write(parser_state.description().as_bytes())?;
+        }
         Ok(())
     }
 }

@@ -57,6 +57,15 @@ pub enum Token {
     EndToken,
 }
 
+impl fmt::Display for Token {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Token::Literal(token_data) => write!(f, "{}", &token_data.text),
+            _ => write!(f, "{}", self.name()),
+        }
+    }
+}
+
 impl Token {
     pub fn new_literal_token(name: &str, text: &str, defined_at: &lexan::Location) -> Self {
         Token::Literal(Rc::new(TokenData::new(name, text, defined_at)))
@@ -76,7 +85,7 @@ impl Token {
     pub fn text(&self) -> &str {
         match self {
             Token::Literal(token_data) | Token::Regex(token_data) => &token_data.text,
-            Token::EndToken => "AAEnd",
+            Token::EndToken => "",
         }
     }
 
@@ -264,9 +273,9 @@ impl fmt::Display for TokenSet {
         let mut set_string = "TokenSet{".to_string();
         for (index, item) in self.iter().enumerate() {
             if index == 0 {
-                set_string += &format!("{}", item.name());
+                set_string += &format!("{}", item);
             } else {
-                set_string += &format!(", {}", item.name());
+                set_string += &format!(", {}", item);
             }
         }
         set_string += "}";

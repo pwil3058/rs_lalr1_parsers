@@ -153,6 +153,13 @@ impl Default for SymbolTable {
 }
 
 impl SymbolTable {
+    pub fn start_non_terminal(&self) -> &NonTerminal {
+        &self.start_non_terminal
+    }
+    pub fn error_non_terminal(&self) -> &NonTerminal {
+        &self.error_non_terminal
+    }
+
     pub fn new_tag(&mut self, name: &str, defined_at: &lexan::Location) -> Result<Tag, Error> {
         let tag = Tag::new(name, defined_at);
         if let Some(other) = self.tags.insert(name.to_string(), tag.clone()) {
@@ -302,5 +309,43 @@ impl SymbolTable {
                 TagOrToken::Invalid => (),
             }
         }
+    }
+
+    pub fn description(&self) -> String {
+        let mut string = "Symbols:\n".to_string();
+        string += "  Tokens:\n";
+        for token in [Token::EndToken].iter().chain(self.tokens()) {
+            string += &format!(
+                "    {}({}): {}({})\n",
+                token.name(),
+                token.text(),
+                token.associativity(),
+                token.precedence()
+            );
+        }
+        string += "  Tags:\n";
+        for tag in self.tags.values() {
+            string += &format!(
+                "    {}: {}({})\n",
+                tag.name(),
+                tag.associativity(),
+                tag.precedence()
+            );
+        }
+        string += "  Non Terminal Symbols:\n";
+        for non_terminal in [
+            self.start_non_terminal.clone(),
+            self.error_non_terminal.clone(),
+        ]
+        .iter()
+        .chain(self.non_terminals())
+        {
+            string += &format!(
+                "    {}: {}\n",
+                non_terminal.name(),
+                non_terminal.firsts_data()
+            );
+        }
+        string
     }
 }

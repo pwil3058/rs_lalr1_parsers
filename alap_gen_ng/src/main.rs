@@ -130,4 +130,15 @@ fn main() {
         std::process::exit(6);
     }
 
+    let description_file = with_changed_extension(&cl_options.specification, "states");
+    if let Err(err) = grammar.write_description(&description_file) {
+        writeln!(
+            std::io::stderr(),
+            "{}: problems writing file: {:?}.",
+            output_path.to_string_lossy(),
+            err
+        )
+        .unwrap();
+        std::process::exit(7);
+    };
 }

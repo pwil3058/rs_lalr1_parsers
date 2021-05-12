@@ -236,16 +236,6 @@ impl ParserState {
         reduce_reduce_conflicts.len()
     }
 
-    pub fn look_ahead_set(&self) -> TokenSet {
-        self.0
-            .grammar_items
-            .borrow()
-            .reducible_look_ahead_set()
-            .union(&self.0.shift_list.borrow().keys().cloned().collect())
-            .cloned()
-            .collect()
-    }
-
     pub fn is_recovery_state_for_token(&self, token: &Token) -> bool {
         if let Some(recovery_state) = self.0.error_recovery_state.borrow().clone() {
             if recovery_state
@@ -258,6 +248,16 @@ impl ParserState {
             }
         };
         false
+    }
+
+    pub fn look_ahead_set(&self) -> TokenSet {
+        self.0
+            .grammar_items
+            .borrow()
+            .reducible_look_ahead_set()
+            .union(&self.0.shift_list.borrow().keys().cloned().collect())
+            .cloned()
+            .collect()
     }
 
     pub fn write_next_action_code<W: Write>(
@@ -362,5 +362,80 @@ impl ParserState {
             wtr.write_fmt(format_args!("{}}},\n", indent))?;
         };
         Ok(())
+    }
+
+    pub fn description(&self) -> String {
+        let mut string = format!("State<{}>:\n  Grammar Items:\n", self.0.ident);
+        for (key, look_ahead_set) in self.0.grammar_items.borrow().iter() {
+            string += &format!("    {}: {}\n", key, look_ahead_set);
+        }
+        string += "  Parser Action Table:\n";
+        let look_ahead_set = self.look_ahead_set();
+        if look_ahead_set.len() == 0 {
+            string += "    <empty>\n";
+        } else {
+            for token in look_ahead_set.iter() {
+                if let Some(state) = self.0.shift_list.borrow().get(token) {
+                    string += &format!("    {}: shift: -> State<{}>\n", token, state.ident());
+                } else {
+                    for (key, lahs) in self
+                        .0
+                        .grammar_items
+                        .borrow()
+                        .iter()
+                        .filter(|x| x.0.is_reducible())
+                    {
+                        if lahs.contains(token) {
+                            string += &format!("    {}: reduce: {}\n", token, key.production());
+                        }
+                    }
+                }
+            }
+        }
+        string += "  Go To Table:\n";
+        if self.0.goto_table.borrow().len() == 0 {
+            string += "    <empty>\n";
+        } else {
+            for (non_terminal, state) in self.0.goto_table.borrow().iter() {
+                string += &format!("    {} -> State<{}>\n", non_terminal.name(), state.ident());
+            }
+        }
+        if let Some(ref state) = self.0.error_recovery_state.borrow().clone() {
+            string += &format!("  Error Recovery State: State<{}>\n", state.ident());
+            string += &format!("    Look Ahead: {}\n", state.look_ahead_set());
+        } else {
+            string += "  Error Recovery State: <none>\n";
+        }
+        if self.0.shift_reduce_conflicts.borrow().len() > 0 {
+            string += "  Shift/Reduce Conflicts:\n";
+            for (shift_token, goto_state, reducible_item, look_ahead_set) in
+                self.0.shift_reduce_conflicts.borrow().iter()
+            {
+                string += &format!("    {}:\n", shift_token);
+                string += &format!("      shift -> State<{}>\n", goto_state.ident());
+                string += &format!(
+                    "      reduce {}: {}",
+                    reducible_item.production(),
+                    look_ahead_set
+                );
+            }
+        }
+        if self.0.reduce_reduce_conflicts.borrow().len() > 0 {
+            string += "  Reduce/Reduce Conflicts:\n";
+            for (items, intersection) in self.0.reduce_reduce_conflicts.borrow().iter() {
+                string += &format!("    {}\n", intersection);
+                string += &format!(
+                    "      reduce {} : {}\n",
+                    items.0,
+                    &self.0.grammar_items.borrow()[&items.0]
+                );
+                string += &format!(
+                    "      reduce {} : {}\n",
+                    items.1,
+                    &self.0.grammar_items.borrow()[&items.1]
+                );
+            }
+        }
+        string
     }
 }
