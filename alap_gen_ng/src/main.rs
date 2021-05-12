@@ -9,8 +9,11 @@ use std::{
     path::{Path, PathBuf},
 };
 
+#[cfg(not(feature = "bootstrap"))]
 mod alap_gen_ng;
 mod attributes;
+#[cfg(feature = "bootstrap")]
+mod bootstrap;
 mod grammar;
 mod production;
 mod state;

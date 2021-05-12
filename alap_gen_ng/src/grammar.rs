@@ -1,6 +1,9 @@
 // Copyright 2021 Peter Williams <pwil3058@gmail.com> <pwil3058@bigpond.net.au>
 
+#[cfg(not(feature = "bootstrap"))]
 use crate::alap_gen_ng::AATerminal;
+#[cfg(feature = "bootstrap")]
+use crate::bootstrap::AATerminal;
 use crate::production::{GrammarItemKey, GrammarItemSet, Production, ProductionTail};
 use crate::state::ParserState;
 use crate::symbol::non_terminal::NonTerminal;

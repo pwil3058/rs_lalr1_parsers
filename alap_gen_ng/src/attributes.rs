@@ -2,7 +2,10 @@
 
 use lexan;
 
+#[cfg(not(feature = "bootstrap"))]
 use crate::alap_gen_ng::AATerminal;
+#[cfg(feature = "bootstrap")]
+use crate::bootstrap::AATerminal;
 use crate::production::ProductionTail;
 use crate::symbol::non_terminal::NonTerminal;
 use crate::symbol::tag::TagOrToken;
