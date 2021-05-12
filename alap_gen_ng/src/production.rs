@@ -5,6 +5,7 @@ use crate::symbol::{non_terminal::NonTerminal, terminal::TokenSet, Associativity
 use lazy_static::lazy_static;
 use std::cmp::Ordering;
 use std::collections::{BTreeMap, BTreeSet};
+use std::iter::FromIterator;
 use std::ops::Index;
 use std::rc::Rc;
 use std::str::FromStr;
@@ -340,6 +341,15 @@ impl Index<&GrammarItemKey> for GrammarItemSet {
     }
 }
 
+impl FromIterator<(GrammarItemKey, TokenSet)> for GrammarItemSet {
+    fn from_iter<T>(iter: T) -> Self
+    where
+        T: IntoIterator<Item = (GrammarItemKey, TokenSet)>,
+    {
+        Self(BTreeMap::<GrammarItemKey, TokenSet>::from_iter(iter))
+    }
+}
+
 impl GrammarItemSet {
     pub fn iter(&self) -> impl Iterator<Item = (&GrammarItemKey, &TokenSet)> {
         self.0.iter()
@@ -354,23 +364,19 @@ impl GrammarItemSet {
     }
 
     pub fn generate_goto_kernel(&self, symbol: &Symbol) -> GrammarItemSet {
-        // TODO: be more itery
-        let mut map = BTreeMap::new();
-        for (item_key, look_ahead_set) in self.0.iter() {
-            if item_key.next_symbol_is(symbol) {
-                map.insert(item_key.shifted(), look_ahead_set.clone());
-            }
-        }
-        GrammarItemSet(map)
+        self.0
+            .iter()
+            .filter(|t| t.0.next_symbol_is(symbol))
+            .map(|t| (t.0.shifted(), t.1.clone()))
+            .collect()
     }
 
     pub fn kernel_key_set(&self) -> BTreeSet<GrammarItemKey> {
-        // TODO: be more itery
-        let mut keys = BTreeSet::new();
-        for key in self.0.keys().filter(|x| x.is_kernel_item()) {
-            keys.insert(key.clone());
-        }
-        keys
+        self.0
+            .keys()
+            .filter(|x| x.is_kernel_item())
+            .cloned()
+            .collect()
     }
 
     pub fn irreducible_key_set(&self) -> BTreeSet<GrammarItemKey> {

@@ -47,7 +47,6 @@ impl Specification {
         let symbol = spec.symbol_table.error_non_terminal.clone();
         let ident = spec.productions.len() as u32;
         let tail = ProductionTail::default();
-        // TODO: is this necessary if %error is never used?
         if !spec.symbol_table.error_non_terminal().is_unused() {
             spec.productions.push(Production::new(ident, symbol, tail));
         }
