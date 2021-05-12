@@ -1,13 +1,8 @@
 // Copyright 2021 Peter Williams <pwil3058@gmail.com> <pwil3058@bigpond.net.au>
-use std::{
-    cell::{Cell, RefCell},
-    cmp::Ordering,
-    fmt,
-    rc::Rc,
-};
+use std::{cell::RefCell, cmp::Ordering, fmt, rc::Rc};
 
 use crate::production::Production;
-use crate::symbol::{terminal::TokenSet, Associativity, Symbol};
+use crate::symbol::{terminal::TokenSet, Symbol};
 
 #[derive(Debug, Clone, Default)]
 pub struct FirstsData {
@@ -27,8 +22,6 @@ pub struct NonTerminalData {
     defined_at: RefCell<Vec<lexan::Location>>,
     used_at: RefCell<Vec<lexan::Location>>,
     firsts_data: RefCell<Option<FirstsData>>,
-    associativity: Cell<Associativity>,
-    precedence: Cell<u16>,
 }
 
 impl PartialEq for NonTerminalData {
