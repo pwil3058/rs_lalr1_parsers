@@ -335,14 +335,16 @@ impl SymbolTable {
                 token.precedence()
             );
         }
-        string += "  Tags:\n";
-        for tag in self.tags.values() {
-            string += &format!(
-                "    {}: {}({})\n",
-                tag.name(),
-                tag.associativity(),
-                tag.precedence()
-            );
+        if self.tags.len() > 0 {
+            string += "  Tags:\n";
+            for tag in self.tags.values() {
+                string += &format!(
+                    "    {}: {}({})\n",
+                    tag.name(),
+                    tag.associativity(),
+                    tag.precedence()
+                );
+            }
         }
         string += "  Non Terminal Symbols:\n";
         for non_terminal in self

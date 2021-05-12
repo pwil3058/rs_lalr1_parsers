@@ -281,6 +281,7 @@ impl ParserState {
         }
         for (productions, look_ahead_set) in reductions.reductions() {
             if productions.len() == 1 {
+                // NB this is clumsy but first() for BTreeSet is only experimental
                 let production = productions.iter().next().expect("len() == 1");
                 debug_assert!(!production.has_predicate());
                 wtr.write_fmt(format_args!("{}    // {}\n", indent, production))?;
@@ -365,7 +366,7 @@ impl ParserState {
     }
 
     pub fn description(&self) -> String {
-        let mut string = format!("State<{}>:\n  Grammar Items:\n", self.0.ident);
+        let mut string = format!("\nState<{}>:\n  Grammar Items:\n", self.0.ident);
         for (key, look_ahead_set) in self.0.grammar_items.borrow().iter() {
             string += &format!("    {}: {}\n", key, look_ahead_set);
         }

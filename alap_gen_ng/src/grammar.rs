@@ -642,6 +642,10 @@ impl Grammar {
     pub fn write_description(&self, file_path: &Path) -> io::Result<()> {
         let mut file = std::fs::File::create(file_path)?;
         file.write(self.specification.symbol_table.description().as_bytes())?;
+        file.write(b"\nProductions:\n")?;
+        for production in self.specification.productions.iter() {
+            file.write_fmt(format_args!("  {}\n", production))?;
+        }
         for parser_state in self.parser_states.iter() {
             file.write(parser_state.description().as_bytes())?;
         }
