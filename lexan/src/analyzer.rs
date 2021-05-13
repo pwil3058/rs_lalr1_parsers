@@ -90,7 +90,7 @@ impl<T: Debug + Display + Copy> fmt::Display for Error<T> {
     fn fmt(&self, dest: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Error::UnexpectedText(text, location) => {
-                write!(dest, "Enexpected text \"{}\" at: {}.", text, location)
+                write!(dest, "Unexpected text \"{}\" at: {}.", text, location)
             }
             Error::AmbiguousMatches(tags, text, location) => write!(
                 dest,
