@@ -161,10 +161,10 @@ impl Calc {
 
 %skip   ([\t\r ]+)
 
-%right  UMINUS
-%left   "*" "/"
-%left   "+" "-"
 %left   EOL
+%left   "+" "-"
+%left   "*" "/"
+%right  UMINUS
 
 %%
 Line: SetUp Expr ?(self.errors > 0?) !{self.report_errors();!}

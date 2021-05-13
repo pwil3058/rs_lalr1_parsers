@@ -131,7 +131,7 @@ pub struct SymbolTable {
     regex_tokens: BTreeMap<String, Token>,
     non_terminals: BTreeMap<String, NonTerminal>,
     skip_rules: Vec<String>,
-    next_precedence: u16,
+    last_precedence: u16,
     start_non_terminal: NonTerminal,
     pub error_non_terminal: NonTerminal,
 }
@@ -145,7 +145,7 @@ impl Default for SymbolTable {
             regex_tokens: BTreeMap::new(),
             non_terminals: BTreeMap::new(),
             skip_rules: Vec::new(),
-            next_precedence: u16::MAX,
+            last_precedence: 0,
             start_non_terminal: NonTerminal::new_start(),
             error_non_terminal: NonTerminal::new_error(),
         }
@@ -306,8 +306,8 @@ impl SymbolTable {
         associativity: Associativity,
         tag_or_token_list: &[TagOrToken],
     ) {
-        let precedence = self.next_precedence;
-        self.next_precedence -= 1;
+        let precedence = self.last_precedence + 1;
+        self.last_precedence = precedence;
         for tag_or_token in tag_or_token_list.iter() {
             match tag_or_token {
                 TagOrToken::Tag(tag) => {

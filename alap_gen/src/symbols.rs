@@ -484,7 +484,7 @@ pub struct SymbolTable {
     tags: HashMap<String, Rc<Symbol>>,   // indexed by tag name
     non_terminals: HashMap<String, Rc<Symbol>>, // indexed by symbol name
     skip_rules: Vec<String>,
-    next_precedence: u32,
+    last_precedence: u32,
     next_ident: u32,
 }
 
@@ -496,7 +496,7 @@ impl SymbolTable {
             tags: HashMap::new(),
             non_terminals: HashMap::new(),
             skip_rules: Vec::new(),
-            next_precedence: u32::max_value(),
+            last_precedence: 0,
             next_ident: 0,
         };
         let start_location = lexan::Location::default();
@@ -637,11 +637,11 @@ impl SymbolTable {
     }
 
     pub fn set_precedences(&mut self, associativity: Associativity, tags: &Vec<Rc<Symbol>>) {
-        let precedence = self.next_precedence;
+        let precedence = self.last_precedence + 1;
         for symbol in tags.iter() {
             symbol.set_associative_precedence(associativity, precedence);
         }
-        self.next_precedence -= 1;
+        self.last_precedence = precedence;
     }
 
     pub fn get_literal_token(
