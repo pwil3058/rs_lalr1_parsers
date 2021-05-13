@@ -213,6 +213,10 @@ pub struct Reductions {
 }
 
 impl Reductions {
+    pub fn len(&self) -> usize {
+        self.reductions.len()
+    }
+
     pub fn reductions(&self) -> impl Iterator<Item = (&BTreeSet<Production>, &TokenSet)> {
         self.reductions.iter()
     }

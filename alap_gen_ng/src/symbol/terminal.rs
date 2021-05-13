@@ -251,6 +251,18 @@ impl TokenSet {
         }
         string
     }
+
+    pub fn display_as_or_list(&self) -> String {
+        let mut string = "".to_string();
+        for (index, token) in self.0.iter().enumerate() {
+            if index == 0 {
+                string += &format!("{}", token);
+            } else {
+                string += &format!(" | {}", token);
+            }
+        }
+        string
+    }
 }
 
 impl BitOrAssign<&Self> for TokenSet {

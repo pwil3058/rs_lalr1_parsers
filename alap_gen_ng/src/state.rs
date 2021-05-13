@@ -371,27 +371,31 @@ impl ParserState {
             string += &format!("    {}: {}\n", key, look_ahead_set);
         }
         string += "  Parser Action Table:\n";
-        let look_ahead_set = self.look_ahead_set();
-        if look_ahead_set.len() == 0 {
-            string += "    <empty>\n";
-        } else {
-            for token in look_ahead_set.iter() {
-                if let Some(state) = self.0.shift_list.borrow().get(token) {
-                    string += &format!("    {}: shift: -> State<{}>\n", token, state.ident());
-                } else {
-                    for (key, lahs) in self
-                        .0
-                        .grammar_items
-                        .borrow()
-                        .iter()
-                        .filter(|x| x.0.is_reducible())
-                    {
-                        if lahs.contains(token) {
-                            string += &format!("    {}: reduce: {}\n", token, key.production());
-                        }
-                    }
+        let mut empty = true;
+        let shift_list = self.0.shift_list.borrow();
+        if shift_list.len() > 0 {
+            empty = false;
+            string += "    Shifts:\n";
+            for (token, state) in shift_list.iter() {
+                string += &format!("      {} -> State<{}>\n", token, state.ident());
+            }
+        }
+        let reductions = self.0.grammar_items.borrow().reductions();
+        if reductions.len() > 0 {
+            empty = false;
+            string += "    Reductions:\n";
+            for (productions, look_ahead_set) in reductions.reductions() {
+                for production in productions.iter() {
+                    string += &format!(
+                        "      {}: {}\n",
+                        look_ahead_set.display_as_or_list(),
+                        production
+                    );
                 }
             }
+        }
+        if empty {
+            string += "    <empty>\n";
         }
         string += "  Go To Table:\n";
         if self.0.goto_table.borrow().len() == 0 {
