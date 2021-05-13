@@ -386,11 +386,19 @@ impl ParserState {
             string += "    Reductions:\n";
             for (productions, look_ahead_set) in reductions.reductions() {
                 for production in productions.iter() {
-                    string += &format!(
-                        "      {}: {}\n",
-                        look_ahead_set.display_as_or_list(),
-                        production
-                    );
+                    if productions.len() == 1 && production.ident() == 0 {
+                        string += &format!(
+                            "      {}: accept {}\n",
+                            look_ahead_set.display_as_or_list(),
+                            production
+                        );
+                    } else {
+                        string += &format!(
+                            "      {}: reduce {}\n",
+                            look_ahead_set.display_as_or_list(),
+                            production
+                        );
+                    }
                 }
             }
         }

@@ -199,6 +199,7 @@ impl std::fmt::Display for Production {
                 string += &format!(" {}", symbol);
             }
         };
+        string += &format!(" #({}, {})", self.associativity(), self.precedence());
         if let Some(predicate) = &self.0.tail.0.predicate {
             string += &format!(" ?({}?)", predicate);
         };
@@ -245,6 +246,11 @@ impl std::fmt::Display for GrammarItemKey {
                 string += " . ";
             }
         };
+        string += &format!(
+            " #({}, {})",
+            self.production.associativity(),
+            self.production.precedence()
+        );
         if let Some(predicate) = &self.production.0.tail.0.predicate {
             string += &format!(" ?({}?)", predicate);
         };

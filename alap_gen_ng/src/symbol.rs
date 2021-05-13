@@ -328,7 +328,7 @@ impl SymbolTable {
         string += "  Tokens:\n";
         for token in [Token::EndToken].iter().chain(self.tokens()) {
             string += &format!(
-                "    {}({}): {}({})\n",
+                "    {}({}): #({}, {})\n",
                 token.name(),
                 token.text(),
                 token.associativity(),
@@ -339,7 +339,7 @@ impl SymbolTable {
             string += "  Tags:\n";
             for tag in self.tags.values() {
                 string += &format!(
-                    "    {}: {}({})\n",
+                    "    {}: #({}, {})\n",
                     tag.name(),
                     tag.associativity(),
                     tag.precedence()
