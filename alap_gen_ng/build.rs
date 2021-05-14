@@ -11,7 +11,7 @@ fn main() {
         Ok(status) => {
             if status.success() {
                 Command::new("rustfmt")
-                    .args(&["src/alap_gen.rs"])
+                    .args(&["src/alap_gen_ng.rs"])
                     .status()
                     .unwrap();
             } else {
