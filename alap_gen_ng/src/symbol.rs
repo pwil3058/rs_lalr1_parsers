@@ -185,8 +185,8 @@ impl SymbolTable {
         self.tags.get(name)
     }
 
-    pub fn tags(&self) -> impl Iterator<Item = &Tag> {
-        self.tags.values()
+    pub fn unused_tags(&self) -> impl Iterator<Item = &Tag> {
+        self.tags.values().filter(|t| t.is_unused())
     }
 
     pub fn new_literal_token(
@@ -233,6 +233,10 @@ impl SymbolTable {
         self.tokens.values()
     }
 
+    pub fn unused_tokens(&self) -> impl Iterator<Item = &Token> {
+        self.tokens.values().filter(|t| t.is_unused())
+    }
+
     pub fn literal_tokens(&self) -> impl Iterator<Item = &Token> {
         self.literal_tokens.values()
     }
@@ -261,6 +265,14 @@ impl SymbolTable {
 
     pub fn non_terminals(&self) -> impl Iterator<Item = &NonTerminal> {
         self.non_terminals.values()
+    }
+
+    pub fn undefined_non_terminals(&self) -> impl Iterator<Item = &NonTerminal> {
+        self.non_terminals.values().filter(|n| n.is_undefined())
+    }
+
+    pub fn unused_non_terminals(&self) -> impl Iterator<Item = &NonTerminal> {
+        self.non_terminals.values().filter(|n| n.is_unused())
     }
 
     pub fn symbol_used_at(&mut self, name: &str, used_at: &lexan::Location) -> Symbol {
