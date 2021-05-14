@@ -39,9 +39,6 @@ struct CLOptions {
     /// Overwrite the output files (if they exist)
     #[structopt(short, long)]
     force: bool,
-    /// Total number of shift/reduce and/or reduce/reduce conflicts that are expected.
-    #[structopt(short, long)]
-    expect: Option<usize>,
     /// The path of the file containing the grammar specification.
     #[structopt(parse(from_os_str))]
     specification: PathBuf,
@@ -59,11 +56,6 @@ fn main() {
         .unwrap();
         std::process::exit(1);
     }
-    let expected_number_of_conflicts = if let Some(number) = cl_options.expect {
-        number
-    } else {
-        0
-    };
     let mut file = match fs::File::open(&cl_options.specification) {
         Ok(file) => file,
         Err(error) => {
@@ -109,18 +101,30 @@ fn main() {
                 writeln!(std::io::stderr(), "Undefined symbols: {:?}.", count).unwrap();
                 std::process::exit(4);
             }
+            grammar::Error::UnexpectedSRConflicts(count, expected, report) => {
+                writeln!(
+                    std::io::stderr(),
+                    "{}Unexpected shift/reduce conflicts: {} expected: {}.",
+                    report,
+                    count,
+                    expected
+                )
+                .unwrap();
+                std::process::exit(4);
+            }
+            grammar::Error::UnexpectedRRConflicts(count, expected, report) => {
+                writeln!(
+                    std::io::stderr(),
+                    "{}Unexpected reduce/reduce conflicts: {} expected: {}.",
+                    report,
+                    count,
+                    expected
+                )
+                .unwrap();
+                std::process::exit(4);
+            }
         },
     };
-
-    if grammar.total_unresolved_conflicts() != expected_number_of_conflicts {
-        writeln!(
-            std::io::stderr(),
-            "Unexpected conflicts ({}) aborting",
-            grammar.total_unresolved_conflicts()
-        )
-        .unwrap();
-        std::process::exit(5);
-    }
 
     if let Err(err) = grammar.write_parser_code_to_file(&output_path) {
         writeln!(

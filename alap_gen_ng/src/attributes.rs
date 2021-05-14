@@ -17,6 +17,7 @@ pub enum AttributeData {
     Token(lexan::Token<AATerminal>),
     SyntaxError(lexan::Token<AATerminal>, BTreeSet<AATerminal>),
     LexicalError(lexan::Error<AATerminal>, BTreeSet<AATerminal>),
+    Number(u32),
     Symbol(Symbol),
     SymbolList(Vec<Symbol>),
     LeftHandSide(NonTerminal),
@@ -46,7 +47,7 @@ impl AttributeData {
                 lexan::Error::AmbiguousMatches(_, text, _) => text,
                 lexan::Error::AdvancedWhenEmpty(_) => panic!("Wrong attribute variant."),
             },
-            _ => panic!("Wrong attribute variant."),
+            _ => panic!("{:?}: Wrong attribute variant.", self),
         }
     }
 
@@ -59,7 +60,7 @@ impl AttributeData {
                 lexan::Error::AmbiguousMatches(_, _, location) => location,
                 lexan::Error::AdvancedWhenEmpty(location) => location,
             },
-            _ => panic!("Wrong attribute variant."),
+            _ => panic!("{:?}: Wrong attribute variant.", self),
         }
     }
 
@@ -72,91 +73,98 @@ impl AttributeData {
                 lexan::Error::AmbiguousMatches(_, text, location) => (text, location),
                 lexan::Error::AdvancedWhenEmpty(_) => panic!("Wrong attribute variant."),
             },
-            _ => panic!("Wrong attribute variant."),
+            _ => panic!("{:?}: Wrong attribute variant.", self),
+        }
+    }
+
+    pub fn number(&self) -> u32 {
+        match self {
+            AttributeData::Number(number) => *number,
+            _ => panic!("{:?}: Wrong attribute variant.", self),
         }
     }
 
     pub fn symbol<'a>(&'a self) -> &'a Symbol {
         match self {
             AttributeData::Symbol(symbol) => symbol,
-            _ => panic!("Wrong attribute variant."),
+            _ => panic!("{:?}: Wrong attribute variant.", self),
         }
     }
 
     pub fn symbol_list<'a>(&'a self) -> &'a Vec<Symbol> {
         match self {
             AttributeData::SymbolList(list) => list,
-            _ => panic!("Wrong attribute variant."),
+            _ => panic!("{:?}: Wrong attribute variant.", self),
         }
     }
 
     pub fn symbol_list_mut<'a>(&'a mut self) -> &'a mut Vec<Symbol> {
         match self {
             AttributeData::SymbolList(list) => list,
-            _ => panic!("Wrong attribute variant."),
+            _ => panic!("{:?}: Wrong attribute variant.", self),
         }
     }
 
     pub fn left_hand_side<'a>(&'a self) -> &'a NonTerminal {
         match self {
             AttributeData::LeftHandSide(lhs) => lhs,
-            _ => panic!("Wrong attribute variant."),
+            _ => panic!("{:?}: Wrong attribute variant.", self),
         }
     }
 
     pub fn tag_or_token<'a>(&'a self) -> &'a TagOrToken {
         match self {
             AttributeData::TagOrToken(tag_or_token) => tag_or_token,
-            _ => panic!("Wrong attribute variant."),
+            _ => panic!("{:?}: Wrong attribute variant.", self),
         }
     }
 
     pub fn tag_or_token_list<'a>(&'a self) -> &'a Vec<TagOrToken> {
         match self {
             AttributeData::TagOrTokenList(list) => list,
-            _ => panic!("Wrong attribute variant."),
+            _ => panic!("{:?}: Wrong attribute variant.", self),
         }
     }
 
     pub fn tag_or_token_list_mut<'a>(&'a mut self) -> &'a mut Vec<TagOrToken> {
         match self {
             AttributeData::TagOrTokenList(list) => list,
-            _ => panic!("Wrong attribute variant."),
+            _ => panic!("{:?}: Wrong attribute variant.", self),
         }
     }
 
     pub fn production_tail<'a>(&'a self) -> &'a ProductionTail {
         match self {
             AttributeData::ProductionTail(production_tail) => production_tail,
-            _ => panic!("Wrong attribute variant."),
+            _ => panic!("{:?}: Wrong attribute variant.", self),
         }
     }
 
     pub fn production_tail_list<'a>(&'a self) -> &'a Vec<ProductionTail> {
         match self {
             AttributeData::ProductionTailList(list) => list,
-            _ => panic!("Wrong attribute variant."),
+            _ => panic!("{:?}: Wrong attribute variant.", self),
         }
     }
 
     pub fn production_tail_list_mut<'a>(&'a mut self) -> &'a mut Vec<ProductionTail> {
         match self {
             AttributeData::ProductionTailList(list) => list,
-            _ => panic!("Wrong attribute variant."),
+            _ => panic!("{:?}: Wrong attribute variant.", self),
         }
     }
 
     pub fn action<'a>(&'a self) -> &'a str {
         match self {
             AttributeData::Action(action) => action,
-            _ => panic!("Wrong attribute variant."),
+            _ => panic!("{:?}: Wrong attribute variant.", self),
         }
     }
 
     pub fn predicate<'a>(&'a self) -> &'a str {
         match self {
             AttributeData::Predicate(predicate) => predicate,
-            _ => panic!("Wrong attribute variant."),
+            _ => panic!("{:?}: Wrong attribute variant.", self),
         }
     }
 
@@ -165,7 +173,7 @@ impl AttributeData {
             AttributeData::AssociativityAndPrecedence(associativity, precedence) => {
                 (*associativity, *precedence)
             }
-            _ => panic!("Wrong attribute variant."),
+            _ => panic!("{:?}: Wrong attribute variant.", self),
         }
     }
 }

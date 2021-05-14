@@ -3,7 +3,7 @@
 // alap_gen_ng Specification for alap_gen_ng grammar Specification language
 
 %{
-use std::{fs::File, io::Read};
+use std::{fs::File, io::Read, str::FromStr};
 
 use crate::{
     attributes::*,
@@ -41,6 +41,9 @@ use lazy_static::lazy_static;
 %token  PREDICATE       (\?\((.|[\n\r])*?\?\))
 %token  ACTION          (!\{(.|[\n\r])*?!\})
 %token  RUSTCODE        (%\{(.|[\n\r])*?%\})
+%token  RR              "%reduce_reduce"
+%token  SR              "%shift_reduce"
+%token  NUMBER          ([0-9]+)
 
 %skip (/\*(.|[\n\r])*?\*/)
 %skip (//[^\n\r]*)
@@ -90,8 +93,8 @@ Preamble:
     .
 
 // Configuration
-Configuration: AttributeType OptionalInjection TargetType OptionalInjection
-    | TargetType OptionalInjection AttributeType OptionalInjection
+Configuration: AttributeType OptionalInjection TargetType OptionalInjection ExpectedConflicts OptionalInjection
+    | TargetType OptionalInjection AttributeType OptionalInjection ExpectedConflicts OptionalInjection
     .
 
 AttributeType: "%attr" IDENT
@@ -106,6 +109,39 @@ TargetType: "%target" IDENT
     !}
     .
 
+// Expected conflicts
+ExpectedConflicts:
+    | ExpectedRRConflicts OptionalInjection  ExpectedSRConflicts
+    | ExpectedSRConflicts OptionalInjection  ExpectedRRConflicts
+    | ExpectedRRConflicts
+    | ExpectedSRConflicts
+    .
+
+ExpectedRRConflicts: "%reduce_reduce" Number
+        !{
+            self.expected_rr_conflicts = $2.number();
+        !}
+    .
+
+ExpectedSRConflicts: "%shift_reduce" Number
+        !{
+            self.expected_sr_conflicts = $2.number();
+        !}
+    .
+
+Number: NUMBER
+        !{
+            match u32::from_str($1.matched_text()) {
+                Ok(number) => $$ = AttributeData::Number(number),
+                Err(err) => {
+                    self.error($1.location(), &err.to_string());
+                    $$ = AttributeData::Number(0);
+                }
+            }
+        !}
+    .
+
+// Definitions
 Definitions : TokenDefinitions SkipDefinitions PrecedenceDefinitions .
 
 // Token Definitions

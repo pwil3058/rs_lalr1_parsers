@@ -102,6 +102,8 @@ impl Calc {
 %attr   AttributeData
 %target Calc
 
+%reduce_reduce 1
+
 %%
 
 %token          EOL     (\n)

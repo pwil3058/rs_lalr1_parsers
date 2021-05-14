@@ -33,6 +33,8 @@ pub struct Specification {
     pub target_type: String,
     pub error_count: u32,
     pub warning_count: u32,
+    pub expected_rr_conflicts: u32,
+    pub expected_sr_conflicts: u32,
 }
 
 impl lalr1_plus::ReportError<AATerminal> for Specification {}
@@ -201,14 +203,14 @@ impl Specification {
 pub struct Grammar {
     specification: Specification,
     parser_states: Vec<ParserState>,
-    unresolved_sr_conflicts: usize,
-    unresolved_rr_conflicts: usize,
 }
 
 #[derive(Debug)]
 pub enum Error {
     TooManyErrors(u32),
     UndefinedSymbols(u32),
+    UnexpectedSRConflicts(u32, u32, String),
+    UnexpectedRRConflicts(u32, u32, String),
 }
 
 impl TryFrom<Specification> for Grammar {
@@ -275,8 +277,6 @@ impl TryFrom<Specification> for Grammar {
             let mut grammar = Self {
                 specification,
                 parser_states: vec![],
-                unresolved_rr_conflicts: 0,
-                unresolved_sr_conflicts: 0,
             };
             grammar.new_parser_state(start_kernel);
             while let Some(unprocessed_state) = grammar.first_unprocessed_state() {
@@ -312,18 +312,35 @@ impl TryFrom<Specification> for Grammar {
                     }
                 }
             }
-            grammar.resolve_conflicts();
-            Ok(grammar)
+            let (sr_conflicts, rr_conflicts) = grammar.resolve_conflicts();
+            if sr_conflicts != grammar.specification.expected_sr_conflicts {
+                Err(Error::UnexpectedSRConflicts(
+                    sr_conflicts,
+                    grammar.specification.expected_sr_conflicts,
+                    grammar.describe_sr_conflict_states(),
+                ))
+            } else if rr_conflicts != grammar.specification.expected_rr_conflicts {
+                Err(Error::UnexpectedRRConflicts(
+                    rr_conflicts,
+                    grammar.specification.expected_rr_conflicts,
+                    grammar.describe_rr_conflict_states(),
+                ))
+            } else {
+                Ok(grammar)
+            }
         }
     }
 }
 
 impl Grammar {
-    fn resolve_conflicts(&mut self) {
+    fn resolve_conflicts(&mut self) -> (u32, u32) {
+        let mut sr_conflicts = 0_u32;
+        let mut rr_conflicts = 0_u32;
         for parser_state in self.parser_states.iter_mut() {
-            self.unresolved_sr_conflicts += parser_state.resolve_shift_reduce_conflicts();
-            self.unresolved_rr_conflicts += parser_state.resolve_reduce_reduce_conflicts();
+            sr_conflicts += parser_state.resolve_shift_reduce_conflicts() as u32;
+            rr_conflicts += parser_state.resolve_reduce_reduce_conflicts() as u32;
         }
+        (sr_conflicts, rr_conflicts)
     }
 
     fn first_unprocessed_state(&self) -> Option<ParserState> {
@@ -352,10 +369,6 @@ impl Grammar {
             }
         };
         None
-    }
-
-    pub fn total_unresolved_conflicts(&self) -> usize {
-        self.unresolved_rr_conflicts + self.unresolved_sr_conflicts
     }
 }
 
@@ -650,5 +663,25 @@ impl Grammar {
             file.write(parser_state.description().as_bytes())?;
         }
         Ok(())
+    }
+
+    pub fn describe_sr_conflict_states(&self) -> String {
+        let mut string = String::new();
+        for parser_state in self.parser_states.iter() {
+            if parser_state.shift_reduce_conflict_count() > 0 {
+                string += &parser_state.description().as_str();
+            }
+        }
+        string
+    }
+
+    pub fn describe_rr_conflict_states(&self) -> String {
+        let mut string = String::new();
+        for parser_state in self.parser_states.iter() {
+            if parser_state.reduce_reduce_conflict_count() > 0 {
+                string += &parser_state.description().as_str();
+            }
+        }
+        string
     }
 }

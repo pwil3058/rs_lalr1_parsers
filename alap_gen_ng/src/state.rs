@@ -77,6 +77,14 @@ impl ParserState {
         }
     }
 
+    pub fn reduce_reduce_conflict_count(&self) -> usize {
+        self.0.reduce_reduce_conflicts.borrow().len()
+    }
+
+    pub fn shift_reduce_conflict_count(&self) -> usize {
+        self.0.shift_reduce_conflicts.borrow().len()
+    }
+
     pub fn needs_reprocessing(&self) -> bool {
         match self.0.processed_state.get() {
             ProcessedState::NeedsReprocessing => true,
