@@ -4,16 +4,21 @@ use std::process::Command;
 fn main() {
     println!("cargo:rerun-if-changed=src/alap_gen.alaps");
     println!("cargo:rerun-if-changed=../target/debug/alap_gen");
-    if let Ok(status) = Command::new("../target/debug/alap_gen")
-        .args(&["-f", "-e1", "src/alap_gen.alaps"])
+    match Command::new("../target/debug/alap_gen")
+        .args(&["-f", "src/alapgen.alaps"])
         .status()
     {
-        if status.success() {
-            Command::new("rustfmt")
-                .args(&["src/alap_gen.rs"])
-                .status()
-                .unwrap();
-        };
+        Ok(status) => {
+            if status.success() {
+                Command::new("rustfmt")
+                    .args(&["src/alap_gen.rs"])
+                    .status()
+                    .unwrap();
+            } else {
+                panic!("failed prebuild: {}", status);
+            };
+        }
+        Err(err) => panic!("Build error: {}", err),
     }
     println!("cargo:rerun-if-changed=build.rs");
 }
