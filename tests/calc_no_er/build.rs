@@ -5,13 +5,13 @@ fn main() {
     println!("cargo:rerun-if-changed=src/calc.alaps");
     println!("cargo:rerun-if-changed=../../target/debug/alap_gen");
     match Command::new("../../target/debug/alap_gen")
-        .args(&["-f", "src/calc.alaps"])
+        .args(&["-f", "src/calc_no_er.alaps"])
         .status()
     {
         Ok(status) => {
             if status.success() {
                 Command::new("rustfmt")
-                    .args(&["src/calc.rs"])
+                    .args(&["src/calc_no_er.rs"])
                     .status()
                     .unwrap();
             } else {
