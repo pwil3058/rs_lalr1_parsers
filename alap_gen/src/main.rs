@@ -10,7 +10,7 @@ use std::{
 };
 
 #[cfg(not(feature = "bootstrap"))]
-mod alap_gen_ng;
+mod alap_gen;
 mod attributes;
 #[cfg(feature = "bootstrap")]
 mod bootstrap;

@@ -1,5 +1,5 @@
 [package]
-name = "alap_gen_ng"
+name = "alap_gen"
 version = "0.1.0"
 authors = ["Peter Williams <pwil3058@bigpond.net.au>"]
 edition = "2018"

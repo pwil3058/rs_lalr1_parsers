@@ -3,7 +3,7 @@
 use lexan;
 
 #[cfg(not(feature = "bootstrap"))]
-use crate::alap_gen_ng::AATerminal;
+use crate::alap_gen::AATerminal;
 #[cfg(feature = "bootstrap")]
 use crate::bootstrap::AATerminal;
 use crate::production::ProductionTail;

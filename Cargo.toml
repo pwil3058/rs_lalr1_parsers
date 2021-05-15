@@ -4,7 +4,6 @@ members = [
     "lexan",
     "lalr1_plus",
     "alap_gen",
-    "alap_gen_ng",
 ]
 
 exclude = ["tests", "tests_ng"]
