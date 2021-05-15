@@ -217,29 +217,21 @@ impl TryFrom<Specification> for Grammar {
     type Error = Error;
 
     fn try_from(specification: Specification) -> Result<Self, Error> {
-        for token in specification
-            .symbol_table
-            .tokens()
-            .filter(|t| t.is_unused())
-        {
+        for token in specification.symbol_table.unused_tokens() {
             report_warning(
                 token.defined_at(),
                 &format!("Token \"{}\" is not used", token.name()),
             )
         }
 
-        for tag in specification.symbol_table.tags().filter(|t| t.is_unused()) {
+        for tag in specification.symbol_table.unused_tags() {
             report_warning(
                 tag.defined_at(),
                 &format!("Tag \"{}\" is not used", tag.name()),
             )
         }
 
-        for non_terminal in specification
-            .symbol_table
-            .non_terminals()
-            .filter(|t| t.is_unused())
-        {
+        for non_terminal in specification.symbol_table.unused_non_terminals() {
             report_warning(
                 &non_terminal
                     .first_definition()
@@ -249,11 +241,7 @@ impl TryFrom<Specification> for Grammar {
         }
 
         let mut undefined_symbols = 0;
-        for non_terminal in specification
-            .symbol_table
-            .non_terminals()
-            .filter(|t| t.is_undefined())
-        {
+        for non_terminal in specification.symbol_table.undefined_non_terminals() {
             for location in non_terminal.used_at() {
                 report_error(
                     &location,
