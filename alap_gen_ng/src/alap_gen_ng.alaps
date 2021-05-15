@@ -157,12 +157,23 @@ TokenDefinition: "%token" NewTokenName LITERAL
                 self.error(location, &err.to_string());
             }
         !}
-    | "%token" NewTokenName REGEX
+    | "%token" NewTokenName RegEx
         !{
             let (name, location) = $2.text_and_location();
             let text = $3.matched_text();
             if let Err(err) = self.symbol_table.new_regex_token(name, text, location) {
                 self.error(location, &err.to_string());
+            }
+        !}
+    .
+
+RegEx: REGEX
+        !{  let (text, location) = $1.text_and_location();
+            if let Err(err) = regex::Regex::new(text) {
+                self.error(
+                    location,
+                    &format!("malformed regular expression \"{}\": {}", text, err.to_string()),
+                );
             }
         !}
     .
@@ -186,7 +197,7 @@ SkipDefinitions : // empty production
     | SkipDefinitions OptionalInjection SkipDefinition OptionalInjection
     .
 
-SkipDefinition: "%skip" REGEX
+SkipDefinition: "%skip" RegEx
         !{
             let skip_rule = $2.matched_text();
             if let Err(err) = self.symbol_table.add_skip_rule(skip_rule) {
