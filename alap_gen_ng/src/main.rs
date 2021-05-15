@@ -36,9 +36,12 @@ fn with_changed_extension(path: &Path, new_extension: &str) -> PathBuf {
     author = crate_authors!(),
 )]
 struct CLOptions {
-    /// Overwrite the output files (if they exist)
+    /// Overwrite the output files (if they exist).
     #[structopt(short, long)]
     force: bool,
+    /// Specify the path of the required output file (if different to the default).
+    #[structopt(short, long)]
+    output: Option<PathBuf>,
     /// The path of the file containing the grammar specification.
     #[structopt(parse(from_os_str))]
     specification: PathBuf,
@@ -46,7 +49,11 @@ struct CLOptions {
 
 fn main() {
     let cl_options = CLOptions::from_args();
-    let output_path = with_changed_extension(&cl_options.specification, "rs");
+    let output_path = if let Some(output_path) = cl_options.output {
+        output_path
+    } else {
+        with_changed_extension(&cl_options.specification, "rs")
+    };
     if output_path.exists() && !cl_options.force {
         writeln!(
             std::io::stderr(),
@@ -104,7 +111,7 @@ fn main() {
             grammar::Error::UnexpectedSRConflicts(count, expected, report) => {
                 writeln!(
                     std::io::stderr(),
-                    "{}Unexpected shift/reduce conflicts: {} expected: {}.",
+                    "{}\nUnexpected shift/reduce conflicts: {} expected: {}.",
                     report,
                     count,
                     expected
@@ -115,7 +122,7 @@ fn main() {
             grammar::Error::UnexpectedRRConflicts(count, expected, report) => {
                 writeln!(
                     std::io::stderr(),
-                    "{}Unexpected reduce/reduce conflicts: {} expected: {}.",
+                    "{}\nUnexpected reduce/reduce conflicts: {} expected: {}.",
                     report,
                     count,
                     expected
@@ -137,7 +144,7 @@ fn main() {
         std::process::exit(6);
     }
 
-    let description_file = with_changed_extension(&cl_options.specification, "states");
+    let description_file = with_changed_extension(&output_path, "states");
     if let Err(err) = grammar.write_description(&description_file) {
         writeln!(
             std::io::stderr(),
