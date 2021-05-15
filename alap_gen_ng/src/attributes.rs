@@ -38,7 +38,7 @@ impl Default for AttributeData {
 }
 
 impl AttributeData {
-    pub fn matched_text<'a>(&'a self) -> &'a String {
+    pub fn matched_text(&self) -> &String {
         match self {
             AttributeData::Token(token) => token.lexeme(),
             AttributeData::SyntaxError(token, _) => token.lexeme(),
@@ -51,7 +51,7 @@ impl AttributeData {
         }
     }
 
-    pub fn location<'a>(&'a self) -> &'a lexan::Location {
+    pub fn location(&self) -> &lexan::Location {
         match self {
             AttributeData::Token(token) => token.location(),
             AttributeData::SyntaxError(token, _) => token.location(),
@@ -64,7 +64,7 @@ impl AttributeData {
         }
     }
 
-    pub fn text_and_location<'a>(&'a self) -> (&'a String, &'a lexan::Location) {
+    pub fn text_and_location(&self) -> (&String, &lexan::Location) {
         match self {
             AttributeData::Token(token) => (token.lexeme(), token.location()),
             AttributeData::SyntaxError(token, _) => (token.lexeme(), token.location()),
@@ -84,84 +84,84 @@ impl AttributeData {
         }
     }
 
-    pub fn symbol<'a>(&'a self) -> &'a Symbol {
+    pub fn symbol(&self) -> &Symbol {
         match self {
             AttributeData::Symbol(symbol) => symbol,
             _ => panic!("{:?}: Wrong attribute variant.", self),
         }
     }
 
-    pub fn symbol_list<'a>(&'a self) -> &'a Vec<Symbol> {
+    pub fn symbol_list(&self) -> &Vec<Symbol> {
         match self {
             AttributeData::SymbolList(list) => list,
             _ => panic!("{:?}: Wrong attribute variant.", self),
         }
     }
 
-    pub fn symbol_list_mut<'a>(&'a mut self) -> &'a mut Vec<Symbol> {
+    pub fn symbol_list_mut(&mut self) -> &mut Vec<Symbol> {
         match self {
             AttributeData::SymbolList(list) => list,
             _ => panic!("{:?}: Wrong attribute variant.", self),
         }
     }
 
-    pub fn left_hand_side<'a>(&'a self) -> &'a NonTerminal {
+    pub fn left_hand_side(&self) -> &NonTerminal {
         match self {
             AttributeData::LeftHandSide(lhs) => lhs,
             _ => panic!("{:?}: Wrong attribute variant.", self),
         }
     }
 
-    pub fn tag_or_token<'a>(&'a self) -> &'a TagOrToken {
+    pub fn tag_or_token(&self) -> &TagOrToken {
         match self {
             AttributeData::TagOrToken(tag_or_token) => tag_or_token,
             _ => panic!("{:?}: Wrong attribute variant.", self),
         }
     }
 
-    pub fn tag_or_token_list<'a>(&'a self) -> &'a Vec<TagOrToken> {
+    pub fn tag_or_token_list(&self) -> &Vec<TagOrToken> {
         match self {
             AttributeData::TagOrTokenList(list) => list,
             _ => panic!("{:?}: Wrong attribute variant.", self),
         }
     }
 
-    pub fn tag_or_token_list_mut<'a>(&'a mut self) -> &'a mut Vec<TagOrToken> {
+    pub fn tag_or_token_list_mut(&mut self) -> &mut Vec<TagOrToken> {
         match self {
             AttributeData::TagOrTokenList(list) => list,
             _ => panic!("{:?}: Wrong attribute variant.", self),
         }
     }
 
-    pub fn production_tail<'a>(&'a self) -> &'a ProductionTail {
+    pub fn production_tail(&self) -> &ProductionTail {
         match self {
             AttributeData::ProductionTail(production_tail) => production_tail,
             _ => panic!("{:?}: Wrong attribute variant.", self),
         }
     }
 
-    pub fn production_tail_list<'a>(&'a self) -> &'a Vec<ProductionTail> {
+    pub fn production_tail_list(&self) -> &Vec<ProductionTail> {
         match self {
             AttributeData::ProductionTailList(list) => list,
             _ => panic!("{:?}: Wrong attribute variant.", self),
         }
     }
 
-    pub fn production_tail_list_mut<'a>(&'a mut self) -> &'a mut Vec<ProductionTail> {
+    pub fn production_tail_list_mut(&mut self) -> &mut Vec<ProductionTail> {
         match self {
             AttributeData::ProductionTailList(list) => list,
             _ => panic!("{:?}: Wrong attribute variant.", self),
         }
     }
 
-    pub fn action<'a>(&'a self) -> &'a str {
+    pub fn action(&self) -> &str {
         match self {
             AttributeData::Action(action) => action,
             _ => panic!("{:?}: Wrong attribute variant.", self),
         }
     }
 
-    pub fn predicate<'a>(&'a self) -> &'a str {
+    pub fn predicate(&self) -> &str {
         match self {
             AttributeData::Predicate(predicate) => predicate,
             _ => panic!("{:?}: Wrong attribute variant.", self),
