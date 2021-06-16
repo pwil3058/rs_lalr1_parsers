@@ -44,11 +44,22 @@ impl Ord for NonTerminalData {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum NonTerminal {
     UserDefined(Rc<NonTerminalData>),
     Error(Rc<NonTerminalData>),
     Start(Rc<NonTerminalData>),
+}
+
+impl Clone for NonTerminal {
+    fn clone(&self) -> Self {
+        use NonTerminal::*;
+        match self {
+            UserDefined(ntd) => UserDefined(Rc::clone(ntd)),
+            Error(ntd) => Error(Rc::clone(ntd)),
+            Start(ntd) => Start(Rc::clone(ntd)),
+        }
+    }
 }
 
 impl NonTerminal {

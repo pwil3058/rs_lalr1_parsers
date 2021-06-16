@@ -19,8 +19,14 @@ pub struct ProductionTailData {
     action: Option<String>,
 }
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default)]
 pub struct ProductionTail(Rc<ProductionTailData>);
+
+impl Clone for ProductionTail {
+    fn clone(&self) -> Self {
+        Self(Rc::clone(&self.0))
+    }
+}
 
 impl ProductionTail {
     pub fn new(
@@ -75,8 +81,14 @@ pub struct ProductionData {
     tail: ProductionTail,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct Production(Rc<ProductionData>);
+
+impl Clone for Production {
+    fn clone(&self) -> Self {
+        Self(Rc::clone(&self.0))
+    }
+}
 
 lazy_static! {
     static ref RHS_CRE: regex::Regex = regex::Regex::new(r"\$(\d+)").unwrap();

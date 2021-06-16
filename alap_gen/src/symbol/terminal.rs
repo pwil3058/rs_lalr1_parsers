@@ -50,11 +50,22 @@ impl Ord for TokenData {
     }
 }
 
-#[derive(Debug, Clone, PartialOrd, Ord, PartialEq, Eq)]
+#[derive(Debug, PartialOrd, Ord, PartialEq, Eq)]
 pub enum Token {
     Literal(Rc<TokenData>),
     Regex(Rc<TokenData>),
     EndToken,
+}
+
+impl Clone for Token {
+    fn clone(&self) -> Self {
+        use Token::*;
+        match self {
+            Literal(td) => Literal(Rc::clone(td)),
+            Regex(td) => Regex(Rc::clone(td)),
+            EndToken => EndToken
+        }
+    }
 }
 
 impl fmt::Display for Token {

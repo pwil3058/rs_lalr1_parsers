@@ -23,8 +23,14 @@ impl TagData {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct Tag(Rc<TagData>);
+
+impl Clone for Tag {
+    fn clone(&self) -> Self {
+        Self(Rc::clone(&self.0))
+    }
+}
 
 impl Tag {
     pub fn new(name: &str, defined_at: &lexan::Location) -> Self {

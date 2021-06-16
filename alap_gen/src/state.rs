@@ -35,8 +35,14 @@ pub struct ParserStateData {
     reduce_reduce_conflicts: RefCell<Vec<((GrammarItemKey, GrammarItemKey), TokenSet)>>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct ParserState(Rc<ParserStateData>);
+
+impl Clone for ParserState {
+    fn clone(&self) -> Self {
+        Self(Rc::clone(&self.0))
+    }
+}
 
 impl PartialEq for ParserState {
     fn eq(&self, other: &Self) -> bool {
