@@ -299,7 +299,7 @@ impl ParserState {
                 let production = productions.iter().next().expect("len() == 1");
                 debug_assert!(!production.has_predicate());
                 wtr.write_fmt(format_args!("{}    // {}\n", indent, production))?;
-                if production.ident() == 0 {
+                if production.is_start_production() {
                     wtr.write_fmt(format_args!(
                         "{}    {} => Action::Accept,\n",
                         indent,
@@ -336,7 +336,7 @@ impl ParserState {
                         wtr.write_fmt(format_args!("{}        }} else {{\n", indent,))?;
                     }
                     wtr.write_fmt(format_args!("{}            // {}\n", indent, production))?;
-                    if production.ident() == 0 {
+                    if production.is_start_production() {
                         wtr.write_fmt(format_args!("{}            Action::Accept\n", indent,))?;
                     } else {
                         wtr.write_fmt(format_args!(
@@ -400,7 +400,7 @@ impl ParserState {
             string += "    Reductions:\n";
             for (productions, look_ahead_set) in reductions.reductions() {
                 for production in productions.iter() {
-                    if productions.len() == 1 && production.ident() == 0 {
+                    if productions.len() == 1 && production.is_start_production() {
                         string += &format!(
                             "      {}: accept {}\n",
                             look_ahead_set.display_as_or_list(),

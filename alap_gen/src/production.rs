@@ -9,6 +9,8 @@ use std::iter::FromIterator;
 use std::ops::Index;
 use std::rc::Rc;
 use std::str::FromStr;
+use std::sync::atomic::{self, AtomicU32};
+use std::fmt::Display;
 
 #[derive(Debug, Default)]
 pub struct ProductionTailData {
@@ -74,9 +76,29 @@ fn rhs_associated_precedence(symbols: &[Symbol]) -> Option<(Associativity, u16)>
     None
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub struct ProductionId(u32);
+
+impl ProductionId {
+    fn new() -> Self {
+        static NEXT_ID: AtomicU32 = AtomicU32::new(0);
+        ProductionId(NEXT_ID.fetch_add(1, atomic::Ordering::Relaxed))
+    }
+
+    pub fn is_zero(&self) -> bool {
+        self.0 == 0
+    }
+}
+
+impl Display for ProductionId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
 #[derive(Debug)]
 pub struct ProductionData {
-    pub ident: u32,
+    pub ident: ProductionId,
     left_hand_side: NonTerminal,
     tail: ProductionTail,
 }
@@ -95,16 +117,20 @@ lazy_static! {
 }
 
 impl Production {
-    pub fn new(ident: u32, left_hand_side: NonTerminal, tail: ProductionTail) -> Self {
+    pub fn new(left_hand_side: NonTerminal, tail: ProductionTail) -> Self {
         Self(Rc::new(ProductionData {
-            ident,
+            ident: ProductionId::new(),
             left_hand_side,
             tail,
         }))
     }
 
-    pub fn ident(&self) -> u32 {
+    pub fn ident(&self) -> ProductionId {
         self.0.ident
+    }
+
+    pub fn is_start_production(&self) -> bool {
+        self.0.ident.is_zero()
     }
 
     pub fn len(&self) -> usize {

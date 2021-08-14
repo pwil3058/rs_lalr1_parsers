@@ -47,10 +47,9 @@ impl Specification {
         spec.parse_text(text, label)?;
         // Add dummy error production last so that it has lowest precedence during conflict resolution
         let symbol = spec.symbol_table.error_non_terminal.clone();
-        let ident = spec.productions.len() as u32;
         let tail = ProductionTail::default();
         if !spec.symbol_table.error_non_terminal().is_unused() {
-            spec.productions.push(Production::new(ident, symbol, tail));
+            spec.productions.push(Production::new(symbol, tail));
         }
         spec.symbol_table
             .start_non_terminal()
@@ -92,12 +91,11 @@ impl Specification {
             left_hand_side.add_used_at(&location);
             let start_symbol = self.symbol_table.start_non_terminal_used_at(&location);
             let start_tail = ProductionTail::new(&[left_hand_side.into()], None, None, None);
-            let start_production = Production::new(0, start_symbol, start_tail);
+            let start_production = Production::new(start_symbol, start_tail);
             self.productions.push(start_production);
         }
-        let ident = self.productions.len() as u32;
         self.productions
-            .push(Production::new(ident, left_hand_side.clone(), tail.clone()));
+            .push(Production::new(left_hand_side.clone(), tail.clone()));
     }
 
     fn closure(&self, mut closure_set: GrammarItemSet) -> GrammarItemSet {
