@@ -4,9 +4,9 @@ use std::{process::Command, path::Path};
 
 #[cfg(not(feature = "bootstrap"))]
 fn main() {
-    println!("cargo:rerun-if-changed=src/alap_gen.alaps");
     let alap_gen_path = "../target/debug/alap_gen";
     if Path::new(alap_gen_path).exists() {
+        println!("cargo:rerun-if-changed=src/alap_gen.alaps");
         println!("cargo:rerun-if-changed=../target/debug/alap_gen");
         println!("cargo::rerun-if-changed={}", alap_gen_path);
         match Command::new(alap_gen_path)
