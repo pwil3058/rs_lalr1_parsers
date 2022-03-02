@@ -5,12 +5,12 @@ use crate::symbol::{non_terminal::NonTerminal, terminal::TokenSet, Associativity
 use lazy_static::lazy_static;
 use std::cmp::Ordering;
 use std::collections::{BTreeMap, BTreeSet};
+use std::fmt::Display;
 use std::iter::FromIterator;
 use std::ops::Index;
 use std::rc::Rc;
 use std::str::FromStr;
 use std::sync::atomic::{self, AtomicU32};
-use std::fmt::Display;
 
 #[derive(Debug, Default)]
 pub struct ProductionTailData {
@@ -248,7 +248,6 @@ impl std::fmt::Display for Production {
 #[derive(Debug, Default)]
 pub struct Reductions {
     reductions: BTreeMap<BTreeSet<Production>, TokenSet>,
-    expected_tokens: TokenSet,
 }
 
 impl Reductions {
@@ -504,9 +503,6 @@ impl GrammarItemSet {
             let look_ahead_set = reductions.entry(productions).or_insert(TokenSet::new());
             look_ahead_set.insert(token);
         }
-        Reductions {
-            reductions,
-            expected_tokens,
-        }
+        Reductions { reductions }
     }
 }
