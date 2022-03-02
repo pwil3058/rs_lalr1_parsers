@@ -2,6 +2,7 @@
 
 members = [
     "lexan",
+    "lalr1",
     "lalr1_plus",
     "alap_gen",
 ]

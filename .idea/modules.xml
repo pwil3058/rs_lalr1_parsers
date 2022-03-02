@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/rs_lalr1plus.iml" filepath="$PROJECT_DIR$/.idea/rs_lalr1plus.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/rs_lalr1_parsers.iml" filepath="$PROJECT_DIR$/.idea/rs_lalr1_parsers.iml" />
     </modules>
   </component>
 </project>
