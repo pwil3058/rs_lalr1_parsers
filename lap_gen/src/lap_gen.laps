@@ -1,0 +1,444 @@
+// Copyright 2022 Peter Williams <pwil3058@gmail.com> <pwil3058@bigpond.net.au>
+// lap_gen.laps
+// lap_gen Specification for lap_gen grammar Specification language
+
+%{
+use std::{fs::File, io::Read, str::FromStr};
+
+use crate::{
+    attributes::*,
+    grammar::Specification,
+    production::ProductionTail,
+    symbol::Associativity,
+    symbol::tag::TagOrToken,
+};
+
+use lazy_static::lazy_static;
+%}
+
+%attr   AttributeData
+%target Specification
+
+%%
+
+%token  REGEX           (\(.+\))
+%token  LITERAL         ("(\\"|[^"\t\r\n\v\f])*")
+%token  ATTR            "%attr"
+%token  TARGET          "%target"
+%token  TOKEN           "%token"
+%token  LEFT            "%left"
+%token  RIGHT           "%right"
+%token  NONASSOC        "%nonassoc"
+%token  PRECEDENCE      "%prec"
+%token  SKIP            "%skip"
+%token  ERROR           "%error"
+%token  INJECT          "%inject"
+%token  NEWSECTION      "%%"
+%token  COLON           ":"
+%token  VBAR            "|"
+%token  DOT             "."
+%token  IDENT           ([a-zA-Z]+[a-zA-Z0-9_]*)
+%token  ACTION          (!\{(.|[\n\r])*?!\})
+%token  RUSTCODE        (%\{(.|[\n\r])*?%\})
+%token  RR              "%reduce_reduce"
+%token  SR              "%shift_reduce"
+%token  NUMBER          ([0-9]+)
+
+%skip (/\*(.|[\n\r])*?\*/)
+%skip (//[^\n\r]*)
+%skip (\s+)
+
+%right INJECT
+
+%%
+Specification: Preamble Configuration "%%" Definitions "%%" ProductionRules.
+
+OptionalInjection: !{ // no injection so nothing to do !} | Injection .
+
+InjectionHead: "%inject" LITERAL
+        !{
+            let (text, location) = $2.text_and_location();
+            let file_path = text.trim_matches('"');
+            match File::open(&file_path) {
+                Ok(mut file) => {
+                    let mut text = String::new();
+                    if let Err(err) = file.read_to_string(&mut text) {
+                        self.error(&location, &format!("Injecting: {}", err));
+                    } else if text.len() == 0 {
+                        self.error(&location, &format!("Injected file \"{}\" is empty.", file_path));
+                    } else {
+                        $INJECT(text, file_path.to_string());
+                    }
+                }
+                Err(err) => self.error(&location, &format!("Injecting: {}.", err)),
+            };
+        !}
+    .
+
+// NB This (including the split) is needed to allow for "look ahead" mechanism.
+// It ensures injection occurs before any meaningful tokens are read
+Injection: InjectionHead "." .
+
+// Preamble
+Preamble:
+        !{
+            // no Preamble defined so there's nothing to do
+        !}
+    | OptionalInjection RUSTCODE OptionalInjection
+        !{
+            let text = $2.matched_text();
+            self.set_preamble(&text[2..text.len() - 2]);
+        !}
+    .
+
+// Configuration
+Configuration: AttributeType OptionalInjection TargetType OptionalInjection ExpectedConflicts OptionalInjection
+    | TargetType OptionalInjection AttributeType OptionalInjection ExpectedConflicts OptionalInjection
+    .
+
+AttributeType: "%attr" IDENT
+    !{
+        self.attribute_type = $2.matched_text().to_string();
+    !}
+    .
+
+TargetType: "%target" IDENT
+    !{
+        self.target_type = $2.matched_text().to_string();
+    !}
+    .
+
+// Expected conflicts
+ExpectedConflicts:
+    | ExpectedRRConflicts OptionalInjection  ExpectedSRConflicts
+    | ExpectedSRConflicts OptionalInjection  ExpectedRRConflicts
+    | ExpectedRRConflicts
+    | ExpectedSRConflicts
+    .
+
+ExpectedRRConflicts: "%reduce_reduce" Number
+        !{
+            self.expected_rr_conflicts = $2.number();
+        !}
+    .
+
+ExpectedSRConflicts: "%shift_reduce" Number
+        !{
+            self.expected_sr_conflicts = $2.number();
+        !}
+    .
+
+Number: NUMBER
+        !{
+            match u32::from_str($1.matched_text()) {
+                Ok(number) => $$ = AttributeData::Number(number),
+                Err(err) => {
+                    self.error($1.location(), &err.to_string());
+                    $$ = AttributeData::Number(0);
+                }
+            }
+        !}
+    .
+
+// Definitions
+Definitions : TokenDefinitions SkipDefinitions PrecedenceDefinitions .
+
+// Token Definitions
+TokenDefinitions : OptionalInjection TokenDefinition
+    | TokenDefinitions OptionalInjection TokenDefinition OptionalInjection
+    .
+
+TokenDefinition: "%token" NewTokenName LITERAL
+        !{
+            let (name, location) = $2.text_and_location();
+            let text = $3.matched_text();
+            if let Err(err) = self.symbol_table.new_literal_token(name, text, location) {
+                self.error(location, &err.to_string());
+            }
+        !}
+    | "%token" NewTokenName RegEx
+        !{
+            let (name, location) = $2.text_and_location();
+            let text = $3.matched_text();
+            if let Err(err) = self.symbol_table.new_regex_token(name, text, location) {
+                self.error(location, &err.to_string());
+            }
+        !}
+    .
+
+RegEx: REGEX
+        !{  let (text, location) = $1.text_and_location();
+            if let Err(err) = regex::Regex::new(text) {
+                self.error(
+                    location,
+                    &format!("malformed regular expression \"{}\": {}", text, err.to_string()),
+                );
+            }
+        !}
+    .
+
+NewTokenName: IDENT ?( !Self::is_allowable_name($1.matched_text()) ?)
+        !{
+            let (name, location) = $1.text_and_location();
+            self.warning(
+                location,
+                &format!("token name \"{}\" may clash with generated code", name),
+            );
+        !}
+    | IDENT
+    .
+
+// Skip Definitions
+SkipDefinitions : // empty production
+        !{
+            // do nothing
+        !}
+    | SkipDefinitions OptionalInjection SkipDefinition OptionalInjection
+    .
+
+SkipDefinition: "%skip" RegEx
+        !{
+            let skip_rule = $2.matched_text();
+            if let Err(err) = self.symbol_table.add_skip_rule(skip_rule) {
+                self.error($2.location(), &err.to_string());
+            };
+        !}
+    .
+
+// Precedence Definitions
+PrecedenceDefinitions : // empty production
+        !{
+            // do nothing
+        !}
+    | PrecedenceDefinitions OptionalInjection PrecedenceDefinition OptionalInjection
+    .
+
+PrecedenceDefinition: "%left" TagList
+        !{
+            let tag_list = $2.tag_or_token_list();
+            self.symbol_table.set_precedences(Associativity::Left, tag_list);
+        !}
+    | "%right" TagList
+        !{
+            let tag_list = $2.tag_or_token_list();
+            self.symbol_table.set_precedences(Associativity::Right, tag_list);
+        !}
+    | "%nonassoc" TagList
+        !{
+            let tag_list = $2.tag_or_token_list();
+            self.symbol_table.set_precedences(Associativity::NonAssoc, tag_list);
+        !}
+    .
+
+TagList: Tag
+        !{
+            let tag_or_token = $1.tag_or_token();
+            $$ = AttributeData::TagOrTokenList(vec![tag_or_token.clone()]);
+        !}
+    | TagList Tag
+        !{
+            let tag_or_token = $2.tag_or_token();
+            $$.tag_or_token_list_mut().push(tag_or_token.clone());
+        !}
+    .
+
+Tag: LITERAL
+        !{
+            let lexeme = $1.matched_text();
+            if let Some(token) = self.symbol_table.get_literal_token(lexeme) {
+                $$ = AttributeData::TagOrToken(token.into());
+                if token.precedence_has_been_set() {
+                    let msg = format!("Token \"{}\" precedence has been set already", lexeme);
+                    self.error($1.location(), &msg);
+                }
+            } else {
+                let msg = format!("Literal token \"{}\" is not known", lexeme);
+                self.error($1.location(), &msg);
+                $$ = AttributeData::TagOrToken(TagOrToken::Invalid);
+            }
+        !}
+    | IDENT
+        !{
+            let name = $1.matched_text();
+            if let Some(token) = self.symbol_table.get_token(name) {
+                $$ = AttributeData::TagOrToken(token.into());
+                if token.precedence_has_been_set() {
+                    let msg = format!("Token \"{}\" precedence has been set already", name);
+                    self.error($1.location(), &msg);
+                }
+            } else {
+                let location = $1.location();
+                if !Self::is_allowable_name(name) {
+                    self.warning(
+                        location,
+                        &format!("tag name \"{}\" may clash with generated code", name),
+                    );
+                };
+                match self.symbol_table.new_tag(name, location) {
+                    Ok(tag) => $$ = AttributeData::TagOrToken(TagOrToken::from(&tag)),
+                    Err(err) => self.error(location, &err.to_string()),
+                }
+            }
+        !}
+    .
+
+// Production rules
+ProductionRules: OptionalInjection ProductionGroup OptionalInjection
+    | ProductionRules ProductionGroup OptionalInjection
+    .
+
+ProductionGroup: ProductionGroupHead ProductionTailList "."
+        !{
+            let lhs = $1.left_hand_side();
+            let tails = $2.production_tail_list();
+            for tail in tails.iter() {
+                self.new_production(lhs, tail);
+            }
+        !}
+    .
+
+ProductionGroupHead: IDENT ":"
+        !{
+            let (name, location) = $1.text_and_location();
+            match self.symbol_table.non_terminal_defined_at(name, location) {
+                Ok(non_terminal) => {
+                    $$ = AttributeData::LeftHandSide(non_terminal);
+                }
+                Err(err) => self.error(location, &err.to_string())
+            }
+        !}
+    .
+
+ProductionTailList: ProductionTail
+        !{
+            let production_tail = $1.production_tail().clone();
+            $$ = AttributeData::ProductionTailList(vec![production_tail]);
+        !}
+    | ProductionTailList "|" ProductionTail
+        !{
+            let production_tail = $3.production_tail();
+            $$.production_tail_list_mut().push(production_tail.clone());
+        !}
+    .
+
+ProductionTail:
+        !{
+            let tail = ProductionTail::default();
+            $$ = AttributeData::ProductionTail(tail)
+        !}
+    | Action
+        !{
+            let tail = ProductionTail::new(
+                &[],
+                None,
+                None,
+                Some($1.action())
+            );
+            $$ = AttributeData::ProductionTail(tail)
+        !}
+    | SymbolList TaggedPrecedence Action
+        !{
+            let tail = ProductionTail::new(
+                $1.symbol_list(),
+                None,
+                Some($2.associativity_and_precedence()),
+                Some($3.action())
+            );
+            $$ = AttributeData::ProductionTail(tail)
+        !}
+    | SymbolList TaggedPrecedence
+        !{
+            let tail = ProductionTail::new(
+                $1.symbol_list(),
+                None,
+                Some($2.associativity_and_precedence()),
+                None
+            );
+            $$ = AttributeData::ProductionTail(tail)
+        !}
+    | SymbolList Action
+        !{
+            let tail = ProductionTail::new(
+                $1.symbol_list(),
+                None,
+                None,
+                Some($2.action())
+            );
+            $$ = AttributeData::ProductionTail(tail)
+        !}
+    | SymbolList
+        !{
+            let tail = ProductionTail::new($1.symbol_list(), None, None, None);
+            $$ = AttributeData::ProductionTail(tail)
+        !}
+    .
+
+Action: ACTION
+        !{
+            let text = $1.matched_text();
+            $$ = AttributeData::Action(text[2..text.len() - 2].to_string());
+        !}
+    .
+
+TaggedPrecedence: "%prec" IDENT
+        !{
+            let (name, location) = $2.text_and_location();
+            if let Some(tag) = self.symbol_table.get_tag(name) {
+                tag.add_used_at(location);
+                $$ = AttributeData::AssociativityAndPrecedence(tag.associativity(), tag.precedence());
+            } else if let Some(token) = self.symbol_table.get_token(name) {
+                $$ = AttributeData::AssociativityAndPrecedence(token.associativity(), token.precedence());
+            } else {
+                self.error(location, &format!("{}: unknown tag", name));
+                $$ = AttributeData::AssociativityAndPrecedence(Associativity::default(), 0);
+            };
+        !}
+    | "%prec" LITERAL
+        !{
+            let (lexeme, location) = $2.text_and_location();
+            if let Some(token) = self.symbol_table.get_literal_token(lexeme) {
+                $$ = AttributeData::AssociativityAndPrecedence(token.associativity(), token.precedence());
+            } else {
+                self.error(location, &format!("{}: unknown tag", lexeme));
+                $$ = AttributeData::AssociativityAndPrecedence(Associativity::default(), 0);
+            };
+        !}
+    .
+
+SymbolList: Symbol
+        !{
+            let symbol = $1.symbol();
+            $$ = AttributeData::SymbolList(vec![symbol.clone()]);
+        !}
+    | SymbolList Symbol
+        !{
+            let symbol = $2.symbol();
+            $$.symbol_list_mut().push(symbol.clone());
+        !}
+    .
+
+Symbol: IDENT
+        !{
+            let (name, location) = $1.text_and_location();
+            let symbol = self.symbol_table.symbol_used_at(name, location);
+            $$ = AttributeData::Symbol(symbol);
+        !}
+    | LITERAL
+        !{
+            let (lexeme, location) = $1.text_and_location();
+            if let Some(token) = self.symbol_table.get_literal_token(lexeme) {
+                token.add_used_at(location);
+                $$ = AttributeData::Symbol(token.into());
+            } else {
+                self.error(location, &format!("{}: unknown literal)", lexeme));
+                let symbol = self.symbol_table.error_symbol_used_at(location);
+                $$ = AttributeData::Symbol(symbol);
+            }
+        !}
+    | "%error"
+        !{
+            let location = aa_rhs[0].location();
+            let symbol = self.symbol_table.error_symbol_used_at(location);
+            $$ = AttributeData::Symbol(symbol);
+        !}
+    .
