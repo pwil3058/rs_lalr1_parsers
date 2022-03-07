@@ -2,11 +2,10 @@
 use std::process::Command;
 
 fn main() {
-    return;
-    println!("cargo:rerun-if-changed=src/calc_no_aug.alaps");
-    println!("cargo:rerun-if-changed=../../target/debug/alap_gen");
-    match Command::new("../../target/debug/alap_gen")
-        .args(&["-f", "src/calc_no_aug.alaps"])
+    println!("cargo:rerun-if-changed=src/calc_no_aug.laps");
+    println!("cargo:rerun-if-changed=../../target/debug/lap_gen");
+    match Command::new("../../target/debug/lap_gen")
+        .args(&["-f", "src/calc_no_aug.laps"])
         .status()
     {
         Ok(status) => {
