@@ -177,15 +177,15 @@ RegEx: REGEX
         !}
     .
 
-NewTokenName: IDENT ?( !Self::is_allowable_name($1.matched_text()) ?)
-        !{
-            let (name, location) = $1.text_and_location();
+NewTokenName: IDENT !{
+        let (name, location) = $1.text_and_location();
+        if !Self::is_allowable_name(name) {
             self.warning(
                 location,
                 &format!("token name \"{}\" may clash with generated code", name),
             );
-        !}
-    | IDENT
+        };
+    !}
     .
 
 // Skip Definitions
@@ -331,7 +331,6 @@ ProductionTail:
             let tail = ProductionTail::new(
                 &[],
                 None,
-                None,
                 Some($1.action())
             );
             $$ = AttributeData::ProductionTail(tail)
@@ -340,7 +339,6 @@ ProductionTail:
         !{
             let tail = ProductionTail::new(
                 $1.symbol_list(),
-                None,
                 Some($2.associativity_and_precedence()),
                 Some($3.action())
             );
@@ -350,7 +348,6 @@ ProductionTail:
         !{
             let tail = ProductionTail::new(
                 $1.symbol_list(),
-                None,
                 Some($2.associativity_and_precedence()),
                 None
             );
@@ -361,14 +358,13 @@ ProductionTail:
             let tail = ProductionTail::new(
                 $1.symbol_list(),
                 None,
-                None,
                 Some($2.action())
             );
             $$ = AttributeData::ProductionTail(tail)
         !}
     | SymbolList
         !{
-            let tail = ProductionTail::new($1.symbol_list(), None, None, None);
+            let tail = ProductionTail::new($1.symbol_list(), None, None);
             $$ = AttributeData::ProductionTail(tail)
         !}
     .

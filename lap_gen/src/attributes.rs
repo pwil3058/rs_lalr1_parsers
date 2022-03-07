@@ -2,10 +2,10 @@
 
 use lexan;
 
-#[cfg(not(feature = "bootstrap"))]
-use crate::alap_gen::AATerminal;
 #[cfg(feature = "bootstrap")]
 use crate::bootstrap::AATerminal;
+#[cfg(not(feature = "bootstrap"))]
+use crate::lap_gen::AATerminal;
 use crate::production::ProductionTail;
 use crate::symbol::non_terminal::NonTerminal;
 use crate::symbol::tag::TagOrToken;
@@ -176,13 +176,13 @@ impl From<lexan::Token<AATerminal>> for AttributeData {
     }
 }
 
-impl From<lalr1_plus::Error<AATerminal>> for AttributeData {
-    fn from(error: lalr1_plus::Error<AATerminal>) -> Self {
+impl From<lalr1::Error<AATerminal>> for AttributeData {
+    fn from(error: lalr1::Error<AATerminal>) -> Self {
         match error {
-            lalr1_plus::Error::LexicalError(error, expected) => {
+            lalr1::Error::LexicalError(error, expected) => {
                 AttributeData::LexicalError(error, expected)
             }
-            lalr1_plus::Error::SyntaxError(token, expected) => {
+            lalr1::Error::SyntaxError(token, expected) => {
                 AttributeData::SyntaxError(token, expected)
             }
         }
