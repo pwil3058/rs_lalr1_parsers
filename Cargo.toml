@@ -8,4 +8,4 @@ members = [
     "lap_gen",
 ]
 
-exclude = ["tests", "tests"]
+exclude = ["examples", "examples"]
