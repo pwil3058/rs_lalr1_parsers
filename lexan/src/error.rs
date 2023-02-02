@@ -1,7 +1,5 @@
 use std::convert::From;
 
-use regex;
-
 #[derive(Debug, PartialEq)]
 pub enum LexanError<'a, T> {
     DuplicateHandle(T),
