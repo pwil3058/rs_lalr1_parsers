@@ -1,3 +1,4 @@
+use std::cmp::Ordering;
 use std::{cmp::Eq, collections::HashMap, fmt::Debug};
 
 use regex::Regex;
@@ -13,7 +14,7 @@ struct LiteralMatcherNode<T: PartialEq + Debug + Copy> {
 
 impl<T: PartialEq + Debug + Copy> LiteralMatcherNode<T> {
     fn new(tag: T, string: &str, s_index: usize) -> LiteralMatcherNode<T> {
-        debug_assert!(string.len() > 0);
+        debug_assert!(!string.is_empty());
         let mut t = HashMap::<u8, LiteralMatcherNode<T>>::new();
         if string.len() == s_index {
             LiteralMatcherNode {
@@ -38,7 +39,7 @@ impl<T: PartialEq + Debug + Copy> LiteralMatcherNode<T> {
         string: &'a str,
         s_index: usize,
     ) -> Result<(), LexanError<'a, T>> {
-        debug_assert!(string.len() > 0);
+        debug_assert!(!string.is_empty());
         if string.len() == s_index {
             if self.tag.is_some() {
                 return Err(LexanError::DuplicatePattern(string));
@@ -47,15 +48,13 @@ impl<T: PartialEq + Debug + Copy> LiteralMatcherNode<T> {
             self.length = string.len();
         } else {
             let key = string.as_bytes()[s_index];
-            // Couldn't do this with match because of ownership issues with "tails"
-            if self.tails.contains_key(&key) {
+            if let std::collections::hash_map::Entry::Vacant(e) = self.tails.entry(key) {
+                e.insert(LiteralMatcherNode::<T>::new(tag, string, s_index + 1));
+            } else {
                 self.tails
                     .get_mut(&key)
                     .unwrap()
                     .add(tag, string, s_index + 1)?;
-            } else {
-                self.tails
-                    .insert(key, LiteralMatcherNode::<T>::new(tag, string, s_index + 1));
             }
         }
         Ok(())
@@ -72,15 +71,15 @@ impl<T: Eq + Debug + Copy + Ord> LiteralMatcher<T> {
         let mut lexes = HashMap::<u8, LiteralMatcherNode<T>>::new();
         for &(tag, pattern) in lexemes.iter() {
             // make sure that tags are unique and strings are not empty
-            if pattern.len() == 0 {
+            if pattern.is_empty() {
                 return Err(LexanError::EmptyPattern(Some(tag)));
             }
 
             let key = pattern.as_bytes()[0];
-            if lexes.contains_key(&key) {
-                lexes.get_mut(&key).unwrap().add(tag, pattern, 1)?;
+            if let std::collections::hash_map::Entry::Vacant(e) = lexes.entry(key) {
+                e.insert(LiteralMatcherNode::<T>::new(tag, pattern, 1));
             } else {
-                lexes.insert(key, LiteralMatcherNode::<T>::new(tag, pattern, 1));
+                lexes.get_mut(&key).unwrap().add(tag, pattern, 1)?;
             }
         }
         Ok(LiteralMatcher { lexemes: lexes })
@@ -90,7 +89,7 @@ impl<T: Eq + Debug + Copy + Ord> LiteralMatcher<T> {
         let mut rval: Option<(T, usize)> = None;
         let mut lexemes = &self.lexemes;
         for key in string.as_bytes().iter() {
-            match lexemes.get(&key) {
+            match lexemes.get(key) {
                 None => break,
                 Some(node) => {
                     if let Some(tag) = node.tag {
@@ -106,7 +105,7 @@ impl<T: Eq + Debug + Copy + Ord> LiteralMatcher<T> {
     pub fn matches(&self, string: &str) -> bool {
         let mut lexemes = &self.lexemes;
         for key in string.as_bytes().iter() {
-            match lexemes.get(&key) {
+            match lexemes.get(key) {
                 None => break,
                 Some(node) => {
                     if node.tag.is_some() {
@@ -129,7 +128,7 @@ impl<T: Copy + Ord + Debug> RegexMatcher<T> {
     pub fn new<'a>(lexeme_patterns: &[(T, &'a str)]) -> Result<RegexMatcher<T>, LexanError<'a, T>> {
         let mut lexemes = vec![];
         for (tag, pattern) in lexeme_patterns.iter() {
-            if pattern.len() == 0 {
+            if pattern.is_empty() {
                 return Err(LexanError::EmptyPattern(Some(*tag)));
             };
             let mut anchored_pattern = "\\A".to_string();
@@ -145,11 +144,13 @@ impl<T: Copy + Ord + Debug> RegexMatcher<T> {
         let mut largest_end = 0;
         for (tag, regex) in self.lexemes.iter() {
             if let Some(m) = regex.find(text) {
-                if m.end() == largest_end {
-                    matches.push(*tag);
-                } else if m.end() > largest_end {
-                    largest_end = m.end();
-                    matches = vec![*tag];
+                match m.end().cmp(&largest_end) {
+                    Ordering::Equal => matches.push(*tag),
+                    Ordering::Greater => {
+                        largest_end = m.end();
+                        matches = vec![*tag];
+                    }
+                    Ordering::Less => (),
                 }
             }
         }
@@ -176,7 +177,7 @@ impl SkipMatcher {
     pub fn new<'a, T>(regex_strs: &[&'a str]) -> Result<Self, LexanError<'a, T>> {
         let mut regexes = vec![];
         for regex_str in regex_strs.iter() {
-            if regex_str.len() == 0 {
+            if regex_str.is_empty() {
                 return Err(LexanError::EmptyPattern(None));
             };
             let mut anchored_pattern = "\\A".to_string();
