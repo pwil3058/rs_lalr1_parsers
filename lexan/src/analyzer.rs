@@ -21,7 +21,7 @@ impl Location {
         Self {
             line_number: 1,
             offset: 1,
-            label: label,
+            label,
         }
     }
 
@@ -33,14 +33,14 @@ impl Location {
         self.offset
     }
 
-    pub fn label<'a>(&'a self) -> &'a String {
+    pub fn label(&self) -> &String {
         &self.label
     }
 }
 
-impl fmt::Display for Location {
+impl Display for Location {
     fn fmt(&self, dest: &mut fmt::Formatter) -> fmt::Result {
-        if self.label.len() > 0 {
+        if !self.label.is_empty() {
             if self.label.contains(' ') || self.label.contains('\t') {
                 write!(
                     dest,
@@ -65,40 +65,30 @@ pub enum Error<T: Display + Copy> {
 
 impl<T: Display + Copy> Error<T> {
     pub fn is_unexpected_text(&self) -> bool {
-        match self {
-            Error::UnexpectedText(_, _) => true,
-            _ => false,
-        }
+        matches!(self, Error::UnexpectedText(_, _))
     }
 
     pub fn is_ambiguous_match(&self) -> bool {
-        match self {
-            Error::AmbiguousMatches(_, _, _) => true,
-            _ => false,
-        }
+        matches!(self, Error::AmbiguousMatches(_, _, _))
     }
 
     pub fn is_advance_when_empty(&self) -> bool {
-        match self {
-            Error::AdvancedWhenEmpty(_) => true,
-            _ => false,
-        }
+        matches!(self, Error::AdvancedWhenEmpty(_))
     }
 }
 
-impl<T: Debug + Display + Copy> fmt::Display for Error<T> {
+impl<T: Debug + Display + Copy> Display for Error<T> {
     fn fmt(&self, dest: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Error::UnexpectedText(text, location) => {
-                write!(dest, "Unexpected text \"{}\" at: {}.", text, location)
+                write!(dest, "Unexpected text \"{text}\" at: {location}.")
             }
             Error::AmbiguousMatches(tags, text, location) => write!(
                 dest,
-                "Ambiguous matches {:#?} \"{}\" at: {}.",
-                tags, text, location
+                "Ambiguous matches {tags:#?} \"{text}\" at: {location}.",
             ),
             Error::AdvancedWhenEmpty(location) => {
-                write!(dest, "Advanced past end of text at: {}.", location,)
+                write!(dest, "Advanced past end of text at: {location}.")
             }
         }
     }
@@ -114,15 +104,15 @@ pub struct Token<T: Display + Copy + Eq> {
 }
 
 impl<T: Display + Copy + Eq> Token<T> {
-    pub fn tag<'a>(&'a self) -> &'a T {
+    pub fn tag(&self) -> &T {
         &self.tag
     }
 
-    pub fn lexeme<'a>(&'a self) -> &'a String {
+    pub fn lexeme(&self) -> &String {
         &self.lexeme
     }
 
-    pub fn location<'a>(&'a self) -> &'a Location {
+    pub fn location(&self) -> &Location {
         &self.location
     }
 }
@@ -180,7 +170,7 @@ where
                 self.location.line_number += 1;
                 self.location.offset = 1;
                 i += eol_i + 2;
-            } else if let Some(eol_i) = slice[i..].find("\n") {
+            } else if let Some(eol_i) = slice[i..].find('\n') {
                 self.location.line_number += 1;
                 self.location.offset = 1;
                 i += eol_i + 1;
@@ -208,21 +198,21 @@ where
                 self.incr_index_and_location(lrems.1);
                 Some(Err(Error::AmbiguousMatches(
                     lrems.0,
-                    (&self.text[start..self.index]).to_string(),
+                    (self.text[start..self.index]).to_string(),
                     current_location,
                 )))
             } else if lrems.0.len() == 1 && lrems.1 > llm.1 {
                 self.incr_index_and_location(lrems.1);
                 Some(Ok(Token {
                     tag: lrems.0[0],
-                    lexeme: (&self.text[start..self.index]).to_string(),
+                    lexeme: (self.text[start..self.index]).to_string(),
                     location: current_location,
                 }))
             } else {
                 self.incr_index_and_location(llm.1);
                 Some(Ok(Token {
                     tag: llm.0,
-                    lexeme: (&self.text[start..self.index]).to_string(),
+                    lexeme: (self.text[start..self.index]).to_string(),
                     location: current_location,
                 }))
             }
@@ -230,14 +220,14 @@ where
             self.incr_index_and_location(lrems.1);
             Some(Ok(Token {
                 tag: lrems.0[0],
-                lexeme: (&self.text[start..self.index]).to_string(),
+                lexeme: (self.text[start..self.index]).to_string(),
                 location: current_location,
             }))
         } else if lrems.0.len() > 1 {
             self.incr_index_and_location(lrems.1);
             Some(Err(Error::AmbiguousMatches(
                 lrems.0,
-                (&self.text[start..self.index]).to_string(),
+                (self.text[start..self.index]).to_string(),
                 current_location,
             )))
         } else {
@@ -246,7 +236,7 @@ where
                 .distance_to_next_valid_byte(&self.text[self.index..]);
             self.incr_index_and_location(distance);
             Some(Err(Error::UnexpectedText(
-                (&self.text[start..self.index]).to_string(),
+                (self.text[start..self.index]).to_string(),
                 current_location,
             )))
         }
@@ -262,7 +252,7 @@ where
     front: Result<Token<T>, Error<T>>,
 }
 
-impl<'a, T> TokenStream<T>
+impl<T> TokenStream<T>
 where
     T: Debug + Display + Copy + Eq + Ord,
 {
@@ -384,8 +374,8 @@ mod tests {
             End,
         }
 
-        impl std::fmt::Display for Handle {
-            fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        impl Display for Handle {
+            fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
                 use Handle::*;
                 match self {
                     If => write!(f, "\"if\""),
