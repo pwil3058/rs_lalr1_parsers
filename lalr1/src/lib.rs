@@ -41,12 +41,12 @@ impl<T: Ord + Copy + Debug + Display + Eq> Display for Error<T> {
                 f,
                 "Lexical Error: {}: expected: {}.",
                 lex_err,
-                format_set(&expected)
+                format_set(expected)
             ),
             Error::SyntaxError(found, expected) => write!(
                 f,
                 "Syntax Error: expected: {} found: {} at: {}.",
-                format_set(&expected),
+                format_set(expected),
                 found.tag(),
                 found.location()
             ),
@@ -57,10 +57,8 @@ impl<T: Ord + Copy + Debug + Display + Eq> Display for Error<T> {
 pub trait ReportError<T: Ord + Copy + Debug + Display + Eq> {
     fn report_error(&mut self, error: &Error<T>) {
         let message = error.to_string();
-        if let Error::LexicalError(lex_err, _) = error {
-            if let lexan::Error::AmbiguousMatches(_, _, _) = lex_err {
-                panic!("Fatal Error: {}!!", message);
-            }
+        if let Error::LexicalError(lexan::Error::AmbiguousMatches(_, _, _), _) = error {
+            panic!("Fatal Error: {message}!!");
         };
         std::io::stderr()
             .write_all(message.as_bytes())
@@ -104,7 +102,7 @@ where
         self.states.last().unwrap().1
     }
 
-    pub fn at_len_minus_n<'a>(&'a self, n: usize) -> &'a A {
+    pub fn at_len_minus_n(&self, n: usize) -> &A {
         let len = self.attributes.len();
         &self.attributes[len - n]
     }
@@ -143,7 +141,7 @@ where
 
     fn distance_to_viable_state<F: Fn(&T) -> BTreeSet<u32>>(
         &mut self,
-        tokens: &mut lexan::TokenStream<T>,
+        tokens: &mut TokenStream<T>,
         viable_error_recovery_states: F,
     ) -> Option<usize> {
         while !tokens.is_empty() {
