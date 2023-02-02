@@ -31,7 +31,7 @@ where
         let lexicon =
             match Lexicon::new(literal_lexemes, regex_lexemes, skip_regex_strs, end_marker) {
                 Ok(lexicon) => Arc::new(lexicon),
-                Err(err) => panic!("Fatal Error: {:?}", err),
+                Err(err) => panic!("Fatal Error: {err:?}"),
             };
         Self { lexicon }
     }
