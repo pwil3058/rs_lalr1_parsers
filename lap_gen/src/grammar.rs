@@ -17,11 +17,11 @@ use std::io::{stderr, Write};
 use std::path::Path;
 
 pub fn report_error(location: &lexan::Location, what: &str) {
-    writeln!(stderr(), "{}: Error: {}.", location, what).expect("what?");
+    writeln!(stderr(), "{location}: Error: {what}.").expect("what?");
 }
 
 pub fn report_warning(location: &lexan::Location, what: &str) {
-    writeln!(stderr(), "{}: Warning: {}.", location, what).expect("what?");
+    writeln!(stderr(), "{location}: Warning: {what}.").expect("what?");
 }
 
 #[derive(Debug, Default)]
@@ -41,9 +41,11 @@ impl lalr1::ReportError<AATerminal> for Specification {}
 
 impl Specification {
     pub fn new(text: String, label: String) -> Result<Self, lalr1::Error<AATerminal>> {
-        let mut spec = Specification::default();
-        spec.attribute_type = "AttributeData".to_string();
-        spec.target_type = "Specification".to_string();
+        let mut spec = Specification {
+            attribute_type: "AttributeData".to_string(),
+            target_type: "Specification".to_string(),
+            ..Specification::default()
+        };
         spec.parse_text(text, label)?;
         // Add dummy error production last so that it has lowest precedence during conflict resolution
         let symbol = spec.symbol_table.error_non_terminal.clone();
@@ -84,7 +86,7 @@ impl Specification {
     }
 
     pub fn new_production(&mut self, left_hand_side: &NonTerminal, tail: &ProductionTail) {
-        if self.productions.len() == 0 {
+        if self.productions.is_empty() {
             let location = left_hand_side
                 .first_definition()
                 .expect("should be defined");
@@ -141,14 +143,14 @@ impl Specification {
     }
 
     pub fn write_preamble_text<W: Write>(&self, wtr: &mut W) -> io::Result<()> {
-        wtr.write(self.preamble.as_bytes())?;
-        wtr.write(b"\n")?;
+        wtr.write_all(self.preamble.as_bytes())?;
+        wtr.write_all(b"\n")?;
         Ok(())
     }
 
     pub fn write_production_data_code<W: Write>(&self, wtr: &mut W) -> io::Result<()> {
-        wtr.write(b"    fn production_data(production_id: u32) -> (AANonTerminal, usize) {\n")?;
-        wtr.write(b"        match production_id {\n")?;
+        wtr.write_all(b"    fn production_data(production_id: u32) -> (AANonTerminal, usize) {\n")?;
+        wtr.write_all(b"        match production_id {\n")?;
         for production in self.productions.iter() {
             wtr.write_fmt(format_args!(
                 "            {} => (AANonTerminal::{}, {}),\n",
@@ -157,43 +159,43 @@ impl Specification {
                 production.len(),
             ))?;
         }
-        wtr.write(b"            _ => panic!(\"malformed production data table\"),\n")?;
-        wtr.write(b"        }\n")?;
-        wtr.write(b"    }\n\n")?;
+        wtr.write_all(b"            _ => panic!(\"malformed production data table\"),\n")?;
+        wtr.write_all(b"        }\n")?;
+        wtr.write_all(b"    }\n\n")?;
         Ok(())
     }
 
     pub fn write_semantic_action_code<W: Write>(&self, wtr: &mut W) -> io::Result<()> {
-        wtr.write(b"    fn do_semantic_action<F: FnMut(String, String)>(\n")?;
-        wtr.write(b"        &mut self,\n")?;
-        wtr.write(b"        aa_production_id: u32,\n")?;
+        wtr.write_all(b"    fn do_semantic_action<F: FnMut(String, String)>(\n")?;
+        wtr.write_all(b"        &mut self,\n")?;
+        wtr.write_all(b"        aa_production_id: u32,\n")?;
         wtr.write_fmt(format_args!(
             "        aa_rhs: Vec<{}>,\n",
             self.attribute_type
         ))?;
-        wtr.write(b"        mut aa_inject: F,\n")?;
+        wtr.write_all(b"        mut aa_inject: F,\n")?;
         wtr.write_fmt(format_args!("    ) -> {} {{\n", self.attribute_type))?;
-        wtr.write(b"        let mut aa_lhs = if let Some(a) = aa_rhs.first() {\n")?;
-        wtr.write(b"            a.clone()\n")?;
-        wtr.write(b"        } else {\n")?;
+        wtr.write_all(b"        let mut aa_lhs = if let Some(a) = aa_rhs.first() {\n")?;
+        wtr.write_all(b"            a.clone()\n")?;
+        wtr.write_all(b"        } else {\n")?;
         wtr.write_fmt(format_args!(
             "           {}::default()\n",
             self.attribute_type
         ))?;
-        wtr.write(b"        };\n")?;
-        wtr.write(b"        match aa_production_id {\n")?;
+        wtr.write_all(b"        };\n")?;
+        wtr.write_all(b"        match aa_production_id {\n")?;
         for production in self.productions.iter() {
             if let Some(action_code) = production.expanded_action() {
                 wtr.write_fmt(format_args!("            {} => {{\n", production.ident()))?;
-                wtr.write_fmt(format_args!("                // {}\n", production))?;
-                wtr.write_fmt(format_args!("                {}\n", action_code))?;
-                wtr.write(b"            }\n")?;
+                wtr.write_fmt(format_args!("                // {production}\n"))?;
+                wtr.write_fmt(format_args!("                {action_code}\n"))?;
+                wtr.write_all(b"            }\n")?;
             }
         }
-        wtr.write(b"            _ => aa_inject(String::new(), String::new()),\n")?;
-        wtr.write(b"        };\n")?;
-        wtr.write(b"        aa_lhs\n")?;
-        wtr.write(b"    }\n\n")?;
+        wtr.write_all(b"            _ => aa_inject(String::new(), String::new()),\n")?;
+        wtr.write_all(b"        };\n")?;
+        wtr.write_all(b"        aa_lhs\n")?;
+        wtr.write_all(b"    }\n\n")?;
         Ok(())
     }
 }
@@ -274,7 +276,7 @@ impl TryFrom<Specification> for Grammar {
                     if !already_done.insert(symbol_x.clone()) {
                         continue;
                     };
-                    let kernel_x = unprocessed_state.generate_goto_kernel(&symbol_x);
+                    let kernel_x = unprocessed_state.generate_goto_kernel(symbol_x);
                     let item_set_x = grammar.specification.closure(kernel_x);
                     let goto_state =
                         if let Some(equivalent_state) = grammar.equivalent_state(&item_set_x) {
@@ -347,7 +349,7 @@ impl Grammar {
 
     fn equivalent_state(&self, item_set: &GrammarItemSet) -> Option<&ParserState> {
         let target_key_set = item_set.kernel_key_set();
-        if target_key_set.len() > 0 {
+        if !target_key_set.is_empty() {
             for parser_state in self.parser_states.iter() {
                 if target_key_set == parser_state.kernel_key_set() {
                     return Some(parser_state);
@@ -360,7 +362,7 @@ impl Grammar {
 
 impl Grammar {
     fn write_parser_code<W: Write>(&self, wtr: &mut W) -> io::Result<()> {
-        wtr.write(b"// generated by lap_gen.\n\n")?;
+        wtr.write_all(b"// generated by lap_gen.\n\n")?;
 
         self.specification.write_preamble_text(wtr)?;
         self.write_symbol_enum_code(wtr)?;
@@ -378,39 +380,39 @@ impl Grammar {
         let special_tokens = [Token::EndToken];
         let special_non_terminals = self.specification.symbol_table.used_non_terminal_specials();
 
-        wtr.write(b"use std::collections::BTreeSet;\n\n")?;
-        wtr.write(b"macro_rules! btree_set {\n")?;
-        wtr.write(b"    () => { BTreeSet::new() };\n")?;
-        wtr.write(b"    ( $( $x:expr ),* ) => {\n")?;
-        wtr.write(b"        {\n")?;
-        wtr.write(b"            let mut set = BTreeSet::new();\n")?;
-        wtr.write(b"            $( set.insert($x); )*\n")?;
-        wtr.write(b"            set\n")?;
-        wtr.write(b"        }\n")?;
-        wtr.write(b"    };\n")?;
-        wtr.write(b"    ( $( $x:expr ),+ , ) => {\n")?;
-        wtr.write(b"        btree_set![ $( $x ), * ]\n")?;
-        wtr.write(b"    };\n")?;
-        wtr.write(b"}\n\n")?;
-        wtr.write(b"use lalr1;\n")?;
-        wtr.write(b"use lexan;\n\n")?;
-        wtr.write(b"#[derive(Debug, Clone, Copy, PartialOrd, Ord, PartialEq, Eq)]\n")?;
-        wtr.write(b"pub enum AATerminal {\n")?;
+        wtr.write_all(b"use std::collections::BTreeSet;\n\n")?;
+        wtr.write_all(b"macro_rules! btree_set {\n")?;
+        wtr.write_all(b"    () => { BTreeSet::new() };\n")?;
+        wtr.write_all(b"    ( $( $x:expr ),* ) => {\n")?;
+        wtr.write_all(b"        {\n")?;
+        wtr.write_all(b"            let mut set = BTreeSet::new();\n")?;
+        wtr.write_all(b"            $( set.insert($x); )*\n")?;
+        wtr.write_all(b"            set\n")?;
+        wtr.write_all(b"        }\n")?;
+        wtr.write_all(b"    };\n")?;
+        wtr.write_all(b"    ( $( $x:expr ),+ , ) => {\n")?;
+        wtr.write_all(b"        btree_set![ $( $x ), * ]\n")?;
+        wtr.write_all(b"    };\n")?;
+        wtr.write_all(b"}\n\n")?;
+        wtr.write_all(b"use lalr1;\n")?;
+        wtr.write_all(b"use lexan;\n\n")?;
+        wtr.write_all(b"#[derive(Debug, Clone, Copy, PartialOrd, Ord, PartialEq, Eq)]\n")?;
+        wtr.write_all(b"pub enum AATerminal {\n")?;
         for token in special_tokens
             .iter()
             .chain(self.specification.symbol_table.tokens())
         {
             wtr.write_fmt(format_args!("    {},\n", token.name()))?;
         }
-        wtr.write(b"}\n\n")?;
-        wtr.write(b"impl std::fmt::Display for AATerminal {\n")?;
-        wtr.write(b"    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {\n")?;
-        wtr.write(b"        match self {\n")?;
+        wtr.write_all(b"}\n\n")?;
+        wtr.write_all(b"impl std::fmt::Display for AATerminal {\n")?;
+        wtr.write_all(b"    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {\n")?;
+        wtr.write_all(b"        match self {\n")?;
         for token in special_tokens
             .iter()
             .chain(self.specification.symbol_table.tokens())
         {
-            wtr.write(b"            AATerminal::")?;
+            wtr.write_all(b"            AATerminal::")?;
             match token {
                 Token::Literal(token_data) => {
                     wtr.write_fmt(format_args!(
@@ -433,92 +435,92 @@ impl Grammar {
                 }
             }
         }
-        wtr.write(b"        }\n")?;
-        wtr.write(b"    }\n")?;
-        wtr.write(b"}\n\n")?;
+        wtr.write_all(b"        }\n")?;
+        wtr.write_all(b"    }\n")?;
+        wtr.write_all(b"}\n\n")?;
         self.write_lexical_analyzer_code(wtr)?;
-        wtr.write(b"#[derive(Debug, Clone, Copy, PartialOrd, Ord, PartialEq, Eq)]\n")?;
-        wtr.write(b"pub enum AANonTerminal {\n")?;
+        wtr.write_all(b"#[derive(Debug, Clone, Copy, PartialOrd, Ord, PartialEq, Eq)]\n")?;
+        wtr.write_all(b"pub enum AANonTerminal {\n")?;
         for non_terminal in special_non_terminals
             .iter()
             .chain(self.specification.symbol_table.non_terminals())
         {
             wtr.write_fmt(format_args!("    {},\n", non_terminal.name()))?;
         }
-        wtr.write(b"}\n\n")?;
-        wtr.write(b"impl std::fmt::Display for AANonTerminal {\n")?;
-        wtr.write(b"    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {\n")?;
-        wtr.write(b"        match self {\n")?;
+        wtr.write_all(b"}\n\n")?;
+        wtr.write_all(b"impl std::fmt::Display for AANonTerminal {\n")?;
+        wtr.write_all(b"    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {\n")?;
+        wtr.write_all(b"        match self {\n")?;
         for non_terminal in special_non_terminals
             .iter()
             .chain(self.specification.symbol_table.non_terminals())
         {
-            wtr.write(b"            AANonTerminal::")?;
+            wtr.write_all(b"            AANonTerminal::")?;
             let name = non_terminal.name();
-            wtr.write_fmt(format_args!("{} => write!(f, r\"{}\"),\n", name, name))?;
+            wtr.write_fmt(format_args!("{name} => write!(f, r\"{name}\"),\n"))?;
         }
-        wtr.write(b"        }\n")?;
-        wtr.write(b"    }\n")?;
-        wtr.write(b"}\n\n")?;
+        wtr.write_all(b"        }\n")?;
+        wtr.write_all(b"    }\n")?;
+        wtr.write_all(b"}\n\n")?;
         Ok(())
     }
 
     fn write_lexical_analyzer_code<W: Write>(&self, wtr: &mut W) -> io::Result<()> {
-        wtr.write(b"lazy_static! {\n")?;
-        wtr.write(b"    static ref AALEXAN: lexan::LexicalAnalyzer<AATerminal> = {\n")?;
-        wtr.write(b"        use AATerminal::*;\n")?;
-        wtr.write(b"        lexan::LexicalAnalyzer::new(\n")?;
-        wtr.write(b"            &[\n")?;
+        wtr.write_all(b"lazy_static! {\n")?;
+        wtr.write_all(b"    static ref AALEXAN: lexan::LexicalAnalyzer<AATerminal> = {\n")?;
+        wtr.write_all(b"        use AATerminal::*;\n")?;
+        wtr.write_all(b"        lexan::LexicalAnalyzer::new(\n")?;
+        wtr.write_all(b"            &[\n")?;
         for token in self.specification.symbol_table.literal_tokens() {
-            wtr.write(b"                ")?;
+            wtr.write_all(b"                ")?;
             wtr.write_fmt(format_args!(
                 "({}, r###{}###),\n",
                 token.name(),
                 token.text()
             ))?;
         }
-        wtr.write(b"            ],\n")?;
-        wtr.write(b"            &[\n")?;
+        wtr.write_all(b"            ],\n")?;
+        wtr.write_all(b"            &[\n")?;
         for token in self.specification.symbol_table.regex_tokens() {
-            wtr.write(b"                ")?;
+            wtr.write_all(b"                ")?;
             wtr.write_fmt(format_args!(
                 "({}, r###\"{}\"###),\n",
                 token.name(),
                 token.text()
             ))?;
         }
-        wtr.write(b"            ],\n")?;
-        wtr.write(b"            &[\n")?;
+        wtr.write_all(b"            ],\n")?;
+        wtr.write_all(b"            &[\n")?;
         for skip_rule in self.specification.symbol_table.skip_rules() {
-            wtr.write(b"                ")?;
-            wtr.write_fmt(format_args!("r###\"{}\"###,\n", skip_rule))?;
+            wtr.write_all(b"                ")?;
+            wtr.write_fmt(format_args!("r###\"{skip_rule}\"###,\n"))?;
         }
-        wtr.write(b"            ],\n")?;
+        wtr.write_all(b"            ],\n")?;
         wtr.write_fmt(format_args!("            {},\n", Token::EndToken.name()))?;
-        wtr.write(b"        )\n")?;
-        wtr.write(b"    };\n")?;
-        wtr.write(b"}\n\n")?;
+        wtr.write_all(b"        )\n")?;
+        wtr.write_all(b"    };\n")?;
+        wtr.write_all(b"}\n\n")?;
         Ok(())
     }
 
     fn write_parser_implementation_code<W: Write>(&self, wtr: &mut W) -> io::Result<()> {
         let attr = &self.specification.attribute_type;
         let parser = &self.specification.target_type;
-        let text = format!(
-            "impl lalr1::Parser<AATerminal, AANonTerminal, {}> for {} {{\n",
-            attr, parser
-        );
-        wtr.write(text.as_bytes())?;
-        wtr.write(b"    fn lexical_analyzer(&self) -> &lexan::LexicalAnalyzer<AATerminal> {\n")?;
-        wtr.write(b"        &AALEXAN\n")?;
-        wtr.write(b"    }\n\n")?;
+        let text =
+            format!("impl lalr1::Parser<AATerminal, AANonTerminal, {attr}> for {parser} {{\n");
+        wtr.write_all(text.as_bytes())?;
+        wtr.write_all(
+            b"    fn lexical_analyzer(&self) -> &lexan::LexicalAnalyzer<AATerminal> {\n",
+        )?;
+        wtr.write_all(b"        &AALEXAN\n")?;
+        wtr.write_all(b"    }\n\n")?;
         self.write_error_recovery_code(wtr)?;
         self.write_look_ahead_set_code(wtr)?;
         self.write_next_action_code(wtr)?;
         self.specification.write_production_data_code(wtr)?;
         self.write_goto_table_code(wtr)?;
         self.specification.write_semantic_action_code(wtr)?;
-        wtr.write(b"}\n")?;
+        wtr.write_all(b"}\n")?;
         Ok(())
     }
 
@@ -534,9 +536,9 @@ impl Grammar {
         let mut string = "btree_set![".to_string();
         for (index, number) in set.iter().enumerate() {
             if index == 0 {
-                string += &format!("{}", number);
+                string += &format!("{number}");
             } else {
-                string += &format!(", {}", number);
+                string += &format!(", {number}");
             }
         }
         string += "]";
@@ -544,15 +546,17 @@ impl Grammar {
     }
 
     fn write_error_recovery_code<W: Write>(&self, wtr: &mut W) -> io::Result<()> {
-        wtr.write(b"    fn viable_error_recovery_states(token: &AATerminal) -> BTreeSet<u32> {\n")?;
-        wtr.write(b"        match token {\n")?;
+        wtr.write_all(
+            b"    fn viable_error_recovery_states(token: &AATerminal) -> BTreeSet<u32> {\n",
+        )?;
+        wtr.write_all(b"        match token {\n")?;
         let mut default_required = false;
         for token in [Token::EndToken]
             .iter()
             .chain(self.specification.symbol_table.tokens())
         {
             let set = self.error_recovery_state_set_for_token(token);
-            if set.len() > 0 {
+            if !set.is_empty() {
                 wtr.write_fmt(format_args!(
                     "            AATerminal::{} => {},\n",
                     token.name(),
@@ -563,12 +567,12 @@ impl Grammar {
             }
         }
         if default_required {
-            wtr.write(b"            _ => btree_set![],\n")?;
+            wtr.write_all(b"            _ => btree_set![],\n")?;
         }
-        wtr.write(b"        }\n")?;
-        wtr.write(b"    }\n\n")?;
-        wtr.write(b"    fn error_goto_state(state: u32) -> u32 {\n")?;
-        wtr.write(b"        match state {\n")?;
+        wtr.write_all(b"        }\n")?;
+        wtr.write_all(b"    }\n\n")?;
+        wtr.write_all(b"    fn error_goto_state(state: u32) -> u32 {\n")?;
+        wtr.write_all(b"        match state {\n")?;
         for parser_state in self.parser_states.iter() {
             if let Some(goto_state_id) = parser_state.error_goto_state_ident() {
                 wtr.write_fmt(format_args!(
@@ -578,16 +582,16 @@ impl Grammar {
                 ))?;
             }
         }
-        wtr.write(b"            _ => panic!(\"No error go to state for {}\", state),\n")?;
-        wtr.write(b"        }\n")?;
-        wtr.write(b"    }\n\n")?;
+        wtr.write_all(b"            _ => panic!(\"No error go to state for {}\", state),\n")?;
+        wtr.write_all(b"        }\n")?;
+        wtr.write_all(b"    }\n\n")?;
         Ok(())
     }
 
     fn write_look_ahead_set_code<W: Write>(&self, wtr: &mut W) -> io::Result<()> {
-        wtr.write(b"    fn look_ahead_set(state: u32) -> BTreeSet<AATerminal> {\n")?;
-        wtr.write(b"        use AATerminal::*;\n")?;
-        wtr.write(b"        return match state {\n")?;
+        wtr.write_all(b"    fn look_ahead_set(state: u32) -> BTreeSet<AATerminal> {\n")?;
+        wtr.write_all(b"        use AATerminal::*;\n")?;
+        wtr.write_all(b"        return match state {\n")?;
         for parser_state in self.parser_states.iter() {
             wtr.write_fmt(format_args!(
                 "            {} => {},\n",
@@ -595,54 +599,54 @@ impl Grammar {
                 parser_state.look_ahead_set().formated_as_macro_call()
             ))?;
         }
-        wtr.write(b"            _ => panic!(\"illegal state: {}\", state),\n")?;
-        wtr.write(b"        }\n")?;
-        wtr.write(b"    }\n\n")?;
+        wtr.write_all(b"            _ => panic!(\"illegal state: {}\", state),\n")?;
+        wtr.write_all(b"        }\n")?;
+        wtr.write_all(b"    }\n\n")?;
         Ok(())
     }
 
     fn write_next_action_code<W: Write>(&self, wtr: &mut W) -> io::Result<()> {
-        wtr.write(b"    fn next_action(\n")?;
-        wtr.write(b"        &self,\n")?;
-        wtr.write(b"        aa_state: u32,\n")?;
-        wtr.write(b"        aa_token: &lexan::Token<AATerminal>,\n")?;
-        wtr.write(b"    ) -> lalr1::Action {\n")?;
-        wtr.write(b"        use lalr1::Action;\n")?;
-        wtr.write(b"        use AATerminal::*;\n")?;
-        wtr.write(b"        let aa_tag = *aa_token.tag();\n")?;
-        wtr.write(b"        return match aa_state {\n")?;
+        wtr.write_all(b"    fn next_action(\n")?;
+        wtr.write_all(b"        &self,\n")?;
+        wtr.write_all(b"        aa_state: u32,\n")?;
+        wtr.write_all(b"        aa_token: &lexan::Token<AATerminal>,\n")?;
+        wtr.write_all(b"    ) -> lalr1::Action {\n")?;
+        wtr.write_all(b"        use lalr1::Action;\n")?;
+        wtr.write_all(b"        use AATerminal::*;\n")?;
+        wtr.write_all(b"        let aa_tag = *aa_token.tag();\n")?;
+        wtr.write_all(b"        return match aa_state {\n")?;
         for parser_state in self.parser_states.iter() {
             parser_state.write_next_action_code(wtr, "            ")?;
         }
-        wtr.write(b"            _ => panic!(\"illegal state: {}\", aa_state),\n")?;
-        wtr.write(b"        }\n")?;
-        wtr.write(b"    }\n\n")?;
+        wtr.write_all(b"            _ => panic!(\"illegal state: {}\", aa_state),\n")?;
+        wtr.write_all(b"        }\n")?;
+        wtr.write_all(b"    }\n\n")?;
         Ok(())
     }
 
     fn write_goto_table_code<W: Write>(&self, wtr: &mut W) -> io::Result<()> {
-        wtr.write(b"    fn goto_state(lhs: &AANonTerminal, current_state: u32) -> u32 {\n")?;
-        wtr.write(b"        return match current_state {\n")?;
+        wtr.write_all(b"    fn goto_state(lhs: &AANonTerminal, current_state: u32) -> u32 {\n")?;
+        wtr.write_all(b"        return match current_state {\n")?;
         for parser_state in self.parser_states.iter() {
             parser_state.write_goto_table_code(wtr, "            ")?;
         }
-        wtr.write(
+        wtr.write_all(
             b"            _ => panic!(\"Malformed goto table: ({}, {})\", lhs, current_state),\n",
         )?;
-        wtr.write(b"        }\n")?;
-        wtr.write(b"    }\n\n")?;
+        wtr.write_all(b"        }\n")?;
+        wtr.write_all(b"    }\n\n")?;
         Ok(())
     }
 
     pub fn write_description(&self, file_path: &Path) -> io::Result<()> {
         let mut file = std::fs::File::create(file_path)?;
-        file.write(self.specification.symbol_table.description().as_bytes())?;
-        file.write(b"\nProductions:\n")?;
+        file.write_all(self.specification.symbol_table.description().as_bytes())?;
+        file.write_all(b"\nProductions:\n")?;
         for production in self.specification.productions.iter() {
-            file.write_fmt(format_args!("  {}\n", production))?;
+            file.write_fmt(format_args!("  {production}\n"))?;
         }
         for parser_state in self.parser_states.iter() {
-            file.write(parser_state.description().as_bytes())?;
+            file.write_all(parser_state.description().as_bytes())?;
         }
         Ok(())
     }
@@ -651,7 +655,7 @@ impl Grammar {
         let mut string = String::new();
         for parser_state in self.parser_states.iter() {
             if parser_state.shift_reduce_conflict_count() > 0 {
-                string += &parser_state.description().as_str();
+                string += parser_state.description().as_str();
             }
         }
         string
@@ -661,7 +665,7 @@ impl Grammar {
         let mut string = String::new();
         for parser_state in self.parser_states.iter() {
             if parser_state.reduce_reduce_conflict_count() > 0 {
-                string += &parser_state.description().as_str();
+                string += parser_state.description().as_str();
             }
         }
         string
