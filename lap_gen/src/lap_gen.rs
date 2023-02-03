@@ -25,8 +25,8 @@ macro_rules! btree_set {
     };
 }
 
-use lalr1;
-use lexan;
+
+
 
 #[derive(Debug, Clone, Copy, PartialOrd, Ord, PartialEq, Eq)]
 pub enum AATerminal {
@@ -207,16 +207,12 @@ impl lalr1::Parser<AATerminal, AANonTerminal, AttributeData> for Specification {
         &AALEXAN
     }
 
-    fn viable_error_recovery_states(token: &AATerminal) -> BTreeSet<u32> {
-        match token {
-            _ => btree_set![],
-        }
+    fn viable_error_recovery_states(_token: &AATerminal) -> BTreeSet<u32> {
+        btree_set![]
     }
 
     fn error_goto_state(state: u32) -> u32 {
-        match state {
-            _ => panic!("No error go to state for {}", state),
-        }
+        panic!("No error go to state for {state}")
     }
 
     fn look_ahead_set(state: u32) -> BTreeSet<AATerminal> {
@@ -330,7 +326,7 @@ impl lalr1::Parser<AATerminal, AANonTerminal, AttributeData> for Specification {
             99 => btree_set![DOT, VBAR, ACTION],
             100 => btree_set![DOT, VBAR, ACTION],
             101 => btree_set![INJECT, LEFT, NEWSECTION, NONASSOC, RIGHT, IDENT, LITERAL],
-            _ => panic!("illegal state: {}", state),
+            _ => panic!("illegal state: {state}"),
         };
     }
 
@@ -897,7 +893,7 @@ impl lalr1::Parser<AATerminal, AANonTerminal, AttributeData> for Specification {
                 }
                 _ => Action::SyntaxError,
             },
-            _ => panic!("illegal state: {}", aa_state),
+            _ => panic!("illegal state: {aa_state}"),
         };
     }
 
@@ -974,31 +970,31 @@ impl lalr1::Parser<AATerminal, AANonTerminal, AttributeData> for Specification {
                 AANonTerminal::OptionalInjection => 6,
                 AANonTerminal::Preamble => 2,
                 AANonTerminal::Specification => 1,
-                _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
+                _ => panic!("Malformed goto table: ({lhs}, {current_state})"),
             },
             2 => match lhs {
                 AANonTerminal::AttributeType => 8,
                 AANonTerminal::Configuration => 7,
                 AANonTerminal::TargetType => 9,
-                _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
+                _ => panic!("Malformed goto table: ({lhs}, {current_state})"),
             },
             8 => match lhs {
                 AANonTerminal::Injection => 3,
                 AANonTerminal::InjectionHead => 5,
                 AANonTerminal::OptionalInjection => 16,
-                _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
+                _ => panic!("Malformed goto table: ({lhs}, {current_state})"),
             },
             9 => match lhs {
                 AANonTerminal::Injection => 3,
                 AANonTerminal::InjectionHead => 5,
                 AANonTerminal::OptionalInjection => 17,
-                _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
+                _ => panic!("Malformed goto table: ({lhs}, {current_state})"),
             },
             14 => match lhs {
                 AANonTerminal::Injection => 3,
                 AANonTerminal::InjectionHead => 5,
                 AANonTerminal::OptionalInjection => 20,
-                _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
+                _ => panic!("Malformed goto table: ({lhs}, {current_state})"),
             },
             15 => match lhs {
                 AANonTerminal::Definitions => 21,
@@ -1006,140 +1002,140 @@ impl lalr1::Parser<AATerminal, AANonTerminal, AttributeData> for Specification {
                 AANonTerminal::InjectionHead => 5,
                 AANonTerminal::OptionalInjection => 23,
                 AANonTerminal::TokenDefinitions => 22,
-                _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
+                _ => panic!("Malformed goto table: ({lhs}, {current_state})"),
             },
             16 => match lhs {
                 AANonTerminal::TargetType => 24,
-                _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
+                _ => panic!("Malformed goto table: ({lhs}, {current_state})"),
             },
             17 => match lhs {
                 AANonTerminal::AttributeType => 25,
-                _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
+                _ => panic!("Malformed goto table: ({lhs}, {current_state})"),
             },
             22 => match lhs {
                 AANonTerminal::Injection => 3,
                 AANonTerminal::InjectionHead => 5,
                 AANonTerminal::OptionalInjection => 28,
                 AANonTerminal::SkipDefinitions => 27,
-                _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
+                _ => panic!("Malformed goto table: ({lhs}, {current_state})"),
             },
             23 => match lhs {
                 AANonTerminal::TokenDefinition => 29,
-                _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
+                _ => panic!("Malformed goto table: ({lhs}, {current_state})"),
             },
             24 => match lhs {
                 AANonTerminal::Injection => 3,
                 AANonTerminal::InjectionHead => 5,
                 AANonTerminal::OptionalInjection => 31,
-                _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
+                _ => panic!("Malformed goto table: ({lhs}, {current_state})"),
             },
             25 => match lhs {
                 AANonTerminal::Injection => 3,
                 AANonTerminal::InjectionHead => 5,
                 AANonTerminal::OptionalInjection => 32,
-                _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
+                _ => panic!("Malformed goto table: ({lhs}, {current_state})"),
             },
             26 => match lhs {
                 AANonTerminal::Injection => 3,
                 AANonTerminal::InjectionHead => 5,
                 AANonTerminal::OptionalInjection => 34,
                 AANonTerminal::ProductionRules => 33,
-                _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
+                _ => panic!("Malformed goto table: ({lhs}, {current_state})"),
             },
             27 => match lhs {
                 AANonTerminal::Injection => 3,
                 AANonTerminal::InjectionHead => 5,
                 AANonTerminal::OptionalInjection => 36,
                 AANonTerminal::PrecedenceDefinitions => 35,
-                _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
+                _ => panic!("Malformed goto table: ({lhs}, {current_state})"),
             },
             28 => match lhs {
                 AANonTerminal::TokenDefinition => 37,
-                _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
+                _ => panic!("Malformed goto table: ({lhs}, {current_state})"),
             },
             30 => match lhs {
                 AANonTerminal::NewTokenName => 38,
-                _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
+                _ => panic!("Malformed goto table: ({lhs}, {current_state})"),
             },
             31 => match lhs {
                 AANonTerminal::ExpectedConflicts => 40,
                 AANonTerminal::ExpectedRRConflicts => 41,
                 AANonTerminal::ExpectedSRConflicts => 42,
-                _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
+                _ => panic!("Malformed goto table: ({lhs}, {current_state})"),
             },
             32 => match lhs {
                 AANonTerminal::ExpectedConflicts => 45,
                 AANonTerminal::ExpectedRRConflicts => 41,
                 AANonTerminal::ExpectedSRConflicts => 42,
-                _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
+                _ => panic!("Malformed goto table: ({lhs}, {current_state})"),
             },
             33 => match lhs {
                 AANonTerminal::ProductionGroup => 46,
                 AANonTerminal::ProductionGroupHead => 47,
-                _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
+                _ => panic!("Malformed goto table: ({lhs}, {current_state})"),
             },
             34 => match lhs {
                 AANonTerminal::ProductionGroup => 49,
                 AANonTerminal::ProductionGroupHead => 47,
-                _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
+                _ => panic!("Malformed goto table: ({lhs}, {current_state})"),
             },
             35 => match lhs {
                 AANonTerminal::Injection => 3,
                 AANonTerminal::InjectionHead => 5,
                 AANonTerminal::OptionalInjection => 50,
-                _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
+                _ => panic!("Malformed goto table: ({lhs}, {current_state})"),
             },
             36 => match lhs {
                 AANonTerminal::SkipDefinition => 51,
-                _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
+                _ => panic!("Malformed goto table: ({lhs}, {current_state})"),
             },
             37 => match lhs {
                 AANonTerminal::Injection => 3,
                 AANonTerminal::InjectionHead => 5,
                 AANonTerminal::OptionalInjection => 53,
-                _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
+                _ => panic!("Malformed goto table: ({lhs}, {current_state})"),
             },
             38 => match lhs {
                 AANonTerminal::RegEx => 55,
-                _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
+                _ => panic!("Malformed goto table: ({lhs}, {current_state})"),
             },
             40 => match lhs {
                 AANonTerminal::Injection => 3,
                 AANonTerminal::InjectionHead => 5,
                 AANonTerminal::OptionalInjection => 57,
-                _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
+                _ => panic!("Malformed goto table: ({lhs}, {current_state})"),
             },
             41 => match lhs {
                 AANonTerminal::Injection => 3,
                 AANonTerminal::InjectionHead => 5,
                 AANonTerminal::OptionalInjection => 58,
-                _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
+                _ => panic!("Malformed goto table: ({lhs}, {current_state})"),
             },
             42 => match lhs {
                 AANonTerminal::Injection => 3,
                 AANonTerminal::InjectionHead => 5,
                 AANonTerminal::OptionalInjection => 59,
-                _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
+                _ => panic!("Malformed goto table: ({lhs}, {current_state})"),
             },
             43 => match lhs {
                 AANonTerminal::Number => 60,
-                _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
+                _ => panic!("Malformed goto table: ({lhs}, {current_state})"),
             },
             44 => match lhs {
                 AANonTerminal::Number => 62,
-                _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
+                _ => panic!("Malformed goto table: ({lhs}, {current_state})"),
             },
             45 => match lhs {
                 AANonTerminal::Injection => 3,
                 AANonTerminal::InjectionHead => 5,
                 AANonTerminal::OptionalInjection => 63,
-                _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
+                _ => panic!("Malformed goto table: ({lhs}, {current_state})"),
             },
             46 => match lhs {
                 AANonTerminal::Injection => 3,
                 AANonTerminal::InjectionHead => 5,
                 AANonTerminal::OptionalInjection => 64,
-                _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
+                _ => panic!("Malformed goto table: ({lhs}, {current_state})"),
             },
             47 => match lhs {
                 AANonTerminal::Action => 67,
@@ -1147,87 +1143,87 @@ impl lalr1::Parser<AATerminal, AANonTerminal, AttributeData> for Specification {
                 AANonTerminal::ProductionTailList => 65,
                 AANonTerminal::Symbol => 70,
                 AANonTerminal::SymbolList => 68,
-                _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
+                _ => panic!("Malformed goto table: ({lhs}, {current_state})"),
             },
             49 => match lhs {
                 AANonTerminal::Injection => 3,
                 AANonTerminal::InjectionHead => 5,
                 AANonTerminal::OptionalInjection => 75,
-                _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
+                _ => panic!("Malformed goto table: ({lhs}, {current_state})"),
             },
             50 => match lhs {
                 AANonTerminal::PrecedenceDefinition => 76,
-                _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
+                _ => panic!("Malformed goto table: ({lhs}, {current_state})"),
             },
             51 => match lhs {
                 AANonTerminal::Injection => 3,
                 AANonTerminal::InjectionHead => 5,
                 AANonTerminal::OptionalInjection => 80,
-                _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
+                _ => panic!("Malformed goto table: ({lhs}, {current_state})"),
             },
             52 => match lhs {
                 AANonTerminal::RegEx => 81,
-                _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
+                _ => panic!("Malformed goto table: ({lhs}, {current_state})"),
             },
             58 => match lhs {
                 AANonTerminal::ExpectedSRConflicts => 82,
-                _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
+                _ => panic!("Malformed goto table: ({lhs}, {current_state})"),
             },
             59 => match lhs {
                 AANonTerminal::ExpectedRRConflicts => 83,
-                _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
+                _ => panic!("Malformed goto table: ({lhs}, {current_state})"),
             },
             68 => match lhs {
                 AANonTerminal::Action => 87,
                 AANonTerminal::Symbol => 89,
                 AANonTerminal::TaggedPrecedence => 86,
-                _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
+                _ => panic!("Malformed goto table: ({lhs}, {current_state})"),
             },
             76 => match lhs {
                 AANonTerminal::Injection => 3,
                 AANonTerminal::InjectionHead => 5,
                 AANonTerminal::OptionalInjection => 90,
-                _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
+                _ => panic!("Malformed goto table: ({lhs}, {current_state})"),
             },
             77 => match lhs {
                 AANonTerminal::Tag => 92,
                 AANonTerminal::TagList => 91,
-                _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
+                _ => panic!("Malformed goto table: ({lhs}, {current_state})"),
             },
             78 => match lhs {
                 AANonTerminal::Tag => 92,
                 AANonTerminal::TagList => 95,
-                _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
+                _ => panic!("Malformed goto table: ({lhs}, {current_state})"),
             },
             79 => match lhs {
                 AANonTerminal::Tag => 92,
                 AANonTerminal::TagList => 96,
-                _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
+                _ => panic!("Malformed goto table: ({lhs}, {current_state})"),
             },
             85 => match lhs {
                 AANonTerminal::Action => 67,
                 AANonTerminal::ProductionTail => 97,
                 AANonTerminal::Symbol => 70,
                 AANonTerminal::SymbolList => 68,
-                _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
+                _ => panic!("Malformed goto table: ({lhs}, {current_state})"),
             },
             86 => match lhs {
                 AANonTerminal::Action => 98,
-                _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
+                _ => panic!("Malformed goto table: ({lhs}, {current_state})"),
             },
             91 => match lhs {
                 AANonTerminal::Tag => 101,
-                _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
+                _ => panic!("Malformed goto table: ({lhs}, {current_state})"),
             },
             95 => match lhs {
                 AANonTerminal::Tag => 101,
-                _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
+                _ => panic!("Malformed goto table: ({lhs}, {current_state})"),
             },
             96 => match lhs {
                 AANonTerminal::Tag => 101,
-                _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
+                _ => panic!("Malformed goto table: ({lhs}, {current_state})"),
             },
-            _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
+            _ => panic!("Malformed goto table: ({lhs}, {current_state})"),
         };
     }
 
@@ -1252,21 +1248,21 @@ impl lalr1::Parser<AATerminal, AANonTerminal, AttributeData> for Specification {
 
                 let (text, location) = aa_rhs[1].text_and_location();
                 let file_path = text.trim_matches('"');
-                match File::open(&file_path) {
+                match File::open(file_path) {
                     Ok(mut file) => {
                         let mut text = String::new();
                         if let Err(err) = file.read_to_string(&mut text) {
-                            self.error(&location, &format!("Injecting: {}", err));
-                        } else if text.len() == 0 {
+                            self.error(location, &format!("Injecting: {err}"));
+                        } else if text.is_empty() {
                             self.error(
-                                &location,
-                                &format!("Injected file \"{}\" is empty.", file_path),
+                                location,
+                                &format!("Injected file \"{file_path}\" is empty."),
                             );
                         } else {
                             aa_inject(text, file_path.to_string());
                         }
                     }
-                    Err(err) => self.error(&location, &format!("Injecting: {}.", err)),
+                    Err(err) => self.error(location, &format!("Injecting: {err}.")),
                 };
             }
             6 => {
@@ -1336,9 +1332,7 @@ impl lalr1::Parser<AATerminal, AANonTerminal, AttributeData> for Specification {
                     self.error(
                         location,
                         &format!(
-                            "malformed regular expression \"{}\": {}",
-                            text,
-                            err.to_string()
+                            "malformed regular expression \"{text}\": {err}"
                         ),
                     );
                 }
@@ -1350,7 +1344,7 @@ impl lalr1::Parser<AATerminal, AANonTerminal, AttributeData> for Specification {
                 if !Self::is_allowable_name(name) {
                     self.warning(
                         location,
-                        &format!("token name \"{}\" may clash with generated code", name),
+                        &format!("token name \"{name}\" may clash with generated code"),
                     );
                 };
             }
@@ -1412,11 +1406,11 @@ impl lalr1::Parser<AATerminal, AANonTerminal, AttributeData> for Specification {
                 if let Some(token) = self.symbol_table.get_literal_token(lexeme) {
                     aa_lhs = AttributeData::TagOrToken(token.into());
                     if token.precedence_has_been_set() {
-                        let msg = format!("Token \"{}\" precedence has been set already", lexeme);
+                        let msg = format!("Token \"{lexeme}\" precedence has been set already");
                         self.error(aa_rhs[0].location(), &msg);
                     }
                 } else {
-                    let msg = format!("Literal token \"{}\" is not known", lexeme);
+                    let msg = format!("Literal token \"{lexeme}\" is not known");
                     self.error(aa_rhs[0].location(), &msg);
                     aa_lhs = AttributeData::TagOrToken(TagOrToken::Invalid);
                 }
@@ -1428,7 +1422,7 @@ impl lalr1::Parser<AATerminal, AANonTerminal, AttributeData> for Specification {
                 if let Some(token) = self.symbol_table.get_token(name) {
                     aa_lhs = AttributeData::TagOrToken(token.into());
                     if token.precedence_has_been_set() {
-                        let msg = format!("Token \"{}\" precedence has been set already", name);
+                        let msg = format!("Token \"{name}\" precedence has been set already");
                         self.error(aa_rhs[0].location(), &msg);
                     }
                 } else {
@@ -1436,7 +1430,7 @@ impl lalr1::Parser<AATerminal, AANonTerminal, AttributeData> for Specification {
                     if !Self::is_allowable_name(name) {
                         self.warning(
                             location,
-                            &format!("tag name \"{}\" may clash with generated code", name),
+                            &format!("tag name \"{name}\" may clash with generated code"),
                         );
                     };
                     match self.symbol_table.new_tag(name, location) {
@@ -1546,7 +1540,7 @@ impl lalr1::Parser<AATerminal, AANonTerminal, AttributeData> for Specification {
                         token.precedence(),
                     );
                 } else {
-                    self.error(location, &format!("{}: unknown tag", name));
+                    self.error(location, &format!("{name}: unknown tag"));
                     aa_lhs = AttributeData::AssociativityAndPrecedence(Associativity::default(), 0);
                 };
             }
@@ -1560,7 +1554,7 @@ impl lalr1::Parser<AATerminal, AANonTerminal, AttributeData> for Specification {
                         token.precedence(),
                     );
                 } else {
-                    self.error(location, &format!("{}: unknown tag", lexeme));
+                    self.error(location, &format!("{lexeme}: unknown tag"));
                     aa_lhs = AttributeData::AssociativityAndPrecedence(Associativity::default(), 0);
                 };
             }
@@ -1591,7 +1585,7 @@ impl lalr1::Parser<AATerminal, AANonTerminal, AttributeData> for Specification {
                     token.add_used_at(location);
                     aa_lhs = AttributeData::Symbol(token.into());
                 } else {
-                    self.error(location, &format!("{}: unknown literal)", lexeme));
+                    self.error(location, &format!("{lexeme}: unknown literal)"));
                     let symbol = self.symbol_table.error_symbol_used_at(location);
                     aa_lhs = AttributeData::Symbol(symbol);
                 }

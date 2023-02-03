@@ -345,7 +345,7 @@ mod tests {
         }
 
         pub fn variable(&self, name: &str) -> Option<f64> {
-            self.variables.get(name).map(|value| *value)
+            self.variables.get(name).copied()
         }
 
         fn report_errors(&self) {
