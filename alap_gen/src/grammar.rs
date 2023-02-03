@@ -17,11 +17,11 @@ use std::io::{stderr, Write};
 use std::path::Path;
 
 pub fn report_error(location: &lexan::Location, what: &str) {
-    writeln!(stderr(), "{}: Error: {}.", location, what).expect("what?");
+    writeln!(stderr(), "{location}: Error: {what}.").expect("what?");
 }
 
 pub fn report_warning(location: &lexan::Location, what: &str) {
-    writeln!(stderr(), "{}: Warning: {}.", location, what).expect("what?");
+    writeln!(stderr(), "{location}: Warning: {what}.").expect("what?");
 }
 
 #[derive(Debug, Default)]
@@ -84,7 +84,7 @@ impl Specification {
     }
 
     pub fn new_production(&mut self, left_hand_side: &NonTerminal, tail: &ProductionTail) {
-        if self.productions.len() == 0 {
+        if self.productions.is_empty() {
             let location = left_hand_side
                 .first_definition()
                 .expect("should be defined");
@@ -185,8 +185,8 @@ impl Specification {
         for production in self.productions.iter() {
             if let Some(action_code) = production.expanded_action() {
                 wtr.write_fmt(format_args!("            {} => {{\n", production.ident()))?;
-                wtr.write_fmt(format_args!("                // {}\n", production))?;
-                wtr.write_fmt(format_args!("                {}\n", action_code))?;
+                wtr.write_fmt(format_args!("                // {production}\n"))?;
+                wtr.write_fmt(format_args!("                {action_code}\n"))?;
                 wtr.write(b"            }\n")?;
             }
         }
@@ -274,7 +274,7 @@ impl TryFrom<Specification> for Grammar {
                     if !already_done.insert(symbol_x.clone()) {
                         continue;
                     };
-                    let kernel_x = unprocessed_state.generate_goto_kernel(&symbol_x);
+                    let kernel_x = unprocessed_state.generate_goto_kernel(symbol_x);
                     let item_set_x = grammar.specification.closure(kernel_x);
                     let goto_state =
                         if let Some(equivalent_state) = grammar.equivalent_state(&item_set_x) {
@@ -347,7 +347,7 @@ impl Grammar {
 
     fn equivalent_state(&self, item_set: &GrammarItemSet) -> Option<&ParserState> {
         let target_key_set = item_set.kernel_key_set();
-        if target_key_set.len() > 0 {
+        if !target_key_set.is_empty() {
             for parser_state in self.parser_states.iter() {
                 if target_key_set == parser_state.kernel_key_set() {
                     return Some(parser_state);
@@ -455,7 +455,7 @@ impl Grammar {
         {
             wtr.write(b"            AANonTerminal::")?;
             let name = non_terminal.name();
-            wtr.write_fmt(format_args!("{} => write!(f, r\"{}\"),\n", name, name))?;
+            wtr.write_fmt(format_args!("{name} => write!(f, r\"{name}\"),\n"))?;
         }
         wtr.write(b"        }\n")?;
         wtr.write(b"    }\n")?;
@@ -491,7 +491,7 @@ impl Grammar {
         wtr.write(b"            &[\n")?;
         for skip_rule in self.specification.symbol_table.skip_rules() {
             wtr.write(b"                ")?;
-            wtr.write_fmt(format_args!("r###\"{}\"###,\n", skip_rule))?;
+            wtr.write_fmt(format_args!("r###\"{skip_rule}\"###,\n"))?;
         }
         wtr.write(b"            ],\n")?;
         wtr.write_fmt(format_args!("            {},\n", Token::EndToken.name()))?;
@@ -505,8 +505,7 @@ impl Grammar {
         let attr = &self.specification.attribute_type;
         let parser = &self.specification.target_type;
         let text = format!(
-            "impl lalr1_plus::Parser<AATerminal, AANonTerminal, {}> for {} {{\n",
-            attr, parser
+            "impl lalr1_plus::Parser<AATerminal, AANonTerminal, {attr}> for {parser} {{\n"
         );
         wtr.write(text.as_bytes())?;
         wtr.write(b"    fn lexical_analyzer(&self) -> &lexan::LexicalAnalyzer<AATerminal> {\n")?;
@@ -534,9 +533,9 @@ impl Grammar {
         let mut string = "btree_set![".to_string();
         for (index, number) in set.iter().enumerate() {
             if index == 0 {
-                string += &format!("{}", number);
+                string += &format!("{number}");
             } else {
-                string += &format!(", {}", number);
+                string += &format!(", {number}");
             }
         }
         string += "]";
@@ -552,7 +551,7 @@ impl Grammar {
             .chain(self.specification.symbol_table.tokens())
         {
             let set = self.error_recovery_state_set_for_token(token);
-            if set.len() > 0 {
+            if !set.is_empty() {
                 wtr.write_fmt(format_args!(
                     "            AATerminal::{} => {},\n",
                     token.name(),
@@ -643,7 +642,7 @@ impl Grammar {
         file.write(self.specification.symbol_table.description().as_bytes())?;
         file.write(b"\nProductions:\n")?;
         for production in self.specification.productions.iter() {
-            file.write_fmt(format_args!("  {}\n", production))?;
+            file.write_fmt(format_args!("  {production}\n"))?;
         }
         for parser_state in self.parser_states.iter() {
             file.write(parser_state.description().as_bytes())?;
@@ -655,7 +654,7 @@ impl Grammar {
         let mut string = String::new();
         for parser_state in self.parser_states.iter() {
             if parser_state.shift_reduce_conflict_count() > 0 {
-                string += &parser_state.description().as_str();
+                string += parser_state.description().as_str();
             }
         }
         string
@@ -665,7 +664,7 @@ impl Grammar {
         let mut string = String::new();
         for parser_state in self.parser_states.iter() {
             if parser_state.reduce_reduce_conflict_count() > 0 {
-                string += &parser_state.description().as_str();
+                string += parser_state.description().as_str();
             }
         }
         string

@@ -37,19 +37,11 @@ impl ProductionTail {
         associative_precedence: Option<(Associativity, u16)>,
         o_action: Option<&str>,
     ) -> Self {
-        let predicate = if let Some(predicate) = o_predicate {
-            Some(predicate.to_string())
-        } else {
-            None
-        };
-        let action = if let Some(action) = o_action {
-            Some(action.to_string())
-        } else {
-            None
-        };
+        let predicate = o_predicate.map(|predicate| predicate.to_string());
+        let action = o_action.map(|action| action.to_string());
         let (associativity, precedence) = if let Some(tuple) = associative_precedence {
             tuple
-        } else if let Some(tuple) = rhs_associated_precedence(&right_hand_side) {
+        } else if let Some(tuple) = rhs_associated_precedence(right_hand_side) {
             tuple
         } else {
             (Associativity::default(), 0)
@@ -165,7 +157,7 @@ impl Production {
         if let Some(predicate) = &self.0.tail.0.predicate {
             let rhs_len = self.0.tail.0.right_hand_side.len();
             let string = RHS_CRE
-                .replace_all(&predicate, |caps: &regex::Captures| {
+                .replace_all(predicate, |caps: &regex::Captures| {
                     format!(
                         "aa_attributes.at_len_minus_n({})",
                         rhs_len + 1 - usize::from_str(&caps[1]).unwrap()
@@ -230,18 +222,18 @@ impl Ord for Production {
 impl std::fmt::Display for Production {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let mut string = format!("{}:", self.left_hand_side().name());
-        if self.0.tail.0.right_hand_side.len() == 0 {
+        if self.0.tail.0.right_hand_side.is_empty() {
             string += " <empty>";
         } else {
             for symbol in self.0.tail.0.right_hand_side.iter() {
-                string += &format!(" {}", symbol);
+                string += &format!(" {symbol}");
             }
         };
         string += &format!(" #({}, {})", self.associativity(), self.precedence());
         if let Some(predicate) = &self.0.tail.0.predicate {
-            string += &format!(" ?({}?)", predicate);
+            string += &format!(" ?({predicate}?)");
         };
-        write!(f, "{}", string)
+        write!(f, "{string}")
     }
 }
 
@@ -269,14 +261,14 @@ pub struct GrammarItemKey {
 impl std::fmt::Display for GrammarItemKey {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let mut string = format!("{}:", self.production.0.left_hand_side.name());
-        if self.production.0.tail.0.right_hand_side.len() == 0 {
+        if self.production.0.tail.0.right_hand_side.is_empty() {
             string += " . <empty>";
         } else {
             for (index, symbol) in self.production.0.tail.0.right_hand_side.iter().enumerate() {
                 if index == self.dot {
-                    string += &format!(" . {}", symbol);
+                    string += &format!(" . {symbol}");
                 } else {
-                    string += &format!(" {}", symbol);
+                    string += &format!(" {symbol}");
                 }
             }
             if self.dot >= self.production.0.tail.0.right_hand_side.len() {
@@ -289,9 +281,9 @@ impl std::fmt::Display for GrammarItemKey {
             self.production.precedence()
         );
         if let Some(predicate) = &self.production.0.tail.0.predicate {
-            string += &format!(" ?({}?)", predicate);
+            string += &format!(" ?({predicate}?)");
         };
-        write!(f, "{}", string)
+        write!(f, "{string}")
     }
 }
 

@@ -320,7 +320,7 @@ mod tests {
 
     impl From<lalr1::Error<AATerminal>> for AttributeData {
         fn from(error: lalr1::Error<AATerminal>) -> Self {
-            AttributeData::Error(error.clone())
+            AttributeData::Error(error)
         }
     }
 
@@ -345,11 +345,7 @@ mod tests {
         }
 
         pub fn variable(&self, name: &str) -> Option<f64> {
-            if let Some(value) = self.variables.get(name) {
-                Some(*value)
-            } else {
-                None
-            }
+            self.variables.get(name).map(|value| *value)
         }
 
         fn report_errors(&self) {
@@ -384,7 +380,7 @@ mod tests {
         };
     }
 
-    use lexan;
+    
 
     #[derive(Debug, Clone, Copy, PartialOrd, Ord, PartialEq, Eq)]
     pub enum AATerminal {
@@ -481,7 +477,7 @@ mod tests {
             match state {
                 0 => 3,
                 4 => 3,
-                _ => panic!("No error go to state for {}", state),
+                _ => panic!("No error go to state for {state}"),
             }
         }
 
@@ -513,7 +509,7 @@ mod tests {
                 22 => btree_set![DIVIDE, MINUS, PLUS, RPR, TIMES, EOL, AAEnd],
                 23 => btree_set![DIVIDE, MINUS, PLUS, TIMES, EOL, AAEnd],
                 24 => btree_set![DIVIDE, MINUS, PLUS, RPR, TIMES, EOL, AAEnd],
-                _ => panic!("illegal state: {}", state),
+                _ => panic!("illegal state: {state}"),
             };
         }
 
@@ -684,7 +680,7 @@ mod tests {
                     DIVIDE | MINUS | PLUS | RPR | TIMES | EOL | AAEnd => Action::Reduce(11),
                     _ => Action::SyntaxError,
                 },
-                _ => panic!("illegal state: {}", aa_state),
+                _ => panic!("illegal state: {aa_state}"),
             };
         }
 
@@ -716,47 +712,47 @@ mod tests {
                     AANonTerminal::Line => 1,
                     AANonTerminal::SetUp => 2,
                     AANonTerminal::AAError => 3,
-                    _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
+                    _ => panic!("Malformed goto table: ({lhs}, {current_state})"),
                 },
                 2 => match lhs {
                     AANonTerminal::Expr => 5,
-                    _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
+                    _ => panic!("Malformed goto table: ({lhs}, {current_state})"),
                 },
                 4 => match lhs {
                     AANonTerminal::Line => 10,
                     AANonTerminal::SetUp => 2,
                     AANonTerminal::AAError => 3,
-                    _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
+                    _ => panic!("Malformed goto table: ({lhs}, {current_state})"),
                 },
                 7 => match lhs {
                     AANonTerminal::Expr => 16,
-                    _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
+                    _ => panic!("Malformed goto table: ({lhs}, {current_state})"),
                 },
                 8 => match lhs {
                     AANonTerminal::Expr => 18,
-                    _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
+                    _ => panic!("Malformed goto table: ({lhs}, {current_state})"),
                 },
                 11 => match lhs {
                     AANonTerminal::Expr => 19,
-                    _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
+                    _ => panic!("Malformed goto table: ({lhs}, {current_state})"),
                 },
                 12 => match lhs {
                     AANonTerminal::Expr => 20,
-                    _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
+                    _ => panic!("Malformed goto table: ({lhs}, {current_state})"),
                 },
                 13 => match lhs {
                     AANonTerminal::Expr => 21,
-                    _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
+                    _ => panic!("Malformed goto table: ({lhs}, {current_state})"),
                 },
                 14 => match lhs {
                     AANonTerminal::Expr => 22,
-                    _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
+                    _ => panic!("Malformed goto table: ({lhs}, {current_state})"),
                 },
                 15 => match lhs {
                     AANonTerminal::Expr => 23,
-                    _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
+                    _ => panic!("Malformed goto table: ({lhs}, {current_state})"),
                 },
-                _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
+                _ => panic!("Malformed goto table: ({lhs}, {current_state})"),
             };
         }
 

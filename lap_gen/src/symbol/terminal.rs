@@ -242,7 +242,7 @@ impl TokenSet {
         let mut string = "btree_set![".to_string();
         for (index, token) in self.0.iter().enumerate() {
             if index == 0 {
-                string += &format!("{}", token.name());
+                string += token.name();
             } else {
                 string += &format!(", {}", token.name());
             }
@@ -255,7 +255,7 @@ impl TokenSet {
         let mut string = "".to_string();
         for (index, token) in self.0.iter().enumerate() {
             if index == 0 {
-                string += &format!("{}", token.name());
+                string += token.name();
             } else {
                 string += &format!(" | {}", token.name());
             }
@@ -267,9 +267,9 @@ impl TokenSet {
         let mut string = "".to_string();
         for (index, token) in self.0.iter().enumerate() {
             if index == 0 {
-                string += &format!("{}", token);
+                string += &format!("{token}");
             } else {
-                string += &format!(" | {}", token);
+                string += &format!(" | {token}");
             }
         }
         string
@@ -296,12 +296,12 @@ impl fmt::Display for TokenSet {
         let mut set_string = "TokenSet{".to_string();
         for (index, item) in self.iter().enumerate() {
             if index == 0 {
-                set_string += &format!("{}", item);
+                set_string += &format!("{item}");
             } else {
-                set_string += &format!(", {}", item);
+                set_string += &format!(", {item}");
             }
         }
         set_string += "}";
-        write!(f, "{}", set_string)
+        write!(f, "{set_string}")
     }
 }

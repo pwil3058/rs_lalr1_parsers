@@ -8,22 +8,22 @@ fn main() {
     if Path::new(lap_gen_path).exists() {
         println!("cargo:rerun-if-changed=src/lap_gen.laps");
         println!("cargo:rerun-if-changed=../target/debug/lap_gen");
-        println!("cargo::rerun-if-changed={}", lap_gen_path);
+        println!("cargo::rerun-if-changed={lap_gen_path}");
         match Command::new(lap_gen_path)
-            .args(&["-f", "src/lap_gen.laps"])
+            .args(["-f", "src/lap_gen.laps"])
             .status()
         {
             Ok(status) => {
                 if status.success() {
                     Command::new("rustfmt")
-                        .args(&["src/lap_gen.rs"])
+                        .args(["src/lap_gen.rs"])
                         .status()
                         .unwrap();
                 } else {
-                    panic!("failed prebuild: {}", status);
+                    panic!("failed prebuild: {status}");
                 };
             }
-            Err(err) => panic!("Build error: {}", err),
+            Err(err) => panic!("Build error: {err}"),
         }
         println!("cargo:rerun-if-changed=buildx");
     }

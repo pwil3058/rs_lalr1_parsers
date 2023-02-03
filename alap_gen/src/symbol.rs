@@ -117,7 +117,7 @@ impl fmt::Display for Error {
                 )
             }
             Error::DuplicateSkipRule(string) => {
-                write!(f, "Skip rule \"{}\" already defined.", string,)
+                write!(f, "Skip rule \"{string}\" already defined.",)
             }
         }
     }
@@ -347,7 +347,7 @@ impl SymbolTable {
                 token.precedence()
             );
         }
-        if self.tags.len() > 0 {
+        if !self.tags.is_empty() {
             string += "  Tags:\n";
             for tag in self.tags.values() {
                 string += &format!(

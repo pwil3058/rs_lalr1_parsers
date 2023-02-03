@@ -137,7 +137,7 @@ mod tests {
             Err(err) => match err {
                 Error::UnexpectedText(text, location) => {
                     assert_eq!(text, "9");
-                    assert_eq!(format!("{}", location), "\"raw text\":3:1");
+                    assert_eq!(format!("{location}"), "\"raw text\":3:1");
                 }
                 _ => assert!(false),
             },
@@ -147,7 +147,7 @@ mod tests {
             Err(err) => match err {
                 Error::UnexpectedText(text, location) => {
                     assert_eq!(text, "$");
-                    assert_eq!(format!("{}", location), "\"raw text\":3:3");
+                    assert_eq!(format!("{location}"), "\"raw text\":3:3");
                 }
                 _ => assert!(false),
             },
@@ -292,7 +292,7 @@ mod tests {
             Err(err) => match err {
                 Error::UnexpectedText(text, location) => {
                     assert_eq!(text, "9");
-                    assert_eq!(format!("{}", location), "\"raw text\":3:1");
+                    assert_eq!(format!("{location}"), "\"raw text\":3:1");
                 }
                 _ => assert!(false),
             },
@@ -302,7 +302,7 @@ mod tests {
             Err(err) => match err {
                 Error::UnexpectedText(text, location) => {
                     assert_eq!(text, "$");
-                    assert_eq!(format!("{}", location), "\"raw text\":3:3");
+                    assert_eq!(format!("{location}"), "\"raw text\":3:3");
                 }
                 _ => assert!(false),
             },

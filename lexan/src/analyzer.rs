@@ -338,20 +338,20 @@ mod tests {
             offset: 15,
             label: "whatever".to_string(),
         };
-        assert_eq!(format!("{}", location), "whatever:10:15");
+        assert_eq!(format!("{location}"), "whatever:10:15");
         let location = Location {
             line_number: 9,
             offset: 23,
             label: "".to_string(),
         };
-        assert_eq!(format!("{}", location), "9:23");
+        assert_eq!(format!("{location}"), "9:23");
     }
 
     #[test]
     fn incr_index_and_location() {
         let lexicon = Arc::new(Lexicon::<u32>::new(&[], &[], &[], 0).unwrap());
         let mut token_stream = BasicTokenStream {
-            lexicon: lexicon,
+            lexicon,
             text: "String\nwith a new line in it".to_string(),
             location: Location::new("whatever".to_string()),
             index: 0,
@@ -411,8 +411,8 @@ mod tests {
                 label: "another".to_string(),
             },
         };
-        assert_eq!((token_stream.front().clone()).unwrap(), token.clone());
-        assert_eq!((token_stream.front().clone()).unwrap(), token.clone());
+        assert_eq!((token_stream.front().clone()).unwrap(), token);
+        assert_eq!((token_stream.front().clone()).unwrap(), token);
         token_stream.advance();
         let token = Token {
             tag: Ident,
@@ -423,7 +423,7 @@ mod tests {
                 label: "another".to_string(),
             },
         };
-        assert_eq!((token_stream.front().clone()).unwrap(), token.clone());
+        assert_eq!((token_stream.front().clone()).unwrap(), token);
         let text = "just".to_string();
         let label = "more".to_string();
         token_stream.inject(text, label);
@@ -436,7 +436,7 @@ mod tests {
                 label: "more".to_string(),
             },
         };
-        assert_eq!((token_stream.front().clone()).unwrap(), token.clone());
+        assert_eq!((token_stream.front().clone()).unwrap(), token);
         token_stream.advance();
         let token = Token {
             tag: Ident,
@@ -447,11 +447,11 @@ mod tests {
                 label: "another".to_string(),
             },
         };
-        assert_eq!((token_stream.front().clone()).unwrap(), token.clone());
+        assert_eq!((token_stream.front().clone()).unwrap(), token);
         token_stream.advance();
-        assert!(token_stream.front().clone().is_ok());
+        assert!(token_stream.front().is_ok());
         token_stream.advance();
-        assert!(token_stream.front().clone().is_err());
+        assert!(token_stream.front().is_err());
         token_stream.advance();
         let token = Token {
             tag: End,
@@ -462,7 +462,7 @@ mod tests {
                 label: "another".to_string(),
             },
         };
-        assert_eq!(token_stream.front().clone().unwrap(), token);
+        assert_eq!(token_stream.front().unwrap(), token);
         assert!(token_stream.advance_front().is_err());
     }
 }

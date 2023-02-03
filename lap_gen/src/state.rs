@@ -177,21 +177,21 @@ impl ParserState {
                 shift_list.remove(shift_symbol);
             } else if shift_symbol.precedence() > reducible_item.precedence() {
                 grammar_items
-                    .get_mut(&reducible_item)
+                    .get_mut(reducible_item)
                     .unwrap()
                     .remove(shift_symbol);
             } else if reducible_item.associativity() == Associativity::Left {
                 shift_list.remove(shift_symbol);
             } else if reducible_item.has_error_recovery_tail() {
                 grammar_items
-                    .get_mut(&reducible_item)
+                    .get_mut(reducible_item)
                     .unwrap()
                     .remove(shift_symbol);
             } else {
                 // Default: resolve in favour of shift but mark as unresolved
                 // to give the user the option of accepting this resolution
                 grammar_items
-                    .get_mut(&reducible_item)
+                    .get_mut(reducible_item)
                     .unwrap()
                     .remove(shift_symbol);
                 shift_reduce_conflicts.push((
@@ -295,7 +295,7 @@ impl ParserState {
         }
         for (productions, look_ahead_set) in reductions.reductions() {
             for production in productions {
-                wtr.write_fmt(format_args!("{}    // {}\n", indent, production))?;
+                wtr.write_fmt(format_args!("{indent}    // {production}\n"))?;
                 if production.is_start_production() {
                     wtr.write_fmt(format_args!(
                         "{}    {} => Action::Accept,\n",
@@ -312,8 +312,8 @@ impl ParserState {
                 }
             }
         }
-        wtr.write_fmt(format_args!("{}    _ => Action::SyntaxError,\n", indent,))?;
-        wtr.write_fmt(format_args!("{}}},\n", indent))?;
+        wtr.write_fmt(format_args!("{indent}    _ => Action::SyntaxError,\n",))?;
+        wtr.write_fmt(format_args!("{indent}}},\n"))?;
         Ok(())
     }
 
@@ -333,10 +333,9 @@ impl ParserState {
                 ))?;
             }
             wtr.write_fmt(format_args!(
-                "{}    _ => panic!(\"Malformed goto table: ({{}}, {{}})\", lhs, current_state),\n",
-                indent
+                "{indent}    _ => panic!(\"Malformed goto table: ({{}}, {{}})\", lhs, current_state),\n"
             ))?;
-            wtr.write_fmt(format_args!("{}}},\n", indent))?;
+            wtr.write_fmt(format_args!("{indent}}},\n"))?;
         };
         Ok(())
     }
@@ -344,7 +343,7 @@ impl ParserState {
     pub fn description(&self) -> String {
         let mut string = format!("\nState<{}>:\n  Grammar Items:\n", self.0.ident);
         for (key, look_ahead_set) in self.0.grammar_items.borrow().iter() {
-            string += &format!("    {}: {}\n", key, look_ahead_set);
+            string += &format!("    {key}: {look_ahead_set}\n");
         }
         string += "  Parser Action Table:\n";
         let mut empty = true;
@@ -400,7 +399,7 @@ impl ParserState {
             for (shift_token, goto_state, reducible_item, look_ahead_set) in
                 self.0.shift_reduce_conflicts.borrow().iter()
             {
-                string += &format!("    {}:\n", shift_token);
+                string += &format!("    {shift_token}:\n");
                 string += &format!("      shift -> State<{}>\n", goto_state.ident());
                 string += &format!(
                     "      reduce {}: {}",
@@ -412,7 +411,7 @@ impl ParserState {
         if self.0.reduce_reduce_conflicts.borrow().len() > 0 {
             string += "  Reduce/Reduce Conflicts:\n";
             for (items, intersection) in self.0.reduce_reduce_conflicts.borrow().iter() {
-                string += &format!("    {}\n", intersection);
+                string += &format!("    {intersection}\n");
                 string += &format!(
                     "      reduce {} : {}\n",
                     items.0,

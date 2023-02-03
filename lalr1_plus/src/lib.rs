@@ -450,7 +450,7 @@ mod tests {
         fn error_goto_state(state: u32) -> u32 {
             match state {
                 0 | 4 => 3,
-                _ => panic!("No error go to state for {}", state),
+                _ => panic!("No error go to state for {state}"),
             }
         }
 
@@ -477,7 +477,7 @@ mod tests {
                 22 => btree_set![EndMarker, EOL, Plus, Minus, Times, Divide, RPR],
                 23 => btree_set![EndMarker, EOL, Plus, Minus, Times, Divide, RPR],
                 24 => btree_set![EndMarker, EOL, Plus, Minus, Times, Divide, RPR],
-                _ => panic!("illegal state: {}", state),
+                _ => panic!("illegal state: {state}"),
             };
         }
 
@@ -669,7 +669,7 @@ mod tests {
                     EndMarker | EOL | Plus | Minus | Times | Divide | RPR => Action::Reduce(23),
                     _ => Action::SyntaxError,
                 },
-                _ => panic!("illegal state: {}", state),
+                _ => panic!("illegal state: {state}"),
             };
         }
 
@@ -711,46 +711,46 @@ mod tests {
                 0 => match lhs {
                     NonTerminal::Line => 1,
                     NonTerminal::SetUp => 2,
-                    _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
+                    _ => panic!("Malformed goto table: ({lhs}, {current_state})"),
                 },
                 2 => match lhs {
                     NonTerminal::Expr => 5,
-                    _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
+                    _ => panic!("Malformed goto table: ({lhs}, {current_state})"),
                 },
                 4 => match lhs {
                     NonTerminal::Line => 10,
                     NonTerminal::SetUp => 2,
-                    _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
+                    _ => panic!("Malformed goto table: ({lhs}, {current_state})"),
                 },
                 7 => match lhs {
                     NonTerminal::Expr => 16,
-                    _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
+                    _ => panic!("Malformed goto table: ({lhs}, {current_state})"),
                 },
                 8 => match lhs {
                     NonTerminal::Expr => 18,
-                    _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
+                    _ => panic!("Malformed goto table: ({lhs}, {current_state})"),
                 },
                 11 => match lhs {
                     NonTerminal::Expr => 19,
-                    _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
+                    _ => panic!("Malformed goto table: ({lhs}, {current_state})"),
                 },
                 12 => match lhs {
                     NonTerminal::Expr => 20,
-                    _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
+                    _ => panic!("Malformed goto table: ({lhs}, {current_state})"),
                 },
                 13 => match lhs {
                     NonTerminal::Expr => 21,
-                    _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
+                    _ => panic!("Malformed goto table: ({lhs}, {current_state})"),
                 },
                 14 => match lhs {
                     NonTerminal::Expr => 22,
-                    _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
+                    _ => panic!("Malformed goto table: ({lhs}, {current_state})"),
                 },
                 15 => match lhs {
                     NonTerminal::Expr => 23,
-                    _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
+                    _ => panic!("Malformed goto table: ({lhs}, {current_state})"),
                 },
-                _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
+                _ => panic!("Malformed goto table: ({lhs}, {current_state})"),
             }
         }
 
