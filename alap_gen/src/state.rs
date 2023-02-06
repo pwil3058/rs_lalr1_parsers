@@ -66,9 +66,11 @@ impl Ord for ParserState {
 
 impl ParserState {
     pub fn new(ident: u32, grammar_items: GrammarItemSet) -> Self {
-        let mut data = ParserStateData::default();
-        data.ident = ident;
-        *data.grammar_items.borrow_mut() = grammar_items;
+        let data = ParserStateData {
+            ident,
+            grammar_items: grammar_items.into(),
+            ..ParserStateData::default()
+        };
         Self(Rc::new(data))
     }
 
@@ -77,10 +79,7 @@ impl ParserState {
     }
 
     pub fn is_processed(&self) -> bool {
-        match self.0.processed_state.get() {
-            ProcessedState::Processed => true,
-            _ => false,
-        }
+        matches!(self.0.processed_state.get(), ProcessedState::Processed)
     }
 
     pub fn reduce_reduce_conflict_count(&self) -> usize {
@@ -92,10 +91,10 @@ impl ParserState {
     }
 
     pub fn needs_reprocessing(&self) -> bool {
-        match self.0.processed_state.get() {
-            ProcessedState::NeedsReprocessing => true,
-            _ => false,
-        }
+        matches!(
+            self.0.processed_state.get(),
+            ProcessedState::NeedsReprocessing
+        )
     }
 
     pub fn mark_as_processed(&self) {
@@ -371,7 +370,7 @@ impl ParserState {
                 ))?;
             }
             wtr.write_fmt(format_args!(
-                "{indent}    _ => panic!(\"Malformed goto table: ({{}}, {{}})\", lhs, current_state),\n"
+                "{indent}    _ => panic!(\"Malformed goto table: ({{lhs}}, {{current_state}})\"),\n"
             ))?;
             wtr.write_fmt(format_args!("{indent}}},\n"))?;
         };

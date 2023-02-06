@@ -58,11 +58,8 @@ impl ProductionTail {
 
 fn rhs_associated_precedence(symbols: &[Symbol]) -> Option<(Associativity, u16)> {
     for symbol in symbols.iter() {
-        match symbol {
-            Symbol::Terminal(token) => {
-                return Some(token.associativity_and_precedence());
-            }
-            _ => (),
+        if let Symbol::Terminal(token) = symbol {
+            return Some(token.associativity_and_precedence());
         }
     }
     None
@@ -219,7 +216,7 @@ impl Ord for Production {
     }
 }
 
-impl std::fmt::Display for Production {
+impl Display for Production {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let mut string = format!("{}:", self.left_hand_side().name());
         if self.0.tail.0.right_hand_side.is_empty() {
@@ -258,7 +255,7 @@ pub struct GrammarItemKey {
     dot: usize,
 }
 
-impl std::fmt::Display for GrammarItemKey {
+impl Display for GrammarItemKey {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let mut string = format!("{}:", self.production.0.left_hand_side.name());
         if self.production.0.tail.0.right_hand_side.is_empty() {

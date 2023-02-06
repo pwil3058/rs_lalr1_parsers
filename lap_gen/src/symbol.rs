@@ -22,8 +22,8 @@ impl Default for Associativity {
     }
 }
 
-impl std::fmt::Display for Associativity {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+impl fmt::Display for Associativity {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         use Associativity::*;
         match self {
             NonAssoc => write!(f, "NonAssoc"),
@@ -65,10 +65,7 @@ impl fmt::Display for Symbol {
 
 impl Symbol {
     pub fn is_non_terminal(&self) -> bool {
-        match self {
-            Symbol::NonTerminal(_) => true,
-            _ => false,
-        }
+        matches!(self, Symbol::NonTerminal(_))
     }
 }
 

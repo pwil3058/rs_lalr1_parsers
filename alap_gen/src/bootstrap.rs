@@ -212,10 +212,8 @@ impl lalr1_plus::Parser<AATerminal, AANonTerminal, AttributeData> for Specificat
         &AALEXAN
     }
 
-    fn viable_error_recovery_states(token: &AATerminal) -> BTreeSet<u32> {
-        match token {
-            _ => btree_set![],
-        }
+    fn viable_error_recovery_states(_token: &AATerminal) -> BTreeSet<u32> {
+        btree_set![]
     }
 
     fn error_goto_state(state: u32) -> u32 {

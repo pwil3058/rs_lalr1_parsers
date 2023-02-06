@@ -21,56 +21,59 @@ use lazy_static::lazy_static;
 
 %%
 
-%token  REGEX           (\(.+\))
-%token  LITERAL         ("(\\"|[^"\t\r\n\v\f])*")
-%token  ATTR            "%attr"
-%token  TARGET          "%target"
-%token  TOKEN           "%token"
-%token  LEFT            "%left"
-%token  RIGHT           "%right"
-%token  NONASSOC        "%nonassoc"
-%token  PRECEDENCE      "%prec"
-%token  SKIP            "%skip"
-%token  ERROR           "%error"
-%token  INJECT          "%inject"
-%token  NEWSECTION      "%%"
-%token  COLON           ":"
-%token  VBAR            "|"
-%token  DOT             "."
-%token  IDENT           ([a-zA-Z]+[a-zA-Z0-9_]*)
-%token  ACTION          (!\{(.|[\n\r])*?!\})
-%token  RUSTCODE        (%\{(.|[\n\r])*?%\})
-%token  RR              "%reduce_reduce"
-%token  SR              "%shift_reduce"
-%token  NUMBER          ([0-9]+)
+%token  RegEx           (\(.+\))
+%token  Literal         ("(\\"|[^"\t\r\n\v\f])*")
+%token  Attr            "%attr"
+%token  Target          "%target"
+%token  Token           "%token"
+%token  Left            "%left"
+%token  Right           "%right"
+%token  NonAssoc        "%nonassoc"
+%token  Precedence      "%prec"
+%token  Skip            "%skip"
+%token  Error           "%error"
+%token  Inject          "%inject"
+%token  NewSection      "%%"
+%token  Colon           ":"
+%token  VerticalBar     "|"
+%token  Dot             "."
+%token  Ident           ([a-zA-Z]+[a-zA-Z0-9_]*)
+%token  ActionCode      (!\{(.|[\n\r])*?!\})
+%token  RustCode        (%\{(.|[\n\r])*?%\})
+%token  ReduceReduce    "%reduce_reduce"
+%token  ShiftReduce     "%shift_reduce"
+%token  NumberExpr      ([0-9]+)
 
 %skip (/\*(.|[\n\r])*?\*/)
 %skip (//[^\n\r]*)
 %skip (\s+)
 
-%right INJECT
+%right "%inject"
 
 %%
 Specification: Preamble Configuration "%%" Definitions "%%" ProductionRules.
 
 OptionalInjection: !{ // no injection so nothing to do !} | Injection .
 
-InjectionHead: "%inject" LITERAL
+InjectionHead: "%inject" Literal
         !{
             let (text, location) = $2.text_and_location();
             let file_path = text.trim_matches('"');
-            match File::open(&file_path) {
+            match File::open(file_path) {
                 Ok(mut file) => {
                     let mut text = String::new();
                     if let Err(err) = file.read_to_string(&mut text) {
-                        self.error(&location, &format!("Injecting: {}", err));
-                    } else if text.len() == 0 {
-                        self.error(&location, &format!("Injected file \"{}\" is empty.", file_path));
+                        self.error(location, &format!("Injecting: {err}"));
+                    } else if text.is_empty() {
+                        self.error(
+                            location,
+                            &format!("Injected file \"{file_path}\" is empty.")
+                        );
                     } else {
                         $INJECT(text, file_path.to_string());
                     }
                 }
-                Err(err) => self.error(&location, &format!("Injecting: {}.", err)),
+                Err(err) => self.error(location, &format!("Injecting: {err}.")),
             };
         !}
     .
@@ -84,7 +87,7 @@ Preamble:
         !{
             // no Preamble defined so there's nothing to do
         !}
-    | OptionalInjection RUSTCODE OptionalInjection
+    | OptionalInjection RustCode OptionalInjection
         !{
             let text = $2.matched_text();
             self.set_preamble(&text[2..text.len() - 2]);
@@ -96,13 +99,13 @@ Configuration: AttributeType OptionalInjection TargetType OptionalInjection Expe
     | TargetType OptionalInjection AttributeType OptionalInjection ExpectedConflicts OptionalInjection
     .
 
-AttributeType: "%attr" IDENT
+AttributeType: "%attr" Ident
     !{
         self.attribute_type = $2.matched_text().to_string();
     !}
     .
 
-TargetType: "%target" IDENT
+TargetType: "%target" Ident
     !{
         self.target_type = $2.matched_text().to_string();
     !}
@@ -128,7 +131,7 @@ ExpectedSRConflicts: "%shift_reduce" Number
         !}
     .
 
-Number: NUMBER
+Number: NumberExpr
         !{
             match u32::from_str($1.matched_text()) {
                 Ok(number) => $$ = AttributeData::Number(number),
@@ -148,7 +151,7 @@ TokenDefinitions : OptionalInjection TokenDefinition
     | TokenDefinitions OptionalInjection TokenDefinition OptionalInjection
     .
 
-TokenDefinition: "%token" NewTokenName LITERAL
+TokenDefinition: "%token" NewTokenName Literal
         !{
             let (name, location) = $2.text_and_location();
             let text = $3.matched_text();
@@ -156,7 +159,7 @@ TokenDefinition: "%token" NewTokenName LITERAL
                 self.error(location, &err.to_string());
             }
         !}
-    | "%token" NewTokenName RegEx
+    | "%token" NewTokenName RegularExpression
         !{
             let (name, location) = $2.text_and_location();
             let text = $3.matched_text();
@@ -166,23 +169,23 @@ TokenDefinition: "%token" NewTokenName LITERAL
         !}
     .
 
-RegEx: REGEX
+RegularExpression: RegEx
         !{  let (text, location) = $1.text_and_location();
             if let Err(err) = regex::Regex::new(text) {
                 self.error(
                     location,
-                    &format!("malformed regular expression \"{}\": {}", text, err.to_string()),
+                    &format!("malformed regular expression \"{text}\": {err}"),
                 );
             }
         !}
     .
 
-NewTokenName: IDENT !{
+NewTokenName: Ident !{
         let (name, location) = $1.text_and_location();
         if !Self::is_allowable_name(name) {
             self.warning(
                 location,
-                &format!("token name \"{}\" may clash with generated code", name),
+                &format!("token name \"{name}\" may clash with generated code"),
             );
         };
     !}
@@ -196,7 +199,7 @@ SkipDefinitions : // empty production
     | SkipDefinitions OptionalInjection SkipDefinition OptionalInjection
     .
 
-SkipDefinition: "%skip" RegEx
+SkipDefinition: "%skip" RegularExpression
         !{
             let skip_rule = $2.matched_text();
             if let Err(err) = self.symbol_table.add_skip_rule(skip_rule) {
@@ -242,28 +245,28 @@ TagList: Tag
         !}
     .
 
-Tag: LITERAL
+Tag: Literal
         !{
             let lexeme = $1.matched_text();
             if let Some(token) = self.symbol_table.get_literal_token(lexeme) {
                 $$ = AttributeData::TagOrToken(token.into());
                 if token.precedence_has_been_set() {
-                    let msg = format!("Token \"{}\" precedence has been set already", lexeme);
+                    let msg = format!("Token \"{lexeme}\" precedence has been set already");
                     self.error($1.location(), &msg);
                 }
             } else {
-                let msg = format!("Literal token \"{}\" is not known", lexeme);
+                let msg = format!("Literal token \"{lexeme}\" is not known");
                 self.error($1.location(), &msg);
                 $$ = AttributeData::TagOrToken(TagOrToken::Invalid);
             }
         !}
-    | IDENT
+    | Ident
         !{
             let name = $1.matched_text();
             if let Some(token) = self.symbol_table.get_token(name) {
                 $$ = AttributeData::TagOrToken(token.into());
                 if token.precedence_has_been_set() {
-                    let msg = format!("Token \"{}\" precedence has been set already", name);
+                    let msg = format!("Token \"{name}\" precedence has been set already");
                     self.error($1.location(), &msg);
                 }
             } else {
@@ -271,7 +274,7 @@ Tag: LITERAL
                 if !Self::is_allowable_name(name) {
                     self.warning(
                         location,
-                        &format!("tag name \"{}\" may clash with generated code", name),
+                        &format!("tag name \"{name}\" may clash with generated code"),
                     );
                 };
                 match self.symbol_table.new_tag(name, location) {
@@ -297,7 +300,7 @@ ProductionGroup: ProductionGroupHead ProductionTailList "."
         !}
     .
 
-ProductionGroupHead: IDENT ":"
+ProductionGroupHead: Ident ":"
         !{
             let (name, location) = $1.text_and_location();
             match self.symbol_table.non_terminal_defined_at(name, location) {
@@ -369,14 +372,14 @@ ProductionTail:
         !}
     .
 
-Action: ACTION
+Action: ActionCode
         !{
             let text = $1.matched_text();
             $$ = AttributeData::Action(text[2..text.len() - 2].to_string());
         !}
     .
 
-TaggedPrecedence: "%prec" IDENT
+TaggedPrecedence: "%prec" Ident
         !{
             let (name, location) = $2.text_and_location();
             if let Some(tag) = self.symbol_table.get_tag(name) {
@@ -385,17 +388,17 @@ TaggedPrecedence: "%prec" IDENT
             } else if let Some(token) = self.symbol_table.get_token(name) {
                 $$ = AttributeData::AssociativityAndPrecedence(token.associativity(), token.precedence());
             } else {
-                self.error(location, &format!("{}: unknown tag", name));
+                self.error(location, &format!("{name}: unknown tag"));
                 $$ = AttributeData::AssociativityAndPrecedence(Associativity::default(), 0);
             };
         !}
-    | "%prec" LITERAL
+    | "%prec" Literal
         !{
             let (lexeme, location) = $2.text_and_location();
             if let Some(token) = self.symbol_table.get_literal_token(lexeme) {
                 $$ = AttributeData::AssociativityAndPrecedence(token.associativity(), token.precedence());
             } else {
-                self.error(location, &format!("{}: unknown tag", lexeme));
+                self.error(location, &format!("{lexeme}: unknown tag"));
                 $$ = AttributeData::AssociativityAndPrecedence(Associativity::default(), 0);
             };
         !}
@@ -413,20 +416,20 @@ SymbolList: Symbol
         !}
     .
 
-Symbol: IDENT
+Symbol: Ident
         !{
             let (name, location) = $1.text_and_location();
             let symbol = self.symbol_table.symbol_used_at(name, location);
             $$ = AttributeData::Symbol(symbol);
         !}
-    | LITERAL
+    | Literal
         !{
             let (lexeme, location) = $1.text_and_location();
             if let Some(token) = self.symbol_table.get_literal_token(lexeme) {
                 token.add_used_at(location);
                 $$ = AttributeData::Symbol(token.into());
             } else {
-                self.error(location, &format!("{}: unknown literal)", lexeme));
+                self.error(location, &format!("{lexeme}: unknown literal)"));
                 let symbol = self.symbol_table.error_symbol_used_at(location);
                 $$ = AttributeData::Symbol(symbol);
             }

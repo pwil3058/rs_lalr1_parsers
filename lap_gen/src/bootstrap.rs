@@ -25,9 +25,6 @@ macro_rules! btree_set {
     };
 }
 
-use lalr1;
-use lexan;
-
 #[derive(Debug, Clone, Copy, PartialOrd, Ord, PartialEq, Eq)]
 pub enum AATerminal {
     AAEnd,

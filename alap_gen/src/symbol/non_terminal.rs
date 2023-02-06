@@ -64,31 +64,36 @@ impl Clone for NonTerminal {
 
 impl NonTerminal {
     pub fn new_defined(name: &str, defined_at: &lexan::Location) -> Self {
-        let mut non_terminal_data = NonTerminalData::default();
-        non_terminal_data.name = name.to_string();
-        non_terminal_data
-            .defined_at
-            .borrow_mut()
-            .push(defined_at.clone());
+        let non_terminal_data = NonTerminalData {
+            name: name.to_string(),
+            defined_at: RefCell::new(vec![defined_at.clone()]),
+            ..NonTerminalData::default()
+        };
         NonTerminal::UserDefined(Rc::new(non_terminal_data))
     }
 
     pub fn new_used(name: &str, used_at: &lexan::Location) -> Self {
-        let mut non_terminal_data = NonTerminalData::default();
-        non_terminal_data.name = name.to_string();
-        non_terminal_data.used_at.borrow_mut().push(used_at.clone());
+        let non_terminal_data = NonTerminalData {
+            name: name.to_string(),
+            used_at: RefCell::new(vec![used_at.clone()]),
+            ..NonTerminalData::default()
+        };
         NonTerminal::UserDefined(Rc::new(non_terminal_data))
     }
 
     pub fn new_error() -> Self {
-        let mut non_terminal_data = NonTerminalData::default();
-        non_terminal_data.name = "AAError".to_string();
+        let non_terminal_data = NonTerminalData {
+            name: "AAError".to_string(),
+            ..NonTerminalData::default()
+        };
         NonTerminal::Error(Rc::new(non_terminal_data))
     }
 
     pub fn new_start() -> Self {
-        let mut non_terminal_data = NonTerminalData::default();
-        non_terminal_data.name = "AAStart".to_string();
+        let non_terminal_data = NonTerminalData {
+            name: "AAStart".to_string(),
+            ..NonTerminalData::default()
+        };
         NonTerminal::Start(Rc::new(non_terminal_data))
     }
 
@@ -101,17 +106,11 @@ impl NonTerminal {
     }
 
     pub fn is_error(&self) -> bool {
-        match self {
-            NonTerminal::Error(_) => true,
-            _ => false,
-        }
+        matches!(self, NonTerminal::Error(_))
     }
 
     pub fn is_start(&self) -> bool {
-        match self {
-            NonTerminal::Start(_) => true,
-            _ => false,
-        }
+        matches!(self, NonTerminal::Start(_))
     }
 
     pub fn is_unused(&self) -> bool {

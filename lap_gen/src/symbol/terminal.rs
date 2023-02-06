@@ -22,11 +22,12 @@ pub struct TokenData {
 
 impl TokenData {
     pub fn new(name: &str, text: &str, defined_at: &lexan::Location) -> Self {
-        let mut token_data = TokenData::default();
-        token_data.name = name.to_string();
-        token_data.text = text.to_string();
-        token_data.defined_at = defined_at.clone();
-        token_data
+        TokenData {
+            name: name.to_string(),
+            text: text.to_string(),
+            defined_at: defined_at.clone(),
+            ..TokenData::default()
+        }
     }
 }
 
@@ -63,7 +64,7 @@ impl Clone for Token {
         match self {
             Literal(td) => Literal(Rc::clone(td)),
             Regex(td) => Regex(Rc::clone(td)),
-            EndToken => EndToken
+            EndToken => EndToken,
         }
     }
 }

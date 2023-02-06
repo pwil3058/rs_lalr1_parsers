@@ -394,8 +394,6 @@ impl Grammar {
         wtr.write_all(b"        btree_set![ $( $x ), * ]\n")?;
         wtr.write_all(b"    };\n")?;
         wtr.write_all(b"}\n\n")?;
-        wtr.write_all(b"use lalr1;\n")?;
-        wtr.write_all(b"use lexan;\n\n")?;
         wtr.write_all(b"#[derive(Debug, Clone, Copy, PartialOrd, Ord, PartialEq, Eq)]\n")?;
         wtr.write_all(b"pub enum AATerminal {\n")?;
         for token in special_tokens
@@ -546,45 +544,57 @@ impl Grammar {
     }
 
     fn write_error_recovery_code<W: Write>(&self, wtr: &mut W) -> io::Result<()> {
-        wtr.write_all(
-            b"    fn viable_error_recovery_states(token: &AATerminal) -> BTreeSet<u32> {\n",
-        )?;
-        wtr.write_all(b"        match token {\n")?;
         let mut default_required = false;
+        let mut recovery_states = Vec::<(&str, BTreeSet<u32>)>::new();
         for token in [Token::EndToken]
             .iter()
             .chain(self.specification.symbol_table.tokens())
         {
             let set = self.error_recovery_state_set_for_token(token);
             if !set.is_empty() {
-                wtr.write_fmt(format_args!(
-                    "            AATerminal::{} => {},\n",
-                    token.name(),
-                    Self::format_u32_set(&set)
-                ))?;
+                recovery_states.push((token.name(), set));
             } else {
                 default_required = true;
             }
         }
-        if default_required {
-            wtr.write_all(b"            _ => btree_set![],\n")?;
-        }
-        wtr.write_all(b"        }\n")?;
-        wtr.write_all(b"    }\n\n")?;
-        wtr.write_all(b"    fn error_goto_state(state: u32) -> u32 {\n")?;
-        wtr.write_all(b"        match state {\n")?;
-        for parser_state in self.parser_states.iter() {
-            if let Some(goto_state_id) = parser_state.error_goto_state_ident() {
+        if recovery_states.is_empty() {
+            wtr.write_all(
+                b"    fn viable_error_recovery_states(_token: &AATerminal) -> BTreeSet<u32> {\n",
+            )?;
+            wtr.write_all(b"        btree_set![]\n")?;
+            wtr.write_all(b"    }\n\n")?;
+        } else {
+            wtr.write_all(
+                b"    fn viable_error_recovery_states(token: &AATerminal) -> BTreeSet<u32> {\n",
+            )?;
+            wtr.write_all(b"        match token {\n")?;
+            for (name, set) in recovery_states {
                 wtr.write_fmt(format_args!(
-                    "            {:1} => {:1},\n",
-                    parser_state.ident(),
-                    goto_state_id
+                    "            AATerminal::{} => {},\n",
+                    name,
+                    Self::format_u32_set(&set)
                 ))?;
             }
+            if default_required {
+                wtr.write_all(b"            _ => btree_set![],\n")?;
+            }
+            wtr.write_all(b"        }\n")?;
+            wtr.write_all(b"    }\n\n")?;
+            wtr.write_all(b"    fn error_goto_state(state: u32) -> u32 {\n")?;
+            wtr.write_all(b"        match state {\n")?;
+            for parser_state in self.parser_states.iter() {
+                if let Some(goto_state_id) = parser_state.error_goto_state_ident() {
+                    wtr.write_fmt(format_args!(
+                        "            {:1} => {:1},\n",
+                        parser_state.ident(),
+                        goto_state_id
+                    ))?;
+                }
+            }
+            wtr.write_all(b"            _ => panic!(\"No error go to state for {}\", state),\n")?;
+            wtr.write_all(b"        }\n")?;
+            wtr.write_all(b"    }\n\n")?;
         }
-        wtr.write_all(b"            _ => panic!(\"No error go to state for {}\", state),\n")?;
-        wtr.write_all(b"        }\n")?;
-        wtr.write_all(b"    }\n\n")?;
         Ok(())
     }
 
@@ -599,7 +609,7 @@ impl Grammar {
                 parser_state.look_ahead_set().formated_as_macro_call()
             ))?;
         }
-        wtr.write_all(b"            _ => panic!(\"illegal state: {}\", state),\n")?;
+        wtr.write_all(b"            _ => panic!(\"illegal state: {state}\"),\n")?;
         wtr.write_all(b"        }\n")?;
         wtr.write_all(b"    }\n\n")?;
         Ok(())
@@ -618,7 +628,7 @@ impl Grammar {
         for parser_state in self.parser_states.iter() {
             parser_state.write_next_action_code(wtr, "            ")?;
         }
-        wtr.write_all(b"            _ => panic!(\"illegal state: {}\", aa_state),\n")?;
+        wtr.write_all(b"            _ => panic!(\"illegal state: {aa_state}\"),\n")?;
         wtr.write_all(b"        }\n")?;
         wtr.write_all(b"    }\n\n")?;
         Ok(())
@@ -631,7 +641,7 @@ impl Grammar {
             parser_state.write_goto_table_code(wtr, "            ")?;
         }
         wtr.write_all(
-            b"            _ => panic!(\"Malformed goto table: ({}, {})\", lhs, current_state),\n",
+            b"            _ => panic!(\"Malformed goto table: ({lhs}, {current_state})\"),\n",
         )?;
         wtr.write_all(b"        }\n")?;
         wtr.write_all(b"    }\n\n")?;

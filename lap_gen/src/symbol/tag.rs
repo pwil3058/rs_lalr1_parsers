@@ -16,10 +16,11 @@ pub struct TagData {
 
 impl TagData {
     pub fn new(name: &str, defined_at: &lexan::Location) -> Self {
-        let mut tag_data = TagData::default();
-        tag_data.name = name.to_string();
-        tag_data.defined_at = defined_at.clone();
-        tag_data
+        TagData {
+            name: name.to_string(),
+            defined_at: defined_at.clone(),
+            ..TagData::default()
+        }
     }
 }
 

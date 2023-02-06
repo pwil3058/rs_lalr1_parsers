@@ -195,7 +195,9 @@ where
 
     fn viable_error_recovery_states(tag: &T) -> BTreeSet<u32>;
 
-    fn error_goto_state(state: u32) -> u32;
+    fn error_goto_state(state: u32) -> u32 {
+        panic!("No error go to state for {state}")
+    }
 
     fn look_ahead_set(state: u32) -> BTreeSet<T>;
 
@@ -379,8 +381,6 @@ mod tests {
             btree_set![ $( $x ), * ]
         };
     }
-
-    
 
     #[derive(Debug, Clone, Copy, PartialOrd, Ord, PartialEq, Eq)]
     pub enum AATerminal {
