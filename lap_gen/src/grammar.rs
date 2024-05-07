@@ -144,7 +144,6 @@ impl Specification {
 
     pub fn write_preamble_text<W: Write>(&self, wtr: &mut W) -> io::Result<()> {
         wtr.write_all(self.preamble.as_bytes())?;
-        wtr.write_all(b"\nuse lazy_static::lazy_static;\n")?;
         Ok(())
     }
 
@@ -464,7 +463,7 @@ impl Grammar {
     }
 
     fn write_lexical_analyzer_code<W: Write>(&self, wtr: &mut W) -> io::Result<()> {
-        wtr.write_all(b"lazy_static! {\n")?;
+        wtr.write_all(b"lazy_static::lazy_static! {\n")?;
         wtr.write_all(b"    static ref AALEXAN: lexan::LexicalAnalyzer<AATerminal> = {\n")?;
         wtr.write_all(b"        use AATerminal::*;\n")?;
         wtr.write_all(b"        lexan::LexicalAnalyzer::new(\n")?;

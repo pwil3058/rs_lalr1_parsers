@@ -7,8 +7,6 @@ use crate::{
     symbol::Associativity,
 };
 
-use lazy_static::lazy_static;
-
 use std::collections::BTreeSet;
 
 macro_rules! btree_set {
@@ -82,7 +80,7 @@ impl std::fmt::Display for AATerminal {
     }
 }
 
-lazy_static! {
+lazy_static::lazy_static! {
     static ref AALEXAN: lexan::LexicalAnalyzer<AATerminal> = {
         use AATerminal::*;
         lexan::LexicalAnalyzer::new(

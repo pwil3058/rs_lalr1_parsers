@@ -12,8 +12,6 @@ use crate::{
     symbol::Associativity,
     symbol::tag::TagOrToken,
 };
-
-use lazy_static::lazy_static;
 %}
 
 %attr   AttributeData
