@@ -144,7 +144,7 @@ impl Specification {
 
     pub fn write_preamble_text<W: Write>(&self, wtr: &mut W) -> io::Result<()> {
         wtr.write_all(self.preamble.as_bytes())?;
-        wtr.write_all(b"\n")?;
+        wtr.write_all(b"\nuse lazy_static::lazy_static;\n")?;
         Ok(())
     }
 
