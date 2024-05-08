@@ -39,6 +39,12 @@ struct CLOptions {
     /// Overwrite the output files (if they exist).
     #[structopt(short, long)]
     force: bool,
+    /// Don't fail if shift/reduce conflicts even if differ from expected.
+    #[structopt(long)]
+    ignore_sr_conflicts: bool,
+    /// Don't fail if reduce/reduce conflicts even if differ from expected.
+    #[structopt(long)]
+    ignore_rr_conflicts: bool,
     /// Specify the path of the required output file (if different to the default).
     #[structopt(short, long)]
     output: Option<PathBuf>,
@@ -55,8 +61,10 @@ fn main() {
         with_changed_extension(&cl_options.specification, "rs")
     };
     if output_path.exists() && !cl_options.force {
-        eprintln!("{}: output file already exists",
-            output_path.to_string_lossy());
+        eprintln!(
+            "{}: output file already exists",
+            output_path.to_string_lossy()
+        );
         std::process::exit(1);
     }
     let mut file = match fs::File::open(&cl_options.specification) {
@@ -83,40 +91,50 @@ fn main() {
         }
     };
 
-    let grammar = match grammar::Grammar::try_from(specification) {
+    let grammar = match grammar::Grammar::try_from((
+        specification,
+        cl_options.ignore_sr_conflicts,
+        cl_options.ignore_rr_conflicts,
+    )) {
         Ok(grammar) => grammar,
-        Err(err) => match err {
-            grammar::Error::TooManyErrors(count) => {
-                eprintln!("Too many errors: {count:?}.");
-                std::process::exit(4);
+        Err(err) => {
+            match err {
+                grammar::Error::TooManyErrors(count) => {
+                    eprintln!("Too many errors: {count:?}.");
+                    std::process::exit(4);
+                }
+                grammar::Error::UndefinedSymbols(count) => {
+                    eprintln!("Undefined symbols: {count:?}.");
+                    std::process::exit(4);
+                }
+                grammar::Error::UnexpectedSRConflicts(count, expected, report) => {
+                    eprintln!("{report}\nUnexpected shift/reduce conflicts: {count} expected: {expected}.");
+                    std::process::exit(4);
+                }
+                grammar::Error::UnexpectedRRConflicts(count, expected, report) => {
+                    eprintln!("{report}\nUnexpected reduce/reduce conflicts: {count} expected: {expected}.");
+                    std::process::exit(4);
+                }
             }
-            grammar::Error::UndefinedSymbols(count) => {
-                eprintln!("Undefined symbols: {count:?}.");
-                std::process::exit(4);
-            }
-            grammar::Error::UnexpectedSRConflicts(count, expected, report) => {
-                eprintln!("{report}\nUnexpected shift/reduce conflicts: {count} expected: {expected}.");
-                std::process::exit(4);
-            }
-            grammar::Error::UnexpectedRRConflicts(count, expected, report) => {
-                eprintln!("{report}\nUnexpected reduce/reduce conflicts: {count} expected: {expected}.");
-                std::process::exit(4);
-            }
-        },
+        }
     };
 
     if let Err(err) = grammar.write_parser_code_to_file(&output_path) {
-        eprintln!("{}: problems writing file: {:?}.",
+        eprintln!(
+            "{}: problems writing file: {:?}.",
             output_path.to_string_lossy(),
-            err);
+            err
+        );
         std::process::exit(6);
     }
 
     let description_file = with_changed_extension(&output_path, "states");
     if let Err(err) = grammar.write_description(&description_file) {
-        eprintln!("{}: problems writing file: {:?}.",
+        eprintln!(
+            "{}: problems writing file: {:?}.",
             output_path.to_string_lossy(),
-            err);
+            err
+        );
         std::process::exit(7);
     };
 }

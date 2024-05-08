@@ -212,10 +212,13 @@ pub enum Error {
     UnexpectedRRConflicts(u32, u32, String),
 }
 
-impl TryFrom<Specification> for Grammar {
+impl TryFrom<(Specification, bool, bool)> for Grammar {
     type Error = Error;
 
-    fn try_from(specification: Specification) -> Result<Self, Error> {
+    fn try_from(arg: (Specification, bool, bool)) -> Result<Self, Error> {
+        let specification = arg.0;
+        let ignore_sr_conflicts = arg.1;
+        let ignore_rr_conflicts = arg.2;
         for token in specification.symbol_table.unused_tokens() {
             report_warning(
                 token.defined_at(),
@@ -300,13 +303,15 @@ impl TryFrom<Specification> for Grammar {
                 }
             }
             let (sr_conflicts, rr_conflicts) = grammar.resolve_conflicts();
-            if sr_conflicts != grammar.specification.expected_sr_conflicts {
+            if !ignore_sr_conflicts && sr_conflicts != grammar.specification.expected_sr_conflicts {
                 Err(Error::UnexpectedSRConflicts(
                     sr_conflicts,
                     grammar.specification.expected_sr_conflicts,
                     grammar.describe_sr_conflict_states(),
                 ))
-            } else if rr_conflicts != grammar.specification.expected_rr_conflicts {
+            } else if !ignore_rr_conflicts
+                && rr_conflicts != grammar.specification.expected_rr_conflicts
+            {
                 Err(Error::UnexpectedRRConflicts(
                     rr_conflicts,
                     grammar.specification.expected_rr_conflicts,
