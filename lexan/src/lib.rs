@@ -97,8 +97,8 @@ mod tests {
         );
 
         let mut token_stream = lexan.token_stream(
-            "if iffy\n \"quoted\" \"if\" \n9 $ \tname &{ one \n two &} and so ?{on?}".to_string(),
-            "raw text".to_string(),
+            "if iffy\n \"quoted\" \"if\" \n9 $ \tname &{ one \n two &} and so ?{on?}",
+            "raw text",
         );
 
         match token_stream.front_advance() {
@@ -187,8 +187,8 @@ mod tests {
         };
 
         let mut second_token_stream = lexan.token_stream(
-            "if iffy\n \"quoted\" \"if\" \n9 $ \tname &{ one \n two &} and so ?{on?}".to_string(),
-            "raw text".to_string(),
+            "if iffy\n \"quoted\" \"if\" \n9 $ \tname &{ one \n two &} and so ?{on?}",
+            "raw text",
         );
 
         match second_token_stream.front_advance() {
@@ -242,10 +242,7 @@ mod tests {
             }
             _ => assert!(false),
         };
-        second_token_stream.inject(
-            "if one \"name\"".to_string(),
-            "\"injected text\"".to_string(),
-        );
+        second_token_stream.inject("if one \"name\"", "\"injected text\"");
         match second_token_stream.front_advance() {
             Ok(token) => {
                 assert_eq!(*token.tag(), If);
@@ -262,7 +259,7 @@ mod tests {
             }
             _ => assert!(false),
         };
-        second_token_stream.inject("  two".to_string(), "another text".to_string());
+        second_token_stream.inject("  two", "another text");
         match second_token_stream.front_advance() {
             Ok(token) => {
                 assert_eq!(*token.tag(), Ident);
@@ -279,7 +276,7 @@ mod tests {
             }
             _ => assert!(false),
         };
-        second_token_stream.inject("   three".to_string(), "yet another text".to_string());
+        second_token_stream.inject("   three", "yet another text");
         match second_token_stream.front_advance() {
             Ok(token) => {
                 assert_eq!(*token.tag(), Ident);

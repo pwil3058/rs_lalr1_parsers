@@ -852,13 +852,9 @@ mod tests {
     fn calc_works() {
         use crate::Parser;
         let mut calc = Calc::new();
-        assert!(calc
-            .parse_text("a = (3 + 4)\n".to_string(), "raw".to_string())
-            .is_ok());
+        assert!(calc.parse_text("a = (3 + 4)\n", "raw").is_ok());
         assert_eq!(calc.variables.get("a"), Some(&7.0));
-        assert!(calc
-            .parse_text("b = a * 5\n".to_string(), "raw".to_string())
-            .is_ok());
+        assert!(calc.parse_text("b = a * 5\n", "raw").is_ok());
         assert_eq!(calc.variables.get("b"), Some(&35.0));
     }
 }

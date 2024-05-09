@@ -353,7 +353,7 @@ mod tests {
         let mut token_stream = BasicTokenStream {
             lexicon,
             text: "String\nwith a new line in it".to_string(),
-            location: Location::new("whatever".to_string()),
+            location: Location::new("whatever"),
             index: 0,
             front: None,
         };
@@ -393,13 +393,13 @@ mod tests {
             End,
         );
         let lexicon = Arc::new(lexicon.unwrap());
-        let text = "      ".to_string();
-        let label = "label".to_string();
+        let text = "      ";
+        let label = "label";
         let mut token_stream = TokenStream::new(&lexicon, text, label);
         assert!(token_stream.is_empty());
         assert!(token_stream.front().is_err());
-        let text = " if nothing happens 9 ".to_string();
-        let label = "another".to_string();
+        let text = " if nothing happens 9 ";
+        let label = "another";
         token_stream.inject(text, label);
         assert!(!token_stream.is_empty());
         let token = Token {
@@ -424,8 +424,8 @@ mod tests {
             },
         };
         assert_eq!((token_stream.front().clone()).unwrap(), token);
-        let text = "just".to_string();
-        let label = "more".to_string();
+        let text = "just";
+        let label = "more";
         token_stream.inject(text, label);
         let token = Token {
             tag: Ident,
