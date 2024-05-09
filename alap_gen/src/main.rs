@@ -81,8 +81,8 @@ fn main() {
     };
 
     let specification = match grammar::Specification::new(
-        specification_text,
-        cl_options.specification.to_string_lossy().to_string(),
+        &specification_text,
+        &cl_options.specification.to_string_lossy().to_string(),
     ) {
         Ok(spec) => spec,
         Err(error) => {

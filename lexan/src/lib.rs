@@ -36,7 +36,7 @@ where
         Self { lexicon }
     }
 
-    pub fn token_stream(&self, text: String, label: String) -> TokenStream<T> {
+    pub fn token_stream(&self, text: &str, label: &str) -> TokenStream<T> {
         TokenStream::new(&self.lexicon, text, label)
     }
 }

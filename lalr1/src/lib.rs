@@ -218,7 +218,7 @@ where
         }
     }
 
-    fn parse_text(&mut self, text: String, label: String) -> Result<(), Error<T>> {
+    fn parse_text(&mut self, text: &str, label: &str) -> Result<(), Error<T>> {
         let mut tokens = self.lexical_analyzer().token_stream(text, label);
         let mut parse_stack = ParseStack::<T, N, A>::new();
         let mut result: Result<(), Error<T>> = Ok(());
@@ -244,8 +244,8 @@ where
                         let (lhs, rhs_len) = Self::production_data(production_id);
                         let rhs = parse_stack.pop_n(rhs_len);
                         let next_state = Self::goto_state(&lhs, parse_stack.current_state());
-                        let attribute =
-                            self.do_semantic_action(production_id, rhs, |s, l| tokens.inject(s, l));
+                        let attribute = self
+                            .do_semantic_action(production_id, rhs, |s, l| tokens.inject(&s, &l));
                         parse_stack.push_non_terminal(lhs, attribute, next_state);
                     }
                     Action::SyntaxError => {

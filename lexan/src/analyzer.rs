@@ -17,11 +17,11 @@ pub struct Location {
 }
 
 impl Location {
-    fn new(label: String) -> Self {
+    fn new(label: &str) -> Self {
         Self {
             line_number: 1,
             offset: 1,
-            label,
+            label: label.to_string(),
         }
     }
 
@@ -132,11 +132,11 @@ impl<T> BasicTokenStream<T>
 where
     T: Debug + Display + Copy + Eq + Ord,
 {
-    pub fn new(lexicon: &Arc<Lexicon<T>>, text: String, label: String) -> Self {
+    pub fn new(lexicon: &Arc<Lexicon<T>>, text: &str, label: &str) -> Self {
         let location = Location::new(label);
         let mut bts = Self {
             lexicon: Arc::clone(lexicon),
-            text,
+            text: text.to_string(),
             location,
             index: 0,
             front: None,
@@ -256,7 +256,7 @@ impl<T> TokenStream<T>
 where
     T: Debug + Display + Copy + Eq + Ord,
 {
-    pub fn new(lexicon: &Arc<Lexicon<T>>, text: String, label: String) -> Self {
+    pub fn new(lexicon: &Arc<Lexicon<T>>, text: &str, label: &str) -> Self {
         let mut stream = Self {
             lexicon: Arc::clone(lexicon),
             token_stream_stack: vec![],
@@ -274,7 +274,7 @@ where
         self.front.clone()
     }
 
-    pub fn inject(&mut self, text: String, label: String) {
+    pub fn inject(&mut self, text: &str, label: &str) {
         let token_stream = BasicTokenStream::new(&self.lexicon, text, label);
         if !token_stream.is_empty() {
             self.front = token_stream.front().unwrap();

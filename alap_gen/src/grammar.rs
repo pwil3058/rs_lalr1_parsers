@@ -40,7 +40,7 @@ pub struct Specification {
 impl lalr1_plus::ReportError<AATerminal> for Specification {}
 
 impl Specification {
-    pub fn new(text: String, label: String) -> Result<Self, lalr1_plus::Error<AATerminal>> {
+    pub fn new(text: &str, label: &str) -> Result<Self, lalr1_plus::Error<AATerminal>> {
         let mut spec = Specification {
             attribute_type: "AttributeData".to_string(),
             target_type: "Specification".to_string(),
@@ -595,7 +595,7 @@ impl Grammar {
                     ))?;
                 }
             }
-            wtr.write_all(b"            _ => panic!(\"No error go to state for {state)}\"\n")?;
+            wtr.write_all(b"            _ => panic!(\"No error go to state for {state}\")\n")?;
             wtr.write_all(b"        }\n")?;
             wtr.write_all(b"    }\n\n")?;
         }
