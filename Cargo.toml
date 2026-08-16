@@ -1,11 +1,14 @@
 [workspace]
 
+resolver = "3"
+
 members = [
     "lexan",
     "lalr1",
     "lalr1_plus",
     "alap_gen",
     "lap_gen",
+    "lalr1_lib", "lalr1_gen",
 ]
 
 exclude = ["examples", "examples"]

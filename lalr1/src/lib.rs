@@ -1,4 +1,4 @@
-// Copyright 2022 Peter Williams <pwil3058@gmail.com> <pwil3058@bigpond.net.au>
+// Copyright (c) 2026 Peter Williams <pwil3058@bigpond.net.au> <pwil3058@gmail.com>.
 
 pub use std::{
     collections::BTreeSet,
@@ -39,7 +39,7 @@ impl<T: Ord + Copy + Debug + Display + Eq> Display for Error<T> {
         match self {
             Error::LexicalError(lex_err, expected) => write!(
                 f,
-                "Lexical Error: {}: expected: {}.",
+                "Lexical Error: {:?}: expected: {}.",
                 lex_err,
                 format_set(expected)
             ),
@@ -53,6 +53,8 @@ impl<T: Ord + Copy + Debug + Display + Eq> Display for Error<T> {
         }
     }
 }
+
+impl<T: Ord + Copy + Debug + Display + Eq> std::error::Error for Error<T> {}
 
 pub trait ReportError<T: Ord + Copy + Debug + Display + Eq> {
     fn report_error(&mut self, error: &Error<T>) {

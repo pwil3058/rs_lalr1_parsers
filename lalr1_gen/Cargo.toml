@@ -1,0 +1,18 @@
+[package]
+name = "lalr1_gen"
+version = "0.1.0"
+edition = "2024"
+
+[features]
+default = []
+bootstrap = []
+
+[dependencies]
+lazy_static = "1.4.0"
+clap = "2"
+regex = "1"
+structopt = "0.3"
+
+lexan = { path = "../lexan" }
+lalr1 = { path = "../lalr1" }
+lalr1_lib = { path = "../lalr1_lib" }
