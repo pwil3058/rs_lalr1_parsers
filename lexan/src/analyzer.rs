@@ -5,8 +5,6 @@ pub use std::{
     sync::Arc,
 };
 
-use thiserror::Error;
-
 use crate::lexicon::Lexicon;
 
 /// Data for use in user friendly lexical analysis error messages
@@ -60,48 +58,48 @@ impl Display for Location {
     }
 }
 
-#[derive(Clone, Debug, Error, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum Error<T: Display + Copy> {
-    #[error("Unexpected text {0} at  {1}")]
+    // #[error("Unexpected text {0} at  {1}")]
     UnexpectedText(String, Location),
-    #[error("Unexpected text [{0}] {1} at  {2}")]
+    // #[error("Unexpected text [{:?0}] {1} at  {2}")]
     AmbiguousMatches(Vec<T>, String, Location),
-    #[error("Advanced when empty at {0}")]
+    // #[error("Advanced when empty at {0}")]
     AdvancedWhenEmpty(Location),
 }
 
-// impl<T: Display + Copy> Error<T> {
-//     pub fn is_unexpected_text(&self) -> bool {
-//         matches!(self, Error::UnexpectedText(_, _))
-//     }
-//
-//     pub fn is_ambiguous_match(&self) -> bool {
-//         matches!(self, Error::AmbiguousMatches(_, _, _))
-//     }
-//
-//     pub fn is_advance_when_empty(&self) -> bool {
-//         matches!(self, Error::AdvancedWhenEmpty(_))
-//     }
-// }
-//
-// impl<T: Debug + Display + Copy> Display for Error<T> {
-//     fn fmt(&self, dest: &mut fmt::Formatter) -> fmt::Result {
-//         match self {
-//             Error::UnexpectedText(text, location) => {
-//                 write!(dest, "Unexpected text \"{text}\" at: {location}.")
-//             }
-//             Error::AmbiguousMatches(tags, text, location) => write!(
-//                 dest,
-//                 "Ambiguous matches {tags:#?} \"{text}\" at: {location}.",
-//             ),
-//             Error::AdvancedWhenEmpty(location) => {
-//                 write!(dest, "Advanced past end of text at: {location}.")
-//             }
-//         }
-//     }
-// }
+impl<T: Display + Copy> Error<T> {
+    pub fn is_unexpected_text(&self) -> bool {
+        matches!(self, Error::UnexpectedText(_, _))
+    }
 
-// impl<T: Debug + Display + Copy> std::error::Error for Error<T> {}
+    pub fn is_ambiguous_match(&self) -> bool {
+        matches!(self, Error::AmbiguousMatches(_, _, _))
+    }
+
+    pub fn is_advance_when_empty(&self) -> bool {
+        matches!(self, Error::AdvancedWhenEmpty(_))
+    }
+}
+
+impl<T: Debug + Display + Copy> Display for Error<T> {
+    fn fmt(&self, dest: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Error::UnexpectedText(text, location) => {
+                write!(dest, "Unexpected text \"{text}\" at: {location}.")
+            }
+            Error::AmbiguousMatches(tags, text, location) => write!(
+                dest,
+                "Ambiguous matches {tags:#?} \"{text}\" at: {location}.",
+            ),
+            Error::AdvancedWhenEmpty(location) => {
+                write!(dest, "Advanced past end of text at: {location}.")
+            }
+        }
+    }
+}
+
+impl<T: Debug + Display + Copy> std::error::Error for Error<T> {}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Token<T: Display + Copy + Eq> {
