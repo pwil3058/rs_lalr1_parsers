@@ -5,6 +5,8 @@ pub use std::{
     sync::Arc,
 };
 
+use thiserror::Error;
+
 use crate::lexicon::Lexicon;
 
 /// Data for use in user friendly lexical analysis error messages
@@ -58,13 +60,30 @@ impl Display for Location {
     }
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub struct List<T: Display + Copy>(pub Vec<T>);
+
+impl<T: Display + Copy> Display for List<T> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let mut result = "[".to_string();
+        for (i, item) in self.0.iter().enumerate() {
+            if i > 0 {
+                result.push_str(", ")
+            };
+            result.push_str(&item.to_string());
+        }
+        result.push_str("]");
+        write!(f, "{}", result)
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Error)]
 pub enum Error<T: Display + Copy> {
-    // #[error("Unexpected text {0} at  {1}")]
+    #[error("Unexpected text {0} at  {1}")]
     UnexpectedText(String, Location),
-    // #[error("Unexpected text [{:?0}] {1} at  {2}")]
-    AmbiguousMatches(Vec<T>, String, Location),
-    // #[error("Advanced when empty at {0}")]
+    #[error("Unexpected text [{0}] {1} at  {2}")]
+    AmbiguousMatches(List<T>, String, Location),
+    #[error("Advanced when empty at {0}")]
     AdvancedWhenEmpty(Location),
 }
 
@@ -81,25 +100,6 @@ impl<T: Display + Copy> Error<T> {
         matches!(self, Error::AdvancedWhenEmpty(_))
     }
 }
-
-impl<T: Debug + Display + Copy> Display for Error<T> {
-    fn fmt(&self, dest: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            Error::UnexpectedText(text, location) => {
-                write!(dest, "Unexpected text \"{text}\" at: {location}.")
-            }
-            Error::AmbiguousMatches(tags, text, location) => write!(
-                dest,
-                "Ambiguous matches {tags:#?} \"{text}\" at: {location}.",
-            ),
-            Error::AdvancedWhenEmpty(location) => {
-                write!(dest, "Advanced past end of text at: {location}.")
-            }
-        }
-    }
-}
-
-impl<T: Debug + Display + Copy> std::error::Error for Error<T> {}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Token<T: Display + Copy + Eq> {
@@ -202,7 +202,7 @@ where
             if lrems.0.len() > 1 && lrems.1 > llm.1 {
                 self.incr_index_and_location(lrems.1);
                 Some(Err(Error::AmbiguousMatches(
-                    lrems.0,
+                    List(lrems.0),
                     (self.text[start..self.index]).to_string(),
                     current_location,
                 )))
@@ -231,7 +231,7 @@ where
         } else if lrems.0.len() > 1 {
             self.incr_index_and_location(lrems.1);
             Some(Err(Error::AmbiguousMatches(
-                lrems.0,
+                List(lrems.0),
                 (self.text[start..self.index]).to_string(),
                 current_location,
             )))
