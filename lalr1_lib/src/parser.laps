@@ -1,8 +1,10 @@
-// Copyright 2022 Peter Williams <pwil3058@gmail.com> <pwil3058@bigpond.net.au>
-// lap_gen.laps
-// lap_gen Specification for lap_gen grammar Specification language
+// Copyright 2026 Peter Williams <pwil3058@gmail.com> <pwil3058@bigpond.net.au>
+// parser.laps
+// lalr1_gen Specification for lalr1_gen grammar Specification language
 
 %{
+// Copyright 2026 Peter Williams <pwil3058@gmail.com> <pwil3058@bigpond.net.au>
+
 use std::{fs::File, io::Read, str::FromStr};
 
 use crate::{
