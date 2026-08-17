@@ -72,7 +72,7 @@ impl<T: Display + Copy> Display for List<T> {
             };
             result.push_str(&item.to_string());
         }
-        result.push_str("]");
+        result.push(']');
         write!(f, "{}", result)
     }
 }
