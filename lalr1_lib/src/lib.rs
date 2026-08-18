@@ -10,7 +10,7 @@ mod symbol;
 
 use std::io;
 use std::io::Read;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use thiserror::Error;
 
 use lalr1;
@@ -43,10 +43,10 @@ impl ParserGenerator {
     }
 }
 
-impl TryFrom<&Path> for ParserGenerator {
+impl TryFrom<PathBuf> for ParserGenerator {
     type Error = Error;
 
-    fn try_from(path: &Path) -> Result<ParserGenerator> {
+    fn try_from(path: PathBuf) -> Result<ParserGenerator> {
         let mut file = std::fs::File::open(&path)?;
         let mut specification_text = String::new();
         file.read_to_string(&mut specification_text)?;
