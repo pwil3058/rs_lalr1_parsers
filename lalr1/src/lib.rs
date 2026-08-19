@@ -6,17 +6,25 @@ use std::{
     fmt::{self, Debug, Display},
     io::Write,
 };
-
 use thiserror::Error;
 
 use lexan::TokenStream;
 
+// Create a wrapper around BTreeSet so we can implement Display on it
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct OrderedSet<T: Display + Clone>(pub std::collections::BTreeSet<T>);
+pub struct OrderedSet<T: Display + Ord + Clone>(pub std::collections::BTreeSet<T>);
 
 impl<T: Display + Clone + Ord> OrderedSet<T> {
     pub fn new() -> Self {
         Self(std::collections::BTreeSet::new())
+    }
+
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
     }
 
     pub fn contains(&self, item: &T) -> bool {
@@ -26,9 +34,28 @@ impl<T: Display + Clone + Ord> OrderedSet<T> {
     pub fn insert(&mut self, item: T) -> bool {
         self.0.insert(item)
     }
+
+    pub fn iter(&self) -> impl Iterator<Item = &T> {
+        self.0.iter()
+    }
 }
 
-impl<T: Display + Clone> Display for OrderedSet<T> {
+impl<T: Ord + Display + Clone> FromIterator<T> for OrderedSet<T> {
+    fn from_iter<I: IntoIterator<Item = T>>(iter: I) -> Self {
+        let btree_set = std::collections::BTreeSet::from_iter(iter);
+        Self(btree_set)
+    }
+}
+impl<'a, T: Ord + Display + Clone> IntoIterator for &'a OrderedSet<T> {
+    type Item = &'a T;
+    type IntoIter = <&'a std::collections::BTreeSet<T> as IntoIterator>::IntoIter;
+
+    fn into_iter(self) -> Self::IntoIter {
+        (&self.0).into_iter()
+    }
+}
+
+impl<T: Display + Ord + Clone> Display for OrderedSet<T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let mut string = String::new();
         for (index, item) in self.0.iter().enumerate() {

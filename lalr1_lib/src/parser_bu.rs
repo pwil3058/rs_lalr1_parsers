@@ -8,7 +8,6 @@ use crate::{
     attributes::*, grammar::Specification, production::ProductionTail, symbol::Associativity,
     symbol::tag::TagOrToken,
 };
-// use std::collections::BTreeSet;
 
 use lalr1::OrderedSet;
 

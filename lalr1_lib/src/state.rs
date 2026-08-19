@@ -1,14 +1,17 @@
-// Copyright 2021 Peter Williams <pwil3058@gmail.com> <pwil3058@bigpond.net.au>
+// Copyright (c) 2026 Peter Williams <pwil3058@bigpond.net.au> <pwil3058@gmail.com>.
 
 use crate::production::{GrammarItemKey, GrammarItemSet};
 use crate::symbol::non_terminal::NonTerminal;
 use crate::symbol::terminal::{Token, TokenSet};
 use crate::symbol::{Associativity, Symbol};
+
 use std::cell::{Cell, RefCell};
 use std::cmp::Ordering;
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeMap;
 use std::io::Write;
 use std::rc::Rc;
+
+use lalr1::OrderedSet;
 
 #[derive(Debug, Clone, Copy)]
 pub enum ProcessedState {
@@ -135,11 +138,11 @@ impl ParserState {
         Some(self.0.error_recovery_state.borrow().clone()?.ident())
     }
 
-    pub fn kernel_key_set(&self) -> BTreeSet<GrammarItemKey> {
+    pub fn kernel_key_set(&self) -> OrderedSet<GrammarItemKey> {
         self.0.grammar_items.borrow().kernel_key_set()
     }
 
-    pub fn non_kernel_key_set(&self) -> BTreeSet<GrammarItemKey> {
+    pub fn non_kernel_key_set(&self) -> OrderedSet<GrammarItemKey> {
         self.0.grammar_items.borrow().irreducible_key_set()
     }
 

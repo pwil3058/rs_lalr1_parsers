@@ -10,6 +10,7 @@ mod symbol;
 
 use std::io;
 use std::path::Path;
+
 use thiserror::Error;
 
 use lalr1;

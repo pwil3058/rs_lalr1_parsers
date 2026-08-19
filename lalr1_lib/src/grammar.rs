@@ -9,7 +9,7 @@ use crate::symbol::{Symbol, SymbolTable};
 
 use lalr1::{OrderedSet, Parser};
 
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeMap;
 use std::convert::TryFrom;
 use std::io;
 use std::io::{Write, stderr};
@@ -531,7 +531,7 @@ impl Grammar {
         Ok(())
     }
 
-    fn error_recovery_state_set_for_token(&self, token: &Token) -> BTreeSet<u32> {
+    fn error_recovery_state_set_for_token(&self, token: &Token) -> OrderedSet<u32> {
         self.parser_states
             .iter()
             .filter(|x| x.is_recovery_state_for_token(token))
@@ -539,7 +539,7 @@ impl Grammar {
             .collect()
     }
 
-    fn format_u32_set(set: &BTreeSet<u32>) -> String {
+    fn format_u32_set(set: &OrderedSet<u32>) -> String {
         let mut string = "btree_set![".to_string();
         for (index, number) in set.iter().enumerate() {
             if index == 0 {
@@ -554,7 +554,7 @@ impl Grammar {
 
     fn write_error_recovery_code<W: Write>(&self, wtr: &mut W) -> io::Result<()> {
         let mut default_required = false;
-        let mut recovery_states = Vec::<(&str, BTreeSet<u32>)>::new();
+        let mut recovery_states = Vec::<(&str, OrderedSet<u32>)>::new();
         for token in [Token::EndToken]
             .iter()
             .chain(self.specification.symbol_table.tokens())
