@@ -1,60 +1,55 @@
 // Copyright (c) 2026 Peter Williams <pwil3058@bigpond.net.au> <pwil3058@gmail.com>.
 
-pub use std::{
-    collections::BTreeSet,
+use std::{
     convert::From,
     default::Default,
     fmt::{self, Debug, Display},
     io::Write,
 };
 
+use thiserror::Error;
+
 use lexan::TokenStream;
 
-#[derive(Debug, Clone)]
-pub enum Error<T: Ord + Copy + Debug + Display + Eq> {
-    LexicalError(lexan::Error<T>, BTreeSet<T>),
-    SyntaxError(lexan::Token<T>, BTreeSet<T>),
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct OrderedSet<T: Display + Clone>(pub std::collections::BTreeSet<T>);
+
+impl<T: Display + Clone + Ord> OrderedSet<T> {
+    pub fn new() -> Self {
+        Self(std::collections::BTreeSet::new())
+    }
+
+    pub fn contains(&self, item: &T) -> bool {
+        self.0.contains(item)
+    }
+
+    pub fn insert(&mut self, item: T) -> bool {
+        self.0.insert(item)
+    }
 }
 
-fn format_set<T: Ord + Display>(set: &BTreeSet<T>) -> String {
-    let mut string = String::new();
-    let last = set.len() - 1;
-    for (index, item) in set.iter().enumerate() {
-        if index == 0 {
-            string += &item.to_string();
-        } else {
-            if index == last {
-                string += " or ";
+impl<T: Display + Clone> Display for OrderedSet<T> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mut string = String::new();
+        for (index, item) in self.0.iter().enumerate() {
+            if index == 0 {
+                string += &item.to_string();
             } else {
                 string += ", ";
-            };
-            string += &item.to_string()
+                string += &item.to_string()
+            }
         }
-    }
-    string
-}
-
-impl<T: Ord + Copy + Debug + Display + Eq> Display for Error<T> {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            Error::LexicalError(lex_err, expected) => write!(
-                f,
-                "Lexical Error: {:?}: expected: {}.",
-                lex_err,
-                format_set(expected)
-            ),
-            Error::SyntaxError(found, expected) => write!(
-                f,
-                "Syntax Error: expected: {} found: {} at: {}.",
-                format_set(expected),
-                found.tag(),
-                found.location()
-            ),
-        }
+        write!(f, "{}", string)
     }
 }
 
-impl<T: Ord + Copy + Debug + Display + Eq> std::error::Error for Error<T> {}
+#[derive(Debug, Clone, Error)]
+pub enum Error<T: Ord + Copy + Debug + Display + Eq> {
+    #[error("Lexical error: {0} expected {1}.")]
+    LexicalError(lexan::Error<T>, OrderedSet<T>),
+    #[error("Syntax error: {0} expected {1}.")]
+    SyntaxError(lexan::Token<T>, OrderedSet<T>),
+}
 
 pub trait ReportError<T: Ord + Copy + Debug + Display + Eq> {
     fn report_error(&mut self, error: &Error<T>) {
@@ -141,7 +136,7 @@ where
         }
     }
 
-    fn distance_to_viable_state<F: Fn(&T) -> BTreeSet<u32>>(
+    fn distance_to_viable_state<F: Fn(&T) -> OrderedSet<u32>>(
         &mut self,
         tokens: &mut TokenStream<T>,
         viable_error_recovery_states: F,
@@ -195,13 +190,13 @@ where
         A::default()
     }
 
-    fn viable_error_recovery_states(tag: &T) -> BTreeSet<u32>;
+    fn viable_error_recovery_states(tag: &T) -> OrderedSet<u32>;
 
     fn error_goto_state(state: u32) -> u32 {
         panic!("No error go to state for {state}")
     }
 
-    fn look_ahead_set(state: u32) -> BTreeSet<T>;
+    fn look_ahead_set(state: u32) -> OrderedSet<T>;
 
     fn recover_from_error(
         error: Error<T>,
@@ -368,19 +363,17 @@ mod tests {
         }
     }
 
-    use std::collections::BTreeSet;
-
-    macro_rules! btree_set {
-        () => { BTreeSet::new() };
+    macro_rules! ordered_set {
+        () => { OrderedSet::new() };
         ( $( $x:expr ),* ) => {
             {
-                let mut set = BTreeSet::new();
+                let mut set = OrderedSet::new();
                 $( set.insert($x); )*
                 set
             }
         };
         ( $( $x:expr ),+ , ) => {
-            btree_set![ $( $x ), * ]
+            ordered_set![ $( $x ), * ]
         };
     }
 
@@ -467,11 +460,11 @@ mod tests {
             &AALEXAN
         }
 
-        fn viable_error_recovery_states(token: &AATerminal) -> BTreeSet<u32> {
+        fn viable_error_recovery_states(token: &AATerminal) -> OrderedSet<u32> {
             match token {
-                AATerminal::AAEnd => btree_set![0, 4],
-                AATerminal::EOL => btree_set![0, 4],
-                _ => btree_set![],
+                AATerminal::AAEnd => ordered_set![0, 4],
+                AATerminal::EOL => ordered_set![0, 4],
+                _ => ordered_set![],
             }
         }
 
@@ -483,34 +476,34 @@ mod tests {
             }
         }
 
-        fn look_ahead_set(state: u32) -> BTreeSet<AATerminal> {
+        fn look_ahead_set(state: u32) -> OrderedSet<AATerminal> {
             use AATerminal::*;
             return match state {
-                0 => btree_set![LPR, MINUS, EOL, ID, NUMBER, AAEnd],
-                1 => btree_set![EOL, AAEnd],
-                2 => btree_set![LPR, MINUS, ID, NUMBER],
-                3 => btree_set![EOL, AAEnd],
-                4 => btree_set![LPR, MINUS, EOL, ID, NUMBER, AAEnd],
-                5 => btree_set![DIVIDE, MINUS, PLUS, TIMES, EOL, AAEnd],
-                6 => btree_set![ASSIGN, DIVIDE, MINUS, PLUS, TIMES, EOL, AAEnd],
-                7 => btree_set![LPR, MINUS, ID, NUMBER],
-                8 => btree_set![LPR, MINUS, ID, NUMBER],
-                9 => btree_set![DIVIDE, MINUS, PLUS, RPR, TIMES, EOL, AAEnd],
-                10 => btree_set![EOL, AAEnd],
-                11 => btree_set![LPR, MINUS, ID, NUMBER],
-                12 => btree_set![LPR, MINUS, ID, NUMBER],
-                13 => btree_set![LPR, MINUS, ID, NUMBER],
-                14 => btree_set![LPR, MINUS, ID, NUMBER],
-                15 => btree_set![LPR, MINUS, ID, NUMBER],
-                16 => btree_set![DIVIDE, MINUS, PLUS, RPR, TIMES],
-                17 => btree_set![DIVIDE, MINUS, PLUS, RPR, TIMES, EOL, AAEnd],
-                18 => btree_set![DIVIDE, MINUS, PLUS, RPR, TIMES, EOL, AAEnd],
-                19 => btree_set![DIVIDE, MINUS, PLUS, RPR, TIMES, EOL, AAEnd],
-                20 => btree_set![DIVIDE, MINUS, PLUS, RPR, TIMES, EOL, AAEnd],
-                21 => btree_set![DIVIDE, MINUS, PLUS, RPR, TIMES, EOL, AAEnd],
-                22 => btree_set![DIVIDE, MINUS, PLUS, RPR, TIMES, EOL, AAEnd],
-                23 => btree_set![DIVIDE, MINUS, PLUS, TIMES, EOL, AAEnd],
-                24 => btree_set![DIVIDE, MINUS, PLUS, RPR, TIMES, EOL, AAEnd],
+                0 => ordered_set![LPR, MINUS, EOL, ID, NUMBER, AAEnd],
+                1 => ordered_set![EOL, AAEnd],
+                2 => ordered_set![LPR, MINUS, ID, NUMBER],
+                3 => ordered_set![EOL, AAEnd],
+                4 => ordered_set![LPR, MINUS, EOL, ID, NUMBER, AAEnd],
+                5 => ordered_set![DIVIDE, MINUS, PLUS, TIMES, EOL, AAEnd],
+                6 => ordered_set![ASSIGN, DIVIDE, MINUS, PLUS, TIMES, EOL, AAEnd],
+                7 => ordered_set![LPR, MINUS, ID, NUMBER],
+                8 => ordered_set![LPR, MINUS, ID, NUMBER],
+                9 => ordered_set![DIVIDE, MINUS, PLUS, RPR, TIMES, EOL, AAEnd],
+                10 => ordered_set![EOL, AAEnd],
+                11 => ordered_set![LPR, MINUS, ID, NUMBER],
+                12 => ordered_set![LPR, MINUS, ID, NUMBER],
+                13 => ordered_set![LPR, MINUS, ID, NUMBER],
+                14 => ordered_set![LPR, MINUS, ID, NUMBER],
+                15 => ordered_set![LPR, MINUS, ID, NUMBER],
+                16 => ordered_set![DIVIDE, MINUS, PLUS, RPR, TIMES],
+                17 => ordered_set![DIVIDE, MINUS, PLUS, RPR, TIMES, EOL, AAEnd],
+                18 => ordered_set![DIVIDE, MINUS, PLUS, RPR, TIMES, EOL, AAEnd],
+                19 => ordered_set![DIVIDE, MINUS, PLUS, RPR, TIMES, EOL, AAEnd],
+                20 => ordered_set![DIVIDE, MINUS, PLUS, RPR, TIMES, EOL, AAEnd],
+                21 => ordered_set![DIVIDE, MINUS, PLUS, RPR, TIMES, EOL, AAEnd],
+                22 => ordered_set![DIVIDE, MINUS, PLUS, RPR, TIMES, EOL, AAEnd],
+                23 => ordered_set![DIVIDE, MINUS, PLUS, TIMES, EOL, AAEnd],
+                24 => ordered_set![DIVIDE, MINUS, PLUS, RPR, TIMES, EOL, AAEnd],
                 _ => panic!("illegal state: {state}"),
             };
         }

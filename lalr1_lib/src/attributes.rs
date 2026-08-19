@@ -1,17 +1,18 @@
 // Copyright (c) 2026 Peter Williams <pwil3058@bigpond.net.au> <pwil3058@gmail.com>.
 
-use crate::parser::AATerminal;
+use crate::parser_bu::AATerminal;
 use crate::production::ProductionTail;
 use crate::symbol::non_terminal::NonTerminal;
 use crate::symbol::tag::TagOrToken;
 use crate::symbol::{Associativity, Symbol};
-use std::collections::BTreeSet;
+
+use lalr1::OrderedSet;
 
 #[derive(Debug, Clone)]
 pub enum AttributeData {
     Token(lexan::Token<AATerminal>),
-    SyntaxError(lexan::Token<AATerminal>, BTreeSet<AATerminal>),
-    LexicalError(lexan::Error<AATerminal>, BTreeSet<AATerminal>),
+    SyntaxError(lexan::Token<AATerminal>, OrderedSet<AATerminal>),
+    LexicalError(lexan::Error<AATerminal>, OrderedSet<AATerminal>),
     Number(u32),
     Symbol(Symbol),
     SymbolList(Vec<Symbol>),

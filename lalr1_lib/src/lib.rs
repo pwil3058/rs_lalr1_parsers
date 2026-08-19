@@ -3,18 +3,18 @@
 pub mod grammar;
 
 mod attributes;
-mod parser;
+mod parser_bu;
 mod production;
 mod state;
 mod symbol;
 
 use std::io;
-use std::path::{Path};
+use std::path::Path;
 use thiserror::Error;
 
 use lalr1;
 
-use crate::parser::AATerminal;
+use crate::parser_bu::AATerminal;
 
 #[derive(Debug, Error)]
 pub enum Error {
@@ -35,8 +35,8 @@ impl ParserGenerator {
         let text = std::fs::read_to_string(path)?;
         let specification = grammar::Specification::new(&text, &path.to_string_lossy())?;
         let grammar = grammar::Grammar::try_from((specification, false, false))?;
-       Ok(Self(grammar))
-     }
+        Ok(Self(grammar))
+    }
 
     pub fn write_parser_code_to_file(&self, output_path: impl AsRef<Path>) -> io::Result<()> {
         let output_path = output_path.as_ref();

@@ -1,13 +1,13 @@
 // Copyright (c) 2026 Peter Williams <pwil3058@bigpond.net.au> <pwil3058@gmail.com>.
 
-use crate::parser::AATerminal;
+use crate::parser_bu::AATerminal;
 use crate::production::{GrammarItemKey, GrammarItemSet, Production, ProductionTail};
 use crate::state::ParserState;
 use crate::symbol::non_terminal::NonTerminal;
 use crate::symbol::terminal::{Token, TokenSet};
 use crate::symbol::{Symbol, SymbolTable};
 
-use lalr1::Parser;
+use lalr1::{OrderedSet, Parser};
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::convert::TryFrom;
@@ -277,7 +277,7 @@ impl TryFrom<(Specification, bool, bool)> for Grammar {
             while let Some(unprocessed_state) = grammar.first_unprocessed_state() {
                 let first_time = !unprocessed_state.needs_reprocessing();
                 unprocessed_state.mark_as_processed();
-                let mut already_done = BTreeSet::<Symbol>::new();
+                let mut already_done = OrderedSet::<Symbol>::new();
                 for item_key in unprocessed_state.non_kernel_key_set().iter() {
                     let symbol_x = item_key.next_symbol().expect("not reducible");
                     if !already_done.insert(symbol_x.clone()) {
