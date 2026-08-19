@@ -240,7 +240,7 @@ impl TokenSet {
     }
 
     pub fn formated_as_macro_call(&self) -> String {
-        let mut string = "btree_set![".to_string();
+        let mut string = "ordered_set![".to_string();
         for (index, token) in self.0.iter().enumerate() {
             if index == 0 {
                 string += token.name();
