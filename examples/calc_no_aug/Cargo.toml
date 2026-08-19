@@ -10,3 +10,6 @@ lazy_static = "1.3.0"
 
 lexan = { path = "../../lexan" }
 lalr1 = { path = "../../lalr1" }
+
+[build-dependencies]
+lalr1_lib = { path = "../../lalr1_lib" }

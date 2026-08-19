@@ -9,8 +9,7 @@ mod state;
 mod symbol;
 
 use std::io;
-use std::io::Read;
-use std::path::{Path, PathBuf};
+use std::path::{Path};
 use thiserror::Error;
 
 use lalr1;
@@ -31,11 +30,13 @@ pub type Result<T> = std::result::Result<T, Error>;
 pub struct ParserGenerator(grammar::Grammar);
 
 impl ParserGenerator {
-    pub fn new(text: &str, label: &str) -> Result<ParserGenerator> {
-        let specification = grammar::Specification::new(text, label)?;
+    pub fn new(path: impl AsRef<Path>) -> Result<ParserGenerator> {
+        let path = path.as_ref();
+        let text = std::fs::read_to_string(path)?;
+        let specification = grammar::Specification::new(&text, &path.to_string_lossy())?;
         let grammar = grammar::Grammar::try_from((specification, false, false))?;
-        Ok(Self(grammar))
-    }
+       Ok(Self(grammar))
+     }
 
     pub fn write_parser_code_to_file(&self, output_path: impl AsRef<Path>) -> io::Result<()> {
         let output_path = output_path.as_ref();
@@ -43,13 +44,12 @@ impl ParserGenerator {
     }
 }
 
-impl TryFrom<PathBuf> for ParserGenerator {
+impl TryFrom<&str> for ParserGenerator {
     type Error = Error;
 
-    fn try_from(path: PathBuf) -> Result<ParserGenerator> {
-        let mut file = std::fs::File::open(&path)?;
-        let mut specification_text = String::new();
-        file.read_to_string(&mut specification_text)?;
-        ParserGenerator::new(specification_text.trim(), path.to_str().unwrap())
+    fn try_from(text: &str) -> Result<ParserGenerator> {
+        let specification = grammar::Specification::new(text, "text")?;
+        let grammar = grammar::Grammar::try_from((specification, false, false))?;
+        Ok(Self(grammar))
     }
 }
