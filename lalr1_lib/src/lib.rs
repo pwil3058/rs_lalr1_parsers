@@ -3,7 +3,7 @@
 pub mod grammar;
 
 mod attributes;
-mod parser_bu;
+mod parser;
 mod production;
 mod state;
 mod symbol;
@@ -15,7 +15,7 @@ use thiserror::Error;
 
 use lalr1;
 
-use crate::parser_bu::AATerminal;
+use crate::parser::AATerminal;
 
 #[derive(Debug, Error)]
 pub enum Error {
