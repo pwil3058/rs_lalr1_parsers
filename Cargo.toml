@@ -7,7 +7,7 @@ members = [
     "lalr1",
     "lalr1_plus",
     "alap_gen",
-    "lap_gen",
+    #    "lap_gen",
     "lalr1_lib", "lalr1_gen",
 ]
 

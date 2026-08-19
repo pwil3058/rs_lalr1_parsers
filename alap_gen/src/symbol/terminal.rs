@@ -1,4 +1,4 @@
-// Copyright 2021 Peter Williams <pwil3058@gmail.com> <pwil3058@bigpond.net.au>
+// Copyright (c) 2026 Peter Williams <pwil3058@bigpond.net.au> <pwil3058@gmail.com>.
 
 use std::cell::{Cell, RefCell};
 use std::cmp::Ordering;
@@ -235,7 +235,7 @@ impl TokenSet {
         self.0.union(&other.0)
     }
 
-    pub fn iter(&self) -> btree_set::Iter<Token> {
+    pub fn iter(&self) -> impl Iterator<Item = &Token> {
         self.0.iter()
     }
 

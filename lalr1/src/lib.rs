@@ -296,7 +296,9 @@ mod tests {
     use lazy_static::lazy_static;
 
     use crate as lalr1;
+    use crate::OrderedSet;
 
+    #[allow(unused)]
     #[derive(Debug, Clone)]
     pub enum AttributeData {
         Token(lexan::Token<AATerminal>),

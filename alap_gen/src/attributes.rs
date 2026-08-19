@@ -1,6 +1,4 @@
-// Copyright 2021 Peter Williams <pwil3058@gmail.com> <pwil3058@bigpond.net.au>
-
-
+// Copyright (c) 2026 Peter Williams <pwil3058@bigpond.net.au> <pwil3058@gmail.com>.
 
 #[cfg(not(feature = "bootstrap"))]
 use crate::alap_gen::AATerminal;
@@ -12,6 +10,7 @@ use crate::symbol::tag::TagOrToken;
 use crate::symbol::{Associativity, Symbol};
 use std::collections::BTreeSet;
 
+#[allow(unused)]
 #[derive(Debug, Clone)]
 pub enum AttributeData {
     Token(lexan::Token<AATerminal>),
