@@ -1,6 +1,8 @@
+// Copyright (c) 2026 Peter Williams <pwil3058@bigpond.net.au> <pwil3058@gmail.com>.
+
 extern crate regex;
 
-pub use std::fmt::{Debug, Display};
+use std::fmt::{Debug, Display};
 use std::sync::Arc;
 
 mod analyzer;

@@ -1,7 +1,9 @@
-use std::cmp::Ordering;
-use std::{cmp::Eq, collections::HashMap, fmt::Debug};
+// Copyright (c) 2026 Peter Williams <pwil3058@bigpond.net.au> <pwil3058@gmail.com>.
 
 use regex::Regex;
+use std::cmp::Ordering;
+use std::fmt::Display;
+use std::{cmp::Eq, collections::HashMap, fmt::Debug};
 
 use crate::error::LexanError;
 
@@ -12,7 +14,7 @@ struct LiteralMatcherNode<T: PartialEq + Debug + Copy> {
     tails: HashMap<u8, LiteralMatcherNode<T>>,
 }
 
-impl<T: PartialEq + Debug + Copy> LiteralMatcherNode<T> {
+impl<T: PartialEq + Debug + Copy + Display> LiteralMatcherNode<T> {
     fn new(tag: T, string: &str, s_index: usize) -> LiteralMatcherNode<T> {
         debug_assert!(!string.is_empty());
         let mut t = HashMap::<u8, LiteralMatcherNode<T>>::new();
@@ -66,7 +68,7 @@ pub(crate) struct LiteralMatcher<T: PartialEq + Debug + Copy> {
     lexemes: HashMap<u8, LiteralMatcherNode<T>>,
 }
 
-impl<T: Eq + Debug + Copy + Ord> LiteralMatcher<T> {
+impl<T: Eq + Debug + Copy + Ord + Display> LiteralMatcher<T> {
     pub fn new<'a>(lexemes: &[(T, &'a str)]) -> Result<LiteralMatcher<T>, LexanError<'a, T>> {
         let mut lexes = HashMap::<u8, LiteralMatcherNode<T>>::new();
         for &(tag, pattern) in lexemes.iter() {
@@ -124,7 +126,7 @@ pub(crate) struct RegexMatcher<T: Copy + Debug> {
     lexemes: Vec<(T, Regex)>,
 }
 
-impl<T: Copy + Ord + Debug> RegexMatcher<T> {
+impl<T: Copy + Ord + Debug + Display> RegexMatcher<T> {
     pub fn new<'a>(lexeme_patterns: &[(T, &'a str)]) -> Result<RegexMatcher<T>, LexanError<'a, T>> {
         let mut lexemes = vec![];
         for (tag, pattern) in lexeme_patterns.iter() {
@@ -174,7 +176,7 @@ pub(crate) struct SkipMatcher {
 }
 
 impl SkipMatcher {
-    pub fn new<'a, T>(regex_strs: &[&'a str]) -> Result<Self, LexanError<'a, T>> {
+    pub fn new<'a, T: Display>(regex_strs: &[&'a str]) -> Result<Self, LexanError<'a, T>> {
         let mut regexes = vec![];
         for regex_str in regex_strs.iter() {
             if regex_str.is_empty() {
