@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use std::convert::From;
 use std::str::FromStr;
 
+#[allow(unused)]
 #[derive(Debug, Clone)]
 pub enum AttributeData {
     Token(lexan::Token<AATerminal>),
