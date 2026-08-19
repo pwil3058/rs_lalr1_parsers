@@ -108,6 +108,18 @@ pub struct Token<T: Display + Copy + Eq> {
     location: Location,
 }
 
+impl<T: Display + Copy + Eq> Display for Token<T> {
+    fn fmt(&self, dest: &mut fmt::Formatter) -> fmt::Result {
+        let string = format!(
+            "{}({}) at {}",
+            self.tag.to_string(),
+            self.lexeme,
+            self.location
+        );
+        write!(dest, "{}", string)
+    }
+}
+
 impl<T: Display + Copy + Eq> Token<T> {
     pub fn tag(&self) -> &T {
         &self.tag
