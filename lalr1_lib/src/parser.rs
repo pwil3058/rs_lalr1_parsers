@@ -12,19 +12,19 @@ use crate::{
     symbol::Associativity,
     symbol::tag::TagOrToken,
 };
-use std::collections::BTreeSet;
+use lalr1::OrderedSet;
 
-macro_rules! btree_set {
-    () => { BTreeSet::new() };
+macro_rules! ordered_set {
+    () => { OrderedSet::new() };
     ( $( $x:expr ),* ) => {
         {
-            let mut set = BTreeSet::new();
+            let mut set = OrderedSet::new();
             $( set.insert($x); )*
             set
         }
     };
     ( $( $x:expr ),+ , ) => {
-        btree_set![ $( $x ), * ]
+        ordered_set![ $( $x ), * ]
     };
 }
 
@@ -207,11 +207,11 @@ impl lalr1::Parser<AATerminal, AANonTerminal, AttributeData> for Specification {
         &AALEXAN
     }
 
-    fn viable_error_recovery_states(_token: &AATerminal) -> BTreeSet<u32> {
-        btree_set![]
+    fn viable_error_recovery_states(_token: &AATerminal) -> OrderedSet<u32> {
+        ordered_set![]
     }
 
-    fn look_ahead_set(state: u32) -> BTreeSet<AATerminal> {
+    fn look_ahead_set(state: u32) -> OrderedSet<AATerminal> {
         use AATerminal::*;
         return match state {
             0 => btree_set![Attr, Inject, Target, RustCode],

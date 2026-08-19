@@ -389,18 +389,18 @@ impl Grammar {
         let special_tokens = [Token::EndToken];
         let special_non_terminals = self.specification.symbol_table.used_non_terminal_specials();
 
-        wtr.write_all(b"use std::collections::BTreeSet;\n\n")?;
-        wtr.write_all(b"macro_rules! btree_set {\n")?;
-        wtr.write_all(b"    () => { BTreeSet::new() };\n")?;
+        wtr.write_all(b"use lalr1::OrderedSet;\n\n")?;
+        wtr.write_all(b"macro_rules! ordered_set {\n")?;
+        wtr.write_all(b"    () => { OrderedSet::new() };\n")?;
         wtr.write_all(b"    ( $( $x:expr ),* ) => {\n")?;
         wtr.write_all(b"        {\n")?;
-        wtr.write_all(b"            let mut set = BTreeSet::new();\n")?;
+        wtr.write_all(b"            let mut set = OrderedSet::new();\n")?;
         wtr.write_all(b"            $( set.insert($x); )*\n")?;
         wtr.write_all(b"            set\n")?;
         wtr.write_all(b"        }\n")?;
         wtr.write_all(b"    };\n")?;
         wtr.write_all(b"    ( $( $x:expr ),+ , ) => {\n")?;
-        wtr.write_all(b"        btree_set![ $( $x ), * ]\n")?;
+        wtr.write_all(b"        ordered_set![ $( $x ), * ]\n")?;
         wtr.write_all(b"    };\n")?;
         wtr.write_all(b"}\n\n")?;
         wtr.write_all(b"#[derive(Debug, Clone, Copy, PartialOrd, Ord, PartialEq, Eq)]\n")?;
@@ -540,7 +540,7 @@ impl Grammar {
     }
 
     fn format_u32_set(set: &OrderedSet<u32>) -> String {
-        let mut string = "btree_set![".to_string();
+        let mut string = "ordered_set![".to_string();
         for (index, number) in set.iter().enumerate() {
             if index == 0 {
                 string += &format!("{number}");
@@ -568,13 +568,13 @@ impl Grammar {
         }
         if recovery_states.is_empty() {
             wtr.write_all(
-                b"    fn viable_error_recovery_states(_token: &AATerminal) -> BTreeSet<u32> {\n",
+                b"    fn viable_error_recovery_states(_token: &AATerminal) -> OrderedSet<u32> {\n",
             )?;
-            wtr.write_all(b"        btree_set![]\n")?;
+            wtr.write_all(b"        ordered_set![]\n")?;
             wtr.write_all(b"    }\n\n")?;
         } else {
             wtr.write_all(
-                b"    fn viable_error_recovery_states(token: &AATerminal) -> BTreeSet<u32> {\n",
+                b"    fn viable_error_recovery_states(token: &AATerminal) -> OrderedSet<u32> {\n",
             )?;
             wtr.write_all(b"        match token {\n")?;
             for (name, set) in recovery_states {
@@ -585,7 +585,7 @@ impl Grammar {
                 ))?;
             }
             if default_required {
-                wtr.write_all(b"            _ => btree_set![],\n")?;
+                wtr.write_all(b"            _ => ordered_set![],\n")?;
             }
             wtr.write_all(b"        }\n")?;
             wtr.write_all(b"    }\n\n")?;
@@ -608,7 +608,7 @@ impl Grammar {
     }
 
     fn write_look_ahead_set_code<W: Write>(&self, wtr: &mut W) -> io::Result<()> {
-        wtr.write_all(b"    fn look_ahead_set(state: u32) -> BTreeSet<AATerminal> {\n")?;
+        wtr.write_all(b"    fn look_ahead_set(state: u32) -> OrderedSet<AATerminal> {\n")?;
         wtr.write_all(b"        use AATerminal::*;\n")?;
         wtr.write_all(b"        return match state {\n")?;
         for parser_state in self.parser_states.iter() {
