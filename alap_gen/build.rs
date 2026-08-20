@@ -1,6 +1,6 @@
-// Copyright 2021 Peter Williams <pwil3058@gmail.com> <pwil3058@bigpond.net.au>
+// Copyright (c) 2026 Peter Williams <pwil3058@bigpond.net.au> <pwil3058@gmail.com>.
 #[cfg(not(feature = "bootstrap"))]
-use std::{process::Command, path::Path};
+use std::{path::Path, process::Command};
 
 #[cfg(not(feature = "bootstrap"))]
 fn main() {

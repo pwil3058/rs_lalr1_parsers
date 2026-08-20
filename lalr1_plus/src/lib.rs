@@ -1,22 +1,22 @@
 // Copyright (c) 2026 Peter Williams <pwil3058@bigpond.net.au> <pwil3058@gmail.com>.
 
 pub use std::{
-    collections::BTreeSet,
     convert::From,
     default::Default,
     fmt::{self, Debug, Display},
     io::Write,
 };
 
+use lalr1::OrderedSet;
 use lexan::TokenStream;
 
 #[derive(Debug, Clone)]
-pub enum Error<T: Ord + Copy + Debug + Display + Eq> {
-    LexicalError(lexan::Error<T>, BTreeSet<T>),
-    SyntaxError(lexan::Token<T>, BTreeSet<T>),
+pub enum Error<T: Ord + Clone + Copy + Debug + Display + Eq> {
+    LexicalError(lexan::Error<T>, OrderedSet<T>),
+    SyntaxError(lexan::Token<T>, OrderedSet<T>),
 }
 
-fn format_set<T: Ord + Display>(set: &BTreeSet<T>) -> String {
+fn format_set<T: Ord + Display + Clone>(set: &OrderedSet<T>) -> String {
     let mut string = String::new();
     let last = set.len() - 1;
     for (index, item) in set.iter().enumerate() {
@@ -139,7 +139,7 @@ where
         }
     }
 
-    fn distance_to_viable_state<F: Fn(&T) -> BTreeSet<u32>>(
+    fn distance_to_viable_state<F: Fn(&T) -> OrderedSet<u32>>(
         &mut self,
         tokens: &mut TokenStream<T>,
         viable_error_recovery_states: F,
@@ -198,13 +198,13 @@ where
         A::default()
     }
 
-    fn viable_error_recovery_states(tag: &T) -> BTreeSet<u32>;
+    fn viable_error_recovery_states(tag: &T) -> OrderedSet<u32>;
 
     fn error_goto_state(state: u32) -> u32 {
         panic!("No error go to state for {state}")
     }
 
-    fn look_ahead_set(state: u32) -> BTreeSet<T>;
+    fn look_ahead_set(state: u32) -> OrderedSet<T>;
 
     fn recover_from_error(
         error: Error<T>,

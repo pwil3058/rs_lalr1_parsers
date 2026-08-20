@@ -11,7 +11,7 @@ use thiserror::Error;
 use lexan::TokenStream;
 
 // Create a wrapper around BTreeSet so we can implement Display on it
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Default, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct OrderedSet<T: Display + Ord + Clone>(pub std::collections::BTreeSet<T>);
 
 impl<T: Display + Clone + Ord> OrderedSet<T> {

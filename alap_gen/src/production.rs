@@ -1,10 +1,14 @@
-// Copyright 2021 Peter Williams <pwil3058@gmail.com> <pwil3058@bigpond.net.au>
+// Copyright (c) 2026 Peter Williams <pwil3058@bigpond.net.au> <pwil3058@gmail.com>.
 
 use crate::symbol::terminal::Token;
 use crate::symbol::{non_terminal::NonTerminal, terminal::TokenSet, Associativity, Symbol};
+
+use lalr1::OrderedSet;
+
 use lazy_static::lazy_static;
+
 use std::cmp::Ordering;
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeMap;
 use std::fmt::Display;
 use std::iter::FromIterator;
 use std::ops::Index;
@@ -236,7 +240,7 @@ impl Display for Production {
 
 #[derive(Debug, Default)]
 pub struct Reductions {
-    reductions: BTreeMap<BTreeSet<Production>, TokenSet>,
+    reductions: BTreeMap<OrderedSet<Production>, TokenSet>,
 }
 
 impl Reductions {
@@ -244,7 +248,7 @@ impl Reductions {
         self.reductions.len()
     }
 
-    pub fn reductions(&self) -> impl Iterator<Item = (&BTreeSet<Production>, &TokenSet)> {
+    pub fn reductions(&self) -> impl Iterator<Item = (&OrderedSet<Production>, &TokenSet)> {
         self.reductions.iter()
     }
 }
@@ -407,7 +411,7 @@ impl GrammarItemSet {
             .collect()
     }
 
-    pub fn kernel_key_set(&self) -> BTreeSet<GrammarItemKey> {
+    pub fn kernel_key_set(&self) -> OrderedSet<GrammarItemKey> {
         self.0
             .keys()
             .filter(|x| x.is_kernel_item())
@@ -415,7 +419,7 @@ impl GrammarItemSet {
             .collect()
     }
 
-    pub fn irreducible_key_set(&self) -> BTreeSet<GrammarItemKey> {
+    pub fn irreducible_key_set(&self) -> OrderedSet<GrammarItemKey> {
         self.0
             .keys()
             .filter(|x| !x.is_reducible())
@@ -423,7 +427,7 @@ impl GrammarItemSet {
             .collect()
     }
 
-    pub fn reducible_key_set(&self) -> BTreeSet<GrammarItemKey> {
+    pub fn reducible_key_set(&self) -> OrderedSet<GrammarItemKey> {
         self.0
             .keys()
             .filter(|x| x.is_reducible())
@@ -481,9 +485,9 @@ impl GrammarItemSet {
 
     pub fn reductions(&self) -> Reductions {
         let expected_tokens = self.reducible_look_ahead_set();
-        let mut reductions: BTreeMap<BTreeSet<Production>, TokenSet> = BTreeMap::new();
+        let mut reductions: BTreeMap<OrderedSet<Production>, TokenSet> = BTreeMap::new();
         for token in expected_tokens.iter() {
-            let mut productions: BTreeSet<Production> = BTreeSet::new();
+            let mut productions: OrderedSet<Production> = OrderedSet::new();
             for (item_key, look_ahead_set) in self.0.iter().filter(|x| x.0.is_reducible()) {
                 if look_ahead_set.contains(token) {
                     productions.insert(item_key.production.clone());

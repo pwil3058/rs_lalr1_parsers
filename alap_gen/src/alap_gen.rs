@@ -6,19 +6,19 @@ use crate::{
     attributes::*, grammar::Specification, production::ProductionTail, symbol::tag::TagOrToken,
     symbol::Associativity,
 };
-use std::collections::BTreeSet;
+use lalr1::OrderedSet;
 
-macro_rules! btree_set {
-    () => { BTreeSet::new() };
+macro_rules! ordered_set {
+    () => { OrderedSet::new() };
     ( $( $x:expr ),* ) => {
         {
-            let mut set = BTreeSet::new();
+            let mut set = OrderedSet::new();
             $( set.insert($x); )*
             set
         }
     };
     ( $( $x:expr ),+ , ) => {
-        btree_set![ $( $x ), * ]
+        ordered_set![ $( $x ), * ]
     };
 }
 
@@ -206,17 +206,17 @@ impl lalr1_plus::Parser<AATerminal, AANonTerminal, AttributeData> for Specificat
         &AALEXAN
     }
 
-    fn viable_error_recovery_states(_token: &AATerminal) -> BTreeSet<u32> {
-        btree_set![]
+    fn viable_error_recovery_states(_token: &AATerminal) -> OrderedSet<u32> {
+        ordered_set![]
     }
 
-    fn look_ahead_set(state: u32) -> BTreeSet<AATerminal> {
+    fn look_ahead_set(state: u32) -> OrderedSet<AATerminal> {
         use AATerminal::*;
         return match state {
-            0 => btree_set![Attr, Inject, Target, RustCode],
-            1 => btree_set![AAEnd],
-            2 => btree_set![Attr, Target],
-            3 => btree_set![
+            0 => ordered_set![Attr, Inject, Target, RustCode],
+            1 => ordered_set![AAEnd],
+            2 => ordered_set![Attr, Target],
+            3 => ordered_set![
                 Attr,
                 Inject,
                 Left,
@@ -232,16 +232,16 @@ impl lalr1_plus::Parser<AATerminal, AANonTerminal, AttributeData> for Specificat
                 RustCode,
                 AAEnd
             ],
-            4 => btree_set![Literal],
-            5 => btree_set![Dot],
-            6 => btree_set![RustCode],
-            7 => btree_set![NewSection],
-            8 => btree_set![Inject, Target],
-            9 => btree_set![Attr, Inject],
-            10 => btree_set![Ident],
-            11 => btree_set![Ident],
-            12 => btree_set![Dot],
-            13 => btree_set![
+            4 => ordered_set![Literal],
+            5 => ordered_set![Dot],
+            6 => ordered_set![RustCode],
+            7 => ordered_set![NewSection],
+            8 => ordered_set![Inject, Target],
+            9 => ordered_set![Attr, Inject],
+            10 => ordered_set![Ident],
+            11 => ordered_set![Ident],
+            12 => ordered_set![Dot],
+            13 => ordered_set![
                 Attr,
                 Inject,
                 Left,
@@ -257,40 +257,40 @@ impl lalr1_plus::Parser<AATerminal, AANonTerminal, AttributeData> for Specificat
                 RustCode,
                 AAEnd
             ],
-            14 => btree_set![Attr, Inject, Target],
-            15 => btree_set![Inject, Token],
-            16 => btree_set![Target],
-            17 => btree_set![Attr],
-            18 => btree_set![Inject, NewSection, ReduceReduce, ShiftReduce, Target],
-            19 => btree_set![Attr, Inject, NewSection, ReduceReduce, ShiftReduce],
-            20 => btree_set![Attr, Target],
-            21 => btree_set![NewSection],
-            22 => btree_set![Inject, Left, NewSection, NonAssoc, Right, Skip, Token],
-            23 => btree_set![Token],
-            24 => btree_set![Inject, NewSection, ReduceReduce, ShiftReduce],
-            25 => btree_set![Inject, NewSection, ReduceReduce, ShiftReduce],
-            26 => btree_set![Inject, Ident],
-            27 => btree_set![Inject, Left, NewSection, NonAssoc, Right, Skip],
-            28 => btree_set![Token],
-            29 => btree_set![Inject, Left, NewSection, NonAssoc, Right, Skip, Token],
-            30 => btree_set![Ident],
-            31 => btree_set![Inject, NewSection, ReduceReduce, ShiftReduce],
-            32 => btree_set![Inject, NewSection, ReduceReduce, ShiftReduce],
-            33 => btree_set![Ident, AAEnd],
-            34 => btree_set![Ident],
-            35 => btree_set![Inject, Left, NewSection, NonAssoc, Right],
-            36 => btree_set![Skip],
-            37 => btree_set![Inject, Left, NewSection, NonAssoc, Right, Skip, Token],
-            38 => btree_set![Literal, RegEx],
-            39 => btree_set![Literal, RegEx],
-            40 => btree_set![Inject, NewSection],
-            41 => btree_set![Inject, NewSection, ShiftReduce],
-            42 => btree_set![Inject, NewSection, ReduceReduce],
-            43 => btree_set![NumberExpr],
-            44 => btree_set![NumberExpr],
-            45 => btree_set![Inject, NewSection],
-            46 => btree_set![Inject, Ident, AAEnd],
-            47 => btree_set![
+            14 => ordered_set![Attr, Inject, Target],
+            15 => ordered_set![Inject, Token],
+            16 => ordered_set![Target],
+            17 => ordered_set![Attr],
+            18 => ordered_set![Inject, NewSection, ReduceReduce, ShiftReduce, Target],
+            19 => ordered_set![Attr, Inject, NewSection, ReduceReduce, ShiftReduce],
+            20 => ordered_set![Attr, Target],
+            21 => ordered_set![NewSection],
+            22 => ordered_set![Inject, Left, NewSection, NonAssoc, Right, Skip, Token],
+            23 => ordered_set![Token],
+            24 => ordered_set![Inject, NewSection, ReduceReduce, ShiftReduce],
+            25 => ordered_set![Inject, NewSection, ReduceReduce, ShiftReduce],
+            26 => ordered_set![Inject, Ident],
+            27 => ordered_set![Inject, Left, NewSection, NonAssoc, Right, Skip],
+            28 => ordered_set![Token],
+            29 => ordered_set![Inject, Left, NewSection, NonAssoc, Right, Skip, Token],
+            30 => ordered_set![Ident],
+            31 => ordered_set![Inject, NewSection, ReduceReduce, ShiftReduce],
+            32 => ordered_set![Inject, NewSection, ReduceReduce, ShiftReduce],
+            33 => ordered_set![Ident, AAEnd],
+            34 => ordered_set![Ident],
+            35 => ordered_set![Inject, Left, NewSection, NonAssoc, Right],
+            36 => ordered_set![Skip],
+            37 => ordered_set![Inject, Left, NewSection, NonAssoc, Right, Skip, Token],
+            38 => ordered_set![Literal, RegEx],
+            39 => ordered_set![Literal, RegEx],
+            40 => ordered_set![Inject, NewSection],
+            41 => ordered_set![Inject, NewSection, ShiftReduce],
+            42 => ordered_set![Inject, NewSection, ReduceReduce],
+            43 => ordered_set![NumberExpr],
+            44 => ordered_set![NumberExpr],
+            45 => ordered_set![Inject, NewSection],
+            46 => ordered_set![Inject, Ident, AAEnd],
+            47 => ordered_set![
                 Dot,
                 Error,
                 VerticalBar,
@@ -299,40 +299,28 @@ impl lalr1_plus::Parser<AATerminal, AANonTerminal, AttributeData> for Specificat
                 Literal,
                 PredicateExpr
             ],
-            48 => btree_set![Colon],
-            49 => btree_set![Inject, Ident, AAEnd],
-            50 => btree_set![Left, NonAssoc, Right],
-            51 => btree_set![Inject, Left, NewSection, NonAssoc, Right, Skip],
-            52 => btree_set![RegEx],
-            53 => btree_set![Inject, Left, NewSection, NonAssoc, Right, Skip, Token],
-            54 => btree_set![Inject, Left, NewSection, NonAssoc, Right, Skip, Token],
-            55 => btree_set![Inject, Left, NewSection, NonAssoc, Right, Skip, Token],
-            56 => btree_set![Inject, Left, NewSection, NonAssoc, Right, Skip, Token],
-            57 => btree_set![NewSection],
-            58 => btree_set![ShiftReduce],
-            59 => btree_set![ReduceReduce],
-            60 => btree_set![Inject, NewSection, ShiftReduce],
-            61 => btree_set![Inject, NewSection, ReduceReduce, ShiftReduce],
-            62 => btree_set![Inject, NewSection, ReduceReduce],
-            63 => btree_set![NewSection],
-            64 => btree_set![Ident, AAEnd],
-            65 => btree_set![Dot, VerticalBar],
-            66 => btree_set![Dot, VerticalBar],
-            67 => btree_set![Dot, VerticalBar],
-            68 => btree_set![Dot, VerticalBar, ActionCode],
-            69 => btree_set![
-                Dot,
-                Error,
-                Precedence,
-                VerticalBar,
-                ActionCode,
-                Ident,
-                Literal,
-                PredicateExpr
-            ],
-            70 => btree_set![Dot, VerticalBar],
-            71 => btree_set![Dot, Precedence, VerticalBar, ActionCode],
-            72 => btree_set![
+            48 => ordered_set![Colon],
+            49 => ordered_set![Inject, Ident, AAEnd],
+            50 => ordered_set![Left, NonAssoc, Right],
+            51 => ordered_set![Inject, Left, NewSection, NonAssoc, Right, Skip],
+            52 => ordered_set![RegEx],
+            53 => ordered_set![Inject, Left, NewSection, NonAssoc, Right, Skip, Token],
+            54 => ordered_set![Inject, Left, NewSection, NonAssoc, Right, Skip, Token],
+            55 => ordered_set![Inject, Left, NewSection, NonAssoc, Right, Skip, Token],
+            56 => ordered_set![Inject, Left, NewSection, NonAssoc, Right, Skip, Token],
+            57 => ordered_set![NewSection],
+            58 => ordered_set![ShiftReduce],
+            59 => ordered_set![ReduceReduce],
+            60 => ordered_set![Inject, NewSection, ShiftReduce],
+            61 => ordered_set![Inject, NewSection, ReduceReduce, ShiftReduce],
+            62 => ordered_set![Inject, NewSection, ReduceReduce],
+            63 => ordered_set![NewSection],
+            64 => ordered_set![Ident, AAEnd],
+            65 => ordered_set![Dot, VerticalBar],
+            66 => ordered_set![Dot, VerticalBar],
+            67 => ordered_set![Dot, VerticalBar],
+            68 => ordered_set![Dot, VerticalBar, ActionCode],
+            69 => ordered_set![
                 Dot,
                 Error,
                 Precedence,
@@ -342,7 +330,9 @@ impl lalr1_plus::Parser<AATerminal, AANonTerminal, AttributeData> for Specificat
                 Literal,
                 PredicateExpr
             ],
-            73 => btree_set![
+            70 => ordered_set![Dot, VerticalBar],
+            71 => ordered_set![Dot, Precedence, VerticalBar, ActionCode],
+            72 => ordered_set![
                 Dot,
                 Error,
                 Precedence,
@@ -352,7 +342,7 @@ impl lalr1_plus::Parser<AATerminal, AANonTerminal, AttributeData> for Specificat
                 Literal,
                 PredicateExpr
             ],
-            74 => btree_set![
+            73 => ordered_set![
                 Dot,
                 Error,
                 Precedence,
@@ -362,7 +352,7 @@ impl lalr1_plus::Parser<AATerminal, AANonTerminal, AttributeData> for Specificat
                 Literal,
                 PredicateExpr
             ],
-            75 => btree_set![
+            74 => ordered_set![
                 Dot,
                 Error,
                 Precedence,
@@ -372,40 +362,7 @@ impl lalr1_plus::Parser<AATerminal, AANonTerminal, AttributeData> for Specificat
                 Literal,
                 PredicateExpr
             ],
-            76 => btree_set![
-                Dot,
-                Error,
-                VerticalBar,
-                ActionCode,
-                Ident,
-                Literal,
-                PredicateExpr
-            ],
-            77 => btree_set![Ident, AAEnd],
-            78 => btree_set![Inject, Left, NewSection, NonAssoc, Right],
-            79 => btree_set![Ident, Literal],
-            80 => btree_set![Ident, Literal],
-            81 => btree_set![Ident, Literal],
-            82 => btree_set![Inject, Left, NewSection, NonAssoc, Right, Skip],
-            83 => btree_set![Inject, Left, NewSection, NonAssoc, Right, Skip],
-            84 => btree_set![Inject, NewSection],
-            85 => btree_set![Inject, NewSection],
-            86 => btree_set![Inject, Ident, AAEnd],
-            87 => btree_set![
-                Dot,
-                Error,
-                VerticalBar,
-                ActionCode,
-                Ident,
-                Literal,
-                PredicateExpr
-            ],
-            88 => btree_set![Dot, VerticalBar],
-            89 => btree_set![Dot, Precedence, VerticalBar, ActionCode],
-            90 => btree_set![Dot, VerticalBar, ActionCode],
-            91 => btree_set![Dot, VerticalBar],
-            92 => btree_set![Ident, Literal],
-            93 => btree_set![
+            75 => ordered_set![
                 Dot,
                 Error,
                 Precedence,
@@ -415,21 +372,64 @@ impl lalr1_plus::Parser<AATerminal, AANonTerminal, AttributeData> for Specificat
                 Literal,
                 PredicateExpr
             ],
-            94 => btree_set![Inject, Left, NewSection, NonAssoc, Right],
-            95 => btree_set![Inject, Left, NewSection, NonAssoc, Right, Ident, Literal],
-            96 => btree_set![Inject, Left, NewSection, NonAssoc, Right, Ident, Literal],
-            97 => btree_set![Inject, Left, NewSection, NonAssoc, Right, Ident, Literal],
-            98 => btree_set![Inject, Left, NewSection, NonAssoc, Right, Ident, Literal],
-            99 => btree_set![Inject, Left, NewSection, NonAssoc, Right, Ident, Literal],
-            100 => btree_set![Inject, Left, NewSection, NonAssoc, Right, Ident, Literal],
-            101 => btree_set![Dot, VerticalBar],
-            102 => btree_set![Dot, VerticalBar, ActionCode],
-            103 => btree_set![Dot, VerticalBar],
-            104 => btree_set![Dot, VerticalBar],
-            105 => btree_set![Dot, VerticalBar, ActionCode],
-            106 => btree_set![Dot, VerticalBar, ActionCode],
-            107 => btree_set![Inject, Left, NewSection, NonAssoc, Right, Ident, Literal],
-            108 => btree_set![Dot, VerticalBar],
+            76 => ordered_set![
+                Dot,
+                Error,
+                VerticalBar,
+                ActionCode,
+                Ident,
+                Literal,
+                PredicateExpr
+            ],
+            77 => ordered_set![Ident, AAEnd],
+            78 => ordered_set![Inject, Left, NewSection, NonAssoc, Right],
+            79 => ordered_set![Ident, Literal],
+            80 => ordered_set![Ident, Literal],
+            81 => ordered_set![Ident, Literal],
+            82 => ordered_set![Inject, Left, NewSection, NonAssoc, Right, Skip],
+            83 => ordered_set![Inject, Left, NewSection, NonAssoc, Right, Skip],
+            84 => ordered_set![Inject, NewSection],
+            85 => ordered_set![Inject, NewSection],
+            86 => ordered_set![Inject, Ident, AAEnd],
+            87 => ordered_set![
+                Dot,
+                Error,
+                VerticalBar,
+                ActionCode,
+                Ident,
+                Literal,
+                PredicateExpr
+            ],
+            88 => ordered_set![Dot, VerticalBar],
+            89 => ordered_set![Dot, Precedence, VerticalBar, ActionCode],
+            90 => ordered_set![Dot, VerticalBar, ActionCode],
+            91 => ordered_set![Dot, VerticalBar],
+            92 => ordered_set![Ident, Literal],
+            93 => ordered_set![
+                Dot,
+                Error,
+                Precedence,
+                VerticalBar,
+                ActionCode,
+                Ident,
+                Literal,
+                PredicateExpr
+            ],
+            94 => ordered_set![Inject, Left, NewSection, NonAssoc, Right],
+            95 => ordered_set![Inject, Left, NewSection, NonAssoc, Right, Ident, Literal],
+            96 => ordered_set![Inject, Left, NewSection, NonAssoc, Right, Ident, Literal],
+            97 => ordered_set![Inject, Left, NewSection, NonAssoc, Right, Ident, Literal],
+            98 => ordered_set![Inject, Left, NewSection, NonAssoc, Right, Ident, Literal],
+            99 => ordered_set![Inject, Left, NewSection, NonAssoc, Right, Ident, Literal],
+            100 => ordered_set![Inject, Left, NewSection, NonAssoc, Right, Ident, Literal],
+            101 => ordered_set![Dot, VerticalBar],
+            102 => ordered_set![Dot, VerticalBar, ActionCode],
+            103 => ordered_set![Dot, VerticalBar],
+            104 => ordered_set![Dot, VerticalBar],
+            105 => ordered_set![Dot, VerticalBar, ActionCode],
+            106 => ordered_set![Dot, VerticalBar, ActionCode],
+            107 => ordered_set![Inject, Left, NewSection, NonAssoc, Right, Ident, Literal],
+            108 => ordered_set![Dot, VerticalBar],
             _ => panic!("illegal state: {state}"),
         };
     }

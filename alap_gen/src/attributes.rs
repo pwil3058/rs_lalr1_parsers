@@ -8,14 +8,15 @@ use crate::production::ProductionTail;
 use crate::symbol::non_terminal::NonTerminal;
 use crate::symbol::tag::TagOrToken;
 use crate::symbol::{Associativity, Symbol};
-use std::collections::BTreeSet;
+
+use lalr1::OrderedSet;
 
 #[allow(unused)]
 #[derive(Debug, Clone)]
 pub enum AttributeData {
     Token(lexan::Token<AATerminal>),
-    SyntaxError(lexan::Token<AATerminal>, BTreeSet<AATerminal>),
-    LexicalError(lexan::Error<AATerminal>, BTreeSet<AATerminal>),
+    SyntaxError(lexan::Token<AATerminal>, OrderedSet<AATerminal>),
+    LexicalError(lexan::Error<AATerminal>, OrderedSet<AATerminal>),
     Number(u32),
     Symbol(Symbol),
     SymbolList(Vec<Symbol>),

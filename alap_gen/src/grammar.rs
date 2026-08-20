@@ -1,4 +1,4 @@
-// Copyright 2021 Peter Williams <pwil3058@gmail.com> <pwil3058@bigpond.net.au>
+// Copyright (c) 2026 Peter Williams <pwil3058@bigpond.net.au> <pwil3058@gmail.com>.
 
 #[cfg(not(feature = "bootstrap"))]
 use crate::alap_gen::AATerminal;
@@ -9,8 +9,11 @@ use crate::state::ParserState;
 use crate::symbol::non_terminal::NonTerminal;
 use crate::symbol::terminal::{Token, TokenSet};
 use crate::symbol::{Symbol, SymbolTable};
+
+use lalr1::OrderedSet;
 use lalr1_plus::Parser;
-use std::collections::{BTreeMap, BTreeSet};
+
+use std::collections::BTreeMap;
 use std::convert::TryFrom;
 use std::io;
 use std::io::{stderr, Write};
@@ -272,7 +275,7 @@ impl TryFrom<(Specification, bool, bool)> for Grammar {
             while let Some(unprocessed_state) = grammar.first_unprocessed_state() {
                 let first_time = !unprocessed_state.needs_reprocessing();
                 unprocessed_state.mark_as_processed();
-                let mut already_done = BTreeSet::<Symbol>::new();
+                let mut already_done = OrderedSet::<Symbol>::new();
                 for item_key in unprocessed_state.non_kernel_key_set().iter() {
                     let symbol_x = item_key.next_symbol().expect("not reducible");
                     if !already_done.insert(symbol_x.clone()) {
@@ -384,18 +387,18 @@ impl Grammar {
         let special_tokens = [Token::EndToken];
         let special_non_terminals = self.specification.symbol_table.used_non_terminal_specials();
 
-        wtr.write_all(b"use std::collections::BTreeSet;\n\n")?;
-        wtr.write_all(b"macro_rules! btree_set {\n")?;
-        wtr.write_all(b"    () => { BTreeSet::new() };\n")?;
+        wtr.write_all(b"use lalr1::OrderedSet;\n\n")?;
+        wtr.write_all(b"macro_rules! ordered_set {\n")?;
+        wtr.write_all(b"    () => { OrderedSet::new() };\n")?;
         wtr.write_all(b"    ( $( $x:expr ),* ) => {\n")?;
         wtr.write_all(b"        {\n")?;
-        wtr.write_all(b"            let mut set = BTreeSet::new();\n")?;
+        wtr.write_all(b"            let mut set = OrderedSet::new();\n")?;
         wtr.write_all(b"            $( set.insert($x); )*\n")?;
         wtr.write_all(b"            set\n")?;
         wtr.write_all(b"        }\n")?;
         wtr.write_all(b"    };\n")?;
         wtr.write_all(b"    ( $( $x:expr ),+ , ) => {\n")?;
-        wtr.write_all(b"        btree_set![ $( $x ), * ]\n")?;
+        wtr.write_all(b"        ordered_set![ $( $x ), * ]\n")?;
         wtr.write_all(b"    };\n")?;
         wtr.write_all(b"}\n\n")?;
         wtr.write_all(b"#[derive(Debug, Clone, Copy, PartialOrd, Ord, PartialEq, Eq)]\n")?;
@@ -526,7 +529,7 @@ impl Grammar {
         Ok(())
     }
 
-    fn error_recovery_state_set_for_token(&self, token: &Token) -> BTreeSet<u32> {
+    fn error_recovery_state_set_for_token(&self, token: &Token) -> OrderedSet<u32> {
         self.parser_states
             .iter()
             .filter(|x| x.is_recovery_state_for_token(token))
@@ -534,8 +537,8 @@ impl Grammar {
             .collect()
     }
 
-    fn format_u32_set(set: &BTreeSet<u32>) -> String {
-        let mut string = "btree_set![".to_string();
+    fn format_u32_set(set: &OrderedSet<u32>) -> String {
+        let mut string = "ordered_set![".to_string();
         for (index, number) in set.iter().enumerate() {
             if index == 0 {
                 string += &format!("{number}");
@@ -549,7 +552,7 @@ impl Grammar {
 
     fn write_error_recovery_code<W: Write>(&self, wtr: &mut W) -> io::Result<()> {
         let mut default_required = false;
-        let mut recovery_states = Vec::<(&str, BTreeSet<u32>)>::new();
+        let mut recovery_states = Vec::<(&str, OrderedSet<u32>)>::new();
         for token in [Token::EndToken]
             .iter()
             .chain(self.specification.symbol_table.tokens())
@@ -563,13 +566,13 @@ impl Grammar {
         }
         if recovery_states.is_empty() {
             wtr.write_all(
-                b"    fn viable_error_recovery_states(_token: &AATerminal) -> BTreeSet<u32> {\n",
+                b"    fn viable_error_recovery_states(_token: &AATerminal) -> OrderedSet<u32> {\n",
             )?;
-            wtr.write_all(b"        btree_set![]\n")?;
+            wtr.write_all(b"        ordered_set![]\n")?;
             wtr.write_all(b"    }\n\n")?;
         } else {
             wtr.write_all(
-                b"    fn viable_error_recovery_states(token: &AATerminal) -> BTreeSet<u32> {\n",
+                b"    fn viable_error_recovery_states(token: &AATerminal) -> OrderedSet<u32> {\n",
             )?;
             wtr.write_all(b"        match token {\n")?;
             for (name, set) in recovery_states {
@@ -580,7 +583,7 @@ impl Grammar {
                 ))?;
             }
             if default_required {
-                wtr.write_all(b"            _ => btree_set![],\n")?;
+                wtr.write_all(b"            _ => ordered_set![],\n")?;
             }
             wtr.write_all(b"        }\n")?;
             wtr.write_all(b"    }\n\n")?;
@@ -603,7 +606,7 @@ impl Grammar {
     }
 
     fn write_look_ahead_set_code<W: Write>(&self, wtr: &mut W) -> io::Result<()> {
-        wtr.write_all(b"    fn look_ahead_set(state: u32) -> BTreeSet<AATerminal> {\n")?;
+        wtr.write_all(b"    fn look_ahead_set(state: u32) -> OrderedSet<AATerminal> {\n")?;
         wtr.write_all(b"        use AATerminal::*;\n")?;
         wtr.write_all(b"        return match state {\n")?;
         for parser_state in self.parser_states.iter() {

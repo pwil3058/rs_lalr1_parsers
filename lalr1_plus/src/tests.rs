@@ -1,25 +1,28 @@
 // Copyright (c) 2026 Peter Williams <pwil3058@bigpond.net.au> <pwil3058@gmail.com>.
 use crate::ReportError;
 
-use std::collections::{BTreeSet, HashMap};
+use std::collections::HashMap;
 use std::convert::From;
 use std::fmt;
 use std::str::FromStr;
 
+use lalr1::OrderedSet;
+
 use lazy_static::lazy_static;
 
-macro_rules! btree_set {
+macro_rules! ordered_set {
         ( $( $x:expr ),* ) => {
             {
-                let mut set = BTreeSet::new();
+                let mut set = OrderedSet::new();
                 $( set.insert($x); )*
                 set
             }
         };
         ( $( $x:expr ),+ , ) => {
-            btree_set![ $( $x ), * ]
+            ordered_set![ $( $x ), * ]
         };
     }
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 enum Terminal {
     Plus,
@@ -168,11 +171,11 @@ impl crate::Parser<Terminal, NonTerminal, AttributeData> for Calc {
         &AALEXAN
     }
 
-    fn viable_error_recovery_states(tag: &Terminal) -> BTreeSet<u32> {
+    fn viable_error_recovery_states(tag: &Terminal) -> OrderedSet<u32> {
         use Terminal::*;
         match tag {
-            EOL => btree_set![0_u32, 4], //BTreeSet::from_iter([0_u32, 4].into_iter().cloned()),
-            _ => BTreeSet::new(),
+            EOL => ordered_set![0_u32, 4], //OrderedSet::from_iter([0_u32, 4].into_iter().cloned()),
+            _ => OrderedSet::new(),
         }
     }
 
@@ -183,29 +186,29 @@ impl crate::Parser<Terminal, NonTerminal, AttributeData> for Calc {
         }
     }
 
-    fn look_ahead_set(state: u32) -> BTreeSet<Terminal> {
+    fn look_ahead_set(state: u32) -> OrderedSet<Terminal> {
         use Terminal::*;
         return match state {
-            0 => btree_set![Minus, LPR, Number, Id],
-            1 => btree_set![EndMarker, EOL],
-            2 => btree_set![Minus, LPR, Number, Id],
-            3 => btree_set![EndMarker, EOL],
-            4 => btree_set![EndMarker, EOL, Minus, Number, Id, LPR],
-            5 => btree_set![EndMarker, EOL, Plus, Minus, Times, Divide],
-            6 => btree_set![EndMarker, EOL, Plus, Minus, Times, Divide, Assign],
-            7 | 8 => btree_set![Minus, Number, Id, LPR],
-            9 => btree_set![EndMarker, EOL, Plus, Minus, Times, Divide, RPR],
-            10 => btree_set![EndMarker, EOL],
-            11 | 12 | 13 | 14 | 15 => btree_set![Minus, Number, Id, LPR],
-            16 => btree_set![Plus, Minus, Times, Divide, RPR],
-            17 => btree_set![EndMarker, EOL, Plus, Minus, Times, Divide, RPR],
-            18 => btree_set![EndMarker, EOL, Plus, Minus, Times, Divide, RPR],
-            19 => btree_set![EndMarker, EOL, Plus, Minus, Times, Divide, RPR],
-            20 => btree_set![EndMarker, EOL, Plus, Minus, Times, Divide, RPR],
-            21 => btree_set![EndMarker, EOL, Plus, Minus, Times, Divide, RPR],
-            22 => btree_set![EndMarker, EOL, Plus, Minus, Times, Divide, RPR],
-            23 => btree_set![EndMarker, EOL, Plus, Minus, Times, Divide, RPR],
-            24 => btree_set![EndMarker, EOL, Plus, Minus, Times, Divide, RPR],
+            0 => ordered_set![Minus, LPR, Number, Id],
+            1 => ordered_set![EndMarker, EOL],
+            2 => ordered_set![Minus, LPR, Number, Id],
+            3 => ordered_set![EndMarker, EOL],
+            4 => ordered_set![EndMarker, EOL, Minus, Number, Id, LPR],
+            5 => ordered_set![EndMarker, EOL, Plus, Minus, Times, Divide],
+            6 => ordered_set![EndMarker, EOL, Plus, Minus, Times, Divide, Assign],
+            7 | 8 => ordered_set![Minus, Number, Id, LPR],
+            9 => ordered_set![EndMarker, EOL, Plus, Minus, Times, Divide, RPR],
+            10 => ordered_set![EndMarker, EOL],
+            11 | 12 | 13 | 14 | 15 => ordered_set![Minus, Number, Id, LPR],
+            16 => ordered_set![Plus, Minus, Times, Divide, RPR],
+            17 => ordered_set![EndMarker, EOL, Plus, Minus, Times, Divide, RPR],
+            18 => ordered_set![EndMarker, EOL, Plus, Minus, Times, Divide, RPR],
+            19 => ordered_set![EndMarker, EOL, Plus, Minus, Times, Divide, RPR],
+            20 => ordered_set![EndMarker, EOL, Plus, Minus, Times, Divide, RPR],
+            21 => ordered_set![EndMarker, EOL, Plus, Minus, Times, Divide, RPR],
+            22 => ordered_set![EndMarker, EOL, Plus, Minus, Times, Divide, RPR],
+            23 => ordered_set![EndMarker, EOL, Plus, Minus, Times, Divide, RPR],
+            24 => ordered_set![EndMarker, EOL, Plus, Minus, Times, Divide, RPR],
             _ => panic!("illegal state: {state}"),
         };
     }
