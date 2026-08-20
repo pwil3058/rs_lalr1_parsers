@@ -17,4 +17,4 @@ structopt = "0.3.2"
 
 lexan = { path = "../lexan" }
 lalr1 = { path = "../lalr1" }
-lalr1_plus = { path = "../lalr1_plus" }
+lalr1_plus = { path = "../alalr1" }

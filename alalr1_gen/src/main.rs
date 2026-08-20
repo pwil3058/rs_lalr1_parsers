@@ -9,7 +9,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use lalr1_plus_lib::grammar;
+use alalr1_lib::grammar;
 
 fn with_changed_extension(path: &Path, new_extension: &str) -> PathBuf {
     let mut new_path = PathBuf::new();
@@ -23,7 +23,7 @@ fn with_changed_extension(path: &Path, new_extension: &str) -> PathBuf {
 
 #[derive(Debug, StructOpt)]
 #[structopt(
-    name = "lalr1_plus_gen",
+    name = "alalr1_gen",
     about = "Augmented Lexical Analyzer and Parser Generator",
     author = crate_authors!(),
 )]

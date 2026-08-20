@@ -13,14 +13,14 @@ use std::path::Path;
 
 use thiserror::Error;
 
-use lalr1_plus;
+use alalr1;
 
 use crate::alap_gen::AATerminal;
 
 #[derive(Debug, Error)]
 pub enum Error {
     #[error("Specification error {0}")]
-    SpecificationError(#[from] lalr1_plus::Error<AATerminal>),
+    SpecificationError(#[from] alalr1::Error<AATerminal>),
     #[error("Grammar error {0}")]
     GrammarError(#[from] grammar::Error),
     #[error("I/O error {0}")]

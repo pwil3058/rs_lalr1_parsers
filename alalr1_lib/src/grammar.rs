@@ -10,13 +10,13 @@ use crate::symbol::non_terminal::NonTerminal;
 use crate::symbol::terminal::{Token, TokenSet};
 use crate::symbol::{Symbol, SymbolTable};
 
+use alalr1::Parser;
 use lalr1::OrderedSet;
-use lalr1_plus::Parser;
 
 use std::collections::BTreeMap;
 use std::convert::TryFrom;
 use std::io;
-use std::io::{stderr, Write};
+use std::io::{Write, stderr};
 use std::path::Path;
 
 pub fn report_error(location: &lexan::Location, what: &str) {
@@ -40,10 +40,10 @@ pub struct Specification {
     pub expected_sr_conflicts: u32,
 }
 
-impl lalr1_plus::ReportError<AATerminal> for Specification {}
+impl alalr1::ReportError<AATerminal> for Specification {}
 
 impl Specification {
-    pub fn new(text: &str, label: &str) -> Result<Self, lalr1_plus::Error<AATerminal>> {
+    pub fn new(text: &str, label: &str) -> Result<Self, alalr1::Error<AATerminal>> {
         let mut spec = Specification {
             attribute_type: "AttributeData".to_string(),
             target_type: "Specification".to_string(),
@@ -518,7 +518,7 @@ impl Grammar {
         let attr = &self.specification.attribute_type;
         let parser = &self.specification.target_type;
         let text =
-            format!("impl lalr1_plus::Parser<AATerminal, AANonTerminal, {attr}> for {parser} {{\n");
+            format!("impl alalr1::Parser<AATerminal, AANonTerminal, {attr}> for {parser} {{\n");
         wtr.write_all(text.as_bytes())?;
         wtr.write_all(
             b"    fn lexical_analyzer(&self) -> &lexan::LexicalAnalyzer<AATerminal> {\n",
@@ -633,12 +633,12 @@ impl Grammar {
         wtr.write_all(b"        &self,\n")?;
         wtr.write_all(b"        aa_state: u32,\n")?;
         wtr.write_fmt(format_args!(
-            "        aa_attributes: &lalr1_plus::ParseStack<AATerminal, AANonTerminal, {}>,\n",
+            "        aa_attributes: &alalr1::ParseStack<AATerminal, AANonTerminal, {}>,\n",
             self.specification.attribute_type
         ))?;
         wtr.write_all(b"        aa_token: &lexan::Token<AATerminal>,\n")?;
-        wtr.write_all(b"    ) -> lalr1_plus::Action {\n")?;
-        wtr.write_all(b"        use lalr1_plus::Action;\n")?;
+        wtr.write_all(b"    ) -> alalr1::Action {\n")?;
+        wtr.write_all(b"        use alalr1::Action;\n")?;
         wtr.write_all(b"        use AATerminal::*;\n")?;
         wtr.write_all(b"        let aa_tag = *aa_token.tag();\n")?;
         wtr.write_all(b"        return match aa_state {\n")?;

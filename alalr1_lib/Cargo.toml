@@ -1,5 +1,5 @@
 [package]
-name = "lalr1_plus_lib"
+name = "alalr1_lib"
 version = "0.1.0"
 edition = "2024"
 
@@ -14,5 +14,5 @@ thiserror = "2.0.20"
 
 lexan = { path = "../lexan" }
 lalr1 = { path = "../lalr1" }
-lalr1_plus = { path = "../lalr1_plus" }
+alalr1 = { path = "../alalr1" }
 

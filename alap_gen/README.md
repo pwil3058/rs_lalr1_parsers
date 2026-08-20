@@ -1,23 +1,21 @@
 # Augmented Lexical Analyzer and Parser Generator
- 
-**alap_gen_ng** is an augmented lexical analyser and parser generation
-tool (in the vein of *yacc*, *bison*, *dunnart*, *lex*, *flex*, etc) written in
-and targeted at Rust.
-It takes a specification file as input and uses it to implement the
+
+**alap_gen_ng** is an augmented lexical analyser and parser generation tool (in the vein of *yacc*, *bison*, *dunnart*,
+*lex*, *flex*, etc) written in and targeted at Rust. It takes a specification file as input and uses it to implement the
 [`lalr1_plus::Parser`](https://github.com/pwil3058/rs_lalr1plus)
 trait for a specified Rust type and to generate an instance of
 [`lexan::LexicalAnalyzer`](https://github.com/pwil3058/rs_lexan)
-for use by the parser.  The **alap_gen_ng** module that parses the specification file
-was itself generated from an **alap_gen_ng** specification file by an iterative
-process whereby the first version was hand-written using **dunnart**'s equivalent
-(also written by me, so no plagiarism) as a guide.
+for use by the parser. The **alap_gen_ng** module that parses the specification file was itself generated from an
+**alap_gen_ng** specification file by an iterative process whereby the first version was hand-written using **dunnart**
+'s equivalent (also written by me, so no plagiarism) as a guide.
 
 The augmentations of **alap_gen_ng** with respect to other similar tools are:
+
 1. the lexical analyzer and parser are both generated from a single specification,
 2. predicates may be attached to grammar productions in order to (among other things)
-resolve conflicts, and
+   resolve conflicts, and
 3. extra text may be injected into the parser's input stream from within productions'
-action code.
+   action code.
 
 ## Synopsis
 
@@ -47,7 +45,7 @@ use std::str::FromStr;
 #[derive(Debug, Clone)]
 pub enum AttributeData {
     Token(lexan::Token<AATerminal>),
-    Error(lalr1_plus::Error<AATerminal>),
+    Error(alalr1::Error<AATerminal>),
     Value(f64),
     Id(String),
     Default
@@ -91,8 +89,8 @@ impl From<lexan::Token<AATerminal>> for AttributeData {
     }
 }
 
-impl From<lalr1_plus::Error<AATerminal>> for AttributeData {
-    fn from(error: lalr1_plus::Error<AATerminal>) -> Self {
+impl From<alalr1::Error<AATerminal>> for AttributeData {
+    fn from(error: alalr1::Error<AATerminal>) -> Self {
         AttributeData::Error(error.clone())
     }
 }

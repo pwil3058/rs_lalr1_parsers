@@ -1,5 +1,5 @@
 [package]
-name = "lalr1_plus"
+name = "alalr1"
 version = "0.1.0"
 authors = ["Peter Williams <pwil3058@gmail.com>"]
 edition = "2021"
