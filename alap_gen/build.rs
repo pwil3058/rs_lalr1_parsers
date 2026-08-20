@@ -6,17 +6,17 @@ use std::{path::Path, process::Command};
 fn main() {
     let alap_gen_path = "../target/debug/alap_gen";
     if Path::new(alap_gen_path).exists() {
-        println!("cargo:rerun-if-changed=src/alap_gen.alaps");
+        println!("cargo:rerun-if-changed=src/parser.alaps");
         println!("cargo:rerun-if-changed=../target/debug/alap_gen");
         println!("cargo::rerun-if-changed={alap_gen_path}");
         match Command::new(alap_gen_path)
-            .args(["-f", "src/alap_gen.alaps"])
+            .args(["-f", "src/parser.alaps"])
             .status()
         {
             Ok(status) => {
                 if status.success() {
                     Command::new("rustfmt")
-                        .args(["src/alap_gen.rs"])
+                        .args(["src/parser"])
                         .status()
                         .unwrap();
                 } else {

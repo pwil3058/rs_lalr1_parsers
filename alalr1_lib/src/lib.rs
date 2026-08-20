@@ -2,7 +2,11 @@
 
 pub mod grammar;
 
-mod alap_gen;
+#[cfg(feature = "bootstrap")]
+mod bootstrap;
+#[cfg(not(feature = "bootstrap"))]
+mod parser;
+
 mod attributes;
 mod production;
 mod state;
@@ -15,7 +19,7 @@ use thiserror::Error;
 
 use alalr1;
 
-use crate::alap_gen::AATerminal;
+use crate::parser::AATerminal;
 
 #[derive(Debug, Error)]
 pub enum Error {
