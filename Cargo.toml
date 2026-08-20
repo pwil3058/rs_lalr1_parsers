@@ -6,9 +6,12 @@ members = [
     "lexan",
     "lalr1",
     "lalr1_plus",
-    "alap_gen",
+    #    "alap_gen",
     #    "lap_gen",
-    "lalr1_lib", "lalr1_gen",
+    "lalr1_lib",
+    "lalr1_gen",
+    "lalr1_plus_lib",
+    "lalr1_plus_gen",
 ]
 
 exclude = ["examples", "examples"]
