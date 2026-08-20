@@ -1,0 +1,1623 @@
+Symbols:
+  Tokens:
+    AAEnd(): #(NonAssoc, 0)
+    ActionCode((!\{(.|[\n\r])*?!\})): #(NonAssoc, 0)
+    Attr("%attr"): #(NonAssoc, 0)
+    Colon(":"): #(NonAssoc, 0)
+    Dot("."): #(NonAssoc, 0)
+    Error("%error"): #(NonAssoc, 0)
+    Ident(([a-zA-Z]+[a-zA-Z0-9_]*)): #(NonAssoc, 0)
+    Inject("%inject"): #(Right, 1)
+    Left("%left"): #(NonAssoc, 0)
+    Literal(("(\\"|[^"\t\r\n\v\f])*")): #(NonAssoc, 0)
+    NewSection("%%"): #(NonAssoc, 0)
+    NonAssoc("%nonassoc"): #(NonAssoc, 0)
+    NumberExpr(([0-9]+)): #(NonAssoc, 0)
+    Precedence("%prec"): #(NonAssoc, 0)
+    PredicateExpr((\?\((.|[\n\r])*?\?\))): #(NonAssoc, 0)
+    ReduceReduce("%reduce_reduce"): #(NonAssoc, 0)
+    RegEx((\(.+\))): #(NonAssoc, 0)
+    Right("%right"): #(NonAssoc, 0)
+    RustCode((%\{(.|[\n\r])*?%\})): #(NonAssoc, 0)
+    ShiftReduce("%shift_reduce"): #(NonAssoc, 0)
+    Skip("%skip"): #(NonAssoc, 0)
+    Target("%target"): #(NonAssoc, 0)
+    Token("%token"): #(NonAssoc, 0)
+    VerticalBar("|"): #(NonAssoc, 0)
+  Non Terminal Symbols:
+    AAStart: TokenSet{"%attr", "%inject", "%target", RustCode}:(false)
+    Action: TokenSet{ActionCode}:(false)
+    AttributeType: TokenSet{"%attr"}:(false)
+    Configuration: TokenSet{"%attr", "%target"}:(false)
+    Definitions: TokenSet{"%inject", "%token"}:(false)
+    ExpectedConflicts: TokenSet{"%reduce_reduce", "%shift_reduce"}:(true)
+    ExpectedRRConflicts: TokenSet{"%reduce_reduce"}:(false)
+    ExpectedSRConflicts: TokenSet{"%shift_reduce"}:(false)
+    Injection: TokenSet{"%inject"}:(false)
+    InjectionHead: TokenSet{"%inject"}:(false)
+    NewTokenName: TokenSet{Ident}:(false)
+    Number: TokenSet{NumberExpr}:(false)
+    OptionalInjection: TokenSet{"%inject"}:(true)
+    Preamble: TokenSet{"%inject", RustCode}:(true)
+    PrecedenceDefinition: TokenSet{"%left", "%nonassoc", "%right"}:(false)
+    PrecedenceDefinitions: TokenSet{"%inject", "%left", "%nonassoc", "%right"}:(true)
+    Predicate: TokenSet{PredicateExpr}:(false)
+    ProductionGroup: TokenSet{Ident}:(false)
+    ProductionGroupHead: TokenSet{Ident}:(false)
+    ProductionRules: TokenSet{"%inject", Ident}:(false)
+    ProductionTail: TokenSet{"%error", ActionCode, Ident, Literal, PredicateExpr}:(true)
+    ProductionTailList: TokenSet{"%error", "|", ActionCode, Ident, Literal, PredicateExpr}:(true)
+    RegularExpression: TokenSet{RegEx}:(false)
+    SkipDefinition: TokenSet{"%skip"}:(false)
+    SkipDefinitions: TokenSet{"%inject", "%skip"}:(true)
+    Specification: TokenSet{"%attr", "%inject", "%target", RustCode}:(false)
+    Symbol: TokenSet{"%error", Ident, Literal}:(false)
+    SymbolList: TokenSet{"%error", Ident, Literal}:(false)
+    Tag: TokenSet{Ident, Literal}:(false)
+    TagList: TokenSet{Ident, Literal}:(false)
+    TaggedPrecedence: TokenSet{"%prec"}:(false)
+    TargetType: TokenSet{"%target"}:(false)
+    TokenDefinition: TokenSet{"%token"}:(false)
+    TokenDefinitions: TokenSet{"%inject", "%token"}:(false)
+
+Productions:
+  AAStart: Specification #(NonAssoc, 0)
+  Specification: Preamble Configuration "%%" Definitions "%%" ProductionRules #(NonAssoc, 0)
+  OptionalInjection: <empty> #(NonAssoc, 0)
+  OptionalInjection: Injection #(NonAssoc, 0)
+  InjectionHead: "%inject" Literal #(Right, 1)
+  Injection: InjectionHead "." #(NonAssoc, 0)
+  Preamble: <empty> #(NonAssoc, 0)
+  Preamble: OptionalInjection RustCode OptionalInjection #(NonAssoc, 0)
+  Configuration: AttributeType OptionalInjection TargetType OptionalInjection ExpectedConflicts OptionalInjection #(NonAssoc, 0)
+  Configuration: TargetType OptionalInjection AttributeType OptionalInjection ExpectedConflicts OptionalInjection #(NonAssoc, 0)
+  AttributeType: "%attr" Ident #(NonAssoc, 0)
+  TargetType: "%target" Ident #(NonAssoc, 0)
+  ExpectedConflicts: <empty> #(NonAssoc, 0)
+  ExpectedConflicts: ExpectedRRConflicts OptionalInjection ExpectedSRConflicts #(NonAssoc, 0)
+  ExpectedConflicts: ExpectedSRConflicts OptionalInjection ExpectedRRConflicts #(NonAssoc, 0)
+  ExpectedConflicts: ExpectedRRConflicts #(NonAssoc, 0)
+  ExpectedConflicts: ExpectedSRConflicts #(NonAssoc, 0)
+  ExpectedRRConflicts: "%reduce_reduce" Number #(NonAssoc, 0)
+  ExpectedSRConflicts: "%shift_reduce" Number #(NonAssoc, 0)
+  Number: NumberExpr #(NonAssoc, 0)
+  Definitions: TokenDefinitions SkipDefinitions PrecedenceDefinitions #(NonAssoc, 0)
+  TokenDefinitions: OptionalInjection TokenDefinition #(NonAssoc, 0)
+  TokenDefinitions: TokenDefinitions OptionalInjection TokenDefinition OptionalInjection #(NonAssoc, 0)
+  TokenDefinition: "%token" NewTokenName Literal #(NonAssoc, 0)
+  TokenDefinition: "%token" NewTokenName RegularExpression #(NonAssoc, 0)
+  RegularExpression: RegEx #(NonAssoc, 0)
+  NewTokenName: Ident #(NonAssoc, 0) ?( !Self::is_allowable_name($1.matched_text()) ?)
+  NewTokenName: Ident #(NonAssoc, 0)
+  SkipDefinitions: <empty> #(NonAssoc, 0)
+  SkipDefinitions: SkipDefinitions OptionalInjection SkipDefinition OptionalInjection #(NonAssoc, 0)
+  SkipDefinition: "%skip" RegularExpression #(NonAssoc, 0)
+  PrecedenceDefinitions: <empty> #(NonAssoc, 0)
+  PrecedenceDefinitions: PrecedenceDefinitions OptionalInjection PrecedenceDefinition OptionalInjection #(NonAssoc, 0)
+  PrecedenceDefinition: "%left" TagList #(NonAssoc, 0)
+  PrecedenceDefinition: "%right" TagList #(NonAssoc, 0)
+  PrecedenceDefinition: "%nonassoc" TagList #(NonAssoc, 0)
+  TagList: Tag #(NonAssoc, 0)
+  TagList: TagList Tag #(NonAssoc, 0)
+  Tag: Literal #(NonAssoc, 0)
+  Tag: Ident #(NonAssoc, 0)
+  ProductionRules: OptionalInjection ProductionGroup OptionalInjection #(NonAssoc, 0)
+  ProductionRules: ProductionRules ProductionGroup OptionalInjection #(NonAssoc, 0)
+  ProductionGroup: ProductionGroupHead ProductionTailList "." #(NonAssoc, 0)
+  ProductionGroupHead: Ident ":" #(NonAssoc, 0)
+  ProductionTailList: ProductionTail #(NonAssoc, 0)
+  ProductionTailList: ProductionTailList "|" ProductionTail #(NonAssoc, 0)
+  ProductionTail: <empty> #(NonAssoc, 0)
+  ProductionTail: Action #(NonAssoc, 0)
+  ProductionTail: Predicate Action #(NonAssoc, 0)
+  ProductionTail: Predicate #(NonAssoc, 0)
+  ProductionTail: SymbolList Predicate TaggedPrecedence Action #(NonAssoc, 0)
+  ProductionTail: SymbolList Predicate TaggedPrecedence #(NonAssoc, 0)
+  ProductionTail: SymbolList Predicate Action #(NonAssoc, 0)
+  ProductionTail: SymbolList Predicate #(NonAssoc, 0)
+  ProductionTail: SymbolList TaggedPrecedence Action #(NonAssoc, 0)
+  ProductionTail: SymbolList TaggedPrecedence #(NonAssoc, 0)
+  ProductionTail: SymbolList Action #(NonAssoc, 0)
+  ProductionTail: SymbolList #(NonAssoc, 0)
+  Action: ActionCode #(NonAssoc, 0)
+  Predicate: PredicateExpr #(NonAssoc, 0)
+  TaggedPrecedence: "%prec" Ident #(NonAssoc, 0)
+  TaggedPrecedence: "%prec" Literal #(NonAssoc, 0)
+  SymbolList: Symbol #(NonAssoc, 0)
+  SymbolList: SymbolList Symbol #(NonAssoc, 0)
+  Symbol: Ident #(NonAssoc, 0)
+  Symbol: Literal #(NonAssoc, 0)
+  Symbol: "%error" #(NonAssoc, 0)
+
+State<0>:
+  Grammar Items:
+    AAStart: . Specification #(NonAssoc, 0): TokenSet{AAEnd}
+    Specification: . Preamble Configuration "%%" Definitions "%%" ProductionRules #(NonAssoc, 0): TokenSet{AAEnd}
+    OptionalInjection: . <empty> #(NonAssoc, 0): TokenSet{RustCode}
+    OptionalInjection: . Injection #(NonAssoc, 0): TokenSet{RustCode}
+    InjectionHead: . "%inject" Literal #(Right, 1): TokenSet{"."}
+    Injection: . InjectionHead "." #(NonAssoc, 0): TokenSet{RustCode}
+    Preamble: . <empty> #(NonAssoc, 0): TokenSet{"%attr", "%target"}
+    Preamble: . OptionalInjection RustCode OptionalInjection #(NonAssoc, 0): TokenSet{"%attr", "%target"}
+  Parser Action Table:
+    Shifts:
+      "%inject" -> State<4>
+    Reductions:
+      RustCode: reduce OptionalInjection: <empty> #(NonAssoc, 0)
+      "%attr" | "%target": reduce Preamble: <empty> #(NonAssoc, 0)
+  Go To Table:
+    Injection -> State<3>
+    InjectionHead -> State<5>
+    OptionalInjection -> State<6>
+    Preamble -> State<2>
+    Specification -> State<1>
+  Error Recovery State: <none>
+
+State<1>:
+  Grammar Items:
+    AAStart: Specification .  #(NonAssoc, 0): TokenSet{AAEnd}
+  Parser Action Table:
+    Reductions:
+      AAEnd: accept AAStart: Specification #(NonAssoc, 0)
+  Go To Table:
+    <empty>
+  Error Recovery State: <none>
+
+State<2>:
+  Grammar Items:
+    Specification: Preamble . Configuration "%%" Definitions "%%" ProductionRules #(NonAssoc, 0): TokenSet{AAEnd}
+    Configuration: . AttributeType OptionalInjection TargetType OptionalInjection ExpectedConflicts OptionalInjection #(NonAssoc, 0): TokenSet{"%%"}
+    Configuration: . TargetType OptionalInjection AttributeType OptionalInjection ExpectedConflicts OptionalInjection #(NonAssoc, 0): TokenSet{"%%"}
+    AttributeType: . "%attr" Ident #(NonAssoc, 0): TokenSet{"%inject", "%target"}
+    TargetType: . "%target" Ident #(NonAssoc, 0): TokenSet{"%attr", "%inject"}
+  Parser Action Table:
+    Shifts:
+      "%attr" -> State<10>
+      "%target" -> State<11>
+  Go To Table:
+    AttributeType -> State<8>
+    Configuration -> State<7>
+    TargetType -> State<9>
+  Error Recovery State: <none>
+
+State<3>:
+  Grammar Items:
+    OptionalInjection: Injection .  #(NonAssoc, 0): TokenSet{"%attr", "%inject", "%left", "%%", "%nonassoc", "%reduce_reduce", "%right", "%shift_reduce", "%skip", "%target", "%token", Ident, RustCode, AAEnd}
+  Parser Action Table:
+    Reductions:
+      "%attr" | "%inject" | "%left" | "%%" | "%nonassoc" | "%reduce_reduce" | "%right" | "%shift_reduce" | "%skip" | "%target" | "%token" | Ident | RustCode | AAEnd: reduce OptionalInjection: Injection #(NonAssoc, 0)
+  Go To Table:
+    <empty>
+  Error Recovery State: <none>
+
+State<4>:
+  Grammar Items:
+    InjectionHead: "%inject" . Literal #(Right, 1): TokenSet{"."}
+  Parser Action Table:
+    Shifts:
+      Literal -> State<12>
+  Go To Table:
+    <empty>
+  Error Recovery State: <none>
+
+State<5>:
+  Grammar Items:
+    Injection: InjectionHead . "." #(NonAssoc, 0): TokenSet{"%attr", "%inject", "%left", "%%", "%nonassoc", "%reduce_reduce", "%right", "%shift_reduce", "%skip", "%target", "%token", Ident, RustCode, AAEnd}
+  Parser Action Table:
+    Shifts:
+      "." -> State<13>
+  Go To Table:
+    <empty>
+  Error Recovery State: <none>
+
+State<6>:
+  Grammar Items:
+    Preamble: OptionalInjection . RustCode OptionalInjection #(NonAssoc, 0): TokenSet{"%attr", "%target"}
+  Parser Action Table:
+    Shifts:
+      RustCode -> State<14>
+  Go To Table:
+    <empty>
+  Error Recovery State: <none>
+
+State<7>:
+  Grammar Items:
+    Specification: Preamble Configuration . "%%" Definitions "%%" ProductionRules #(NonAssoc, 0): TokenSet{AAEnd}
+  Parser Action Table:
+    Shifts:
+      "%%" -> State<15>
+  Go To Table:
+    <empty>
+  Error Recovery State: <none>
+
+State<8>:
+  Grammar Items:
+    OptionalInjection: . <empty> #(NonAssoc, 0): TokenSet{"%target"}
+    OptionalInjection: . Injection #(NonAssoc, 0): TokenSet{"%target"}
+    InjectionHead: . "%inject" Literal #(Right, 1): TokenSet{"."}
+    Injection: . InjectionHead "." #(NonAssoc, 0): TokenSet{"%target"}
+    Configuration: AttributeType . OptionalInjection TargetType OptionalInjection ExpectedConflicts OptionalInjection #(NonAssoc, 0): TokenSet{"%%"}
+  Parser Action Table:
+    Shifts:
+      "%inject" -> State<4>
+    Reductions:
+      "%target": reduce OptionalInjection: <empty> #(NonAssoc, 0)
+  Go To Table:
+    Injection -> State<3>
+    InjectionHead -> State<5>
+    OptionalInjection -> State<16>
+  Error Recovery State: <none>
+
+State<9>:
+  Grammar Items:
+    OptionalInjection: . <empty> #(NonAssoc, 0): TokenSet{"%attr"}
+    OptionalInjection: . Injection #(NonAssoc, 0): TokenSet{"%attr"}
+    InjectionHead: . "%inject" Literal #(Right, 1): TokenSet{"."}
+    Injection: . InjectionHead "." #(NonAssoc, 0): TokenSet{"%attr"}
+    Configuration: TargetType . OptionalInjection AttributeType OptionalInjection ExpectedConflicts OptionalInjection #(NonAssoc, 0): TokenSet{"%%"}
+  Parser Action Table:
+    Shifts:
+      "%inject" -> State<4>
+    Reductions:
+      "%attr": reduce OptionalInjection: <empty> #(NonAssoc, 0)
+  Go To Table:
+    Injection -> State<3>
+    InjectionHead -> State<5>
+    OptionalInjection -> State<17>
+  Error Recovery State: <none>
+
+State<10>:
+  Grammar Items:
+    AttributeType: "%attr" . Ident #(NonAssoc, 0): TokenSet{"%inject", "%%", "%reduce_reduce", "%shift_reduce", "%target"}
+  Parser Action Table:
+    Shifts:
+      Ident -> State<18>
+  Go To Table:
+    <empty>
+  Error Recovery State: <none>
+
+State<11>:
+  Grammar Items:
+    TargetType: "%target" . Ident #(NonAssoc, 0): TokenSet{"%attr", "%inject", "%%", "%reduce_reduce", "%shift_reduce"}
+  Parser Action Table:
+    Shifts:
+      Ident -> State<19>
+  Go To Table:
+    <empty>
+  Error Recovery State: <none>
+
+State<12>:
+  Grammar Items:
+    InjectionHead: "%inject" Literal .  #(Right, 1): TokenSet{"."}
+  Parser Action Table:
+    Reductions:
+      ".": reduce InjectionHead: "%inject" Literal #(Right, 1)
+  Go To Table:
+    <empty>
+  Error Recovery State: <none>
+
+State<13>:
+  Grammar Items:
+    Injection: InjectionHead "." .  #(NonAssoc, 0): TokenSet{"%attr", "%inject", "%left", "%%", "%nonassoc", "%reduce_reduce", "%right", "%shift_reduce", "%skip", "%target", "%token", Ident, RustCode, AAEnd}
+  Parser Action Table:
+    Reductions:
+      "%attr" | "%inject" | "%left" | "%%" | "%nonassoc" | "%reduce_reduce" | "%right" | "%shift_reduce" | "%skip" | "%target" | "%token" | Ident | RustCode | AAEnd: reduce Injection: InjectionHead "." #(NonAssoc, 0)
+  Go To Table:
+    <empty>
+  Error Recovery State: <none>
+
+State<14>:
+  Grammar Items:
+    OptionalInjection: . <empty> #(NonAssoc, 0): TokenSet{"%attr", "%target"}
+    OptionalInjection: . Injection #(NonAssoc, 0): TokenSet{"%attr", "%target"}
+    InjectionHead: . "%inject" Literal #(Right, 1): TokenSet{"."}
+    Injection: . InjectionHead "." #(NonAssoc, 0): TokenSet{"%attr", "%target"}
+    Preamble: OptionalInjection RustCode . OptionalInjection #(NonAssoc, 0): TokenSet{"%attr", "%target"}
+  Parser Action Table:
+    Shifts:
+      "%inject" -> State<4>
+    Reductions:
+      "%attr" | "%target": reduce OptionalInjection: <empty> #(NonAssoc, 0)
+  Go To Table:
+    Injection -> State<3>
+    InjectionHead -> State<5>
+    OptionalInjection -> State<20>
+  Error Recovery State: <none>
+
+State<15>:
+  Grammar Items:
+    Specification: Preamble Configuration "%%" . Definitions "%%" ProductionRules #(NonAssoc, 0): TokenSet{AAEnd}
+    OptionalInjection: . <empty> #(NonAssoc, 0): TokenSet{"%token"}
+    OptionalInjection: . Injection #(NonAssoc, 0): TokenSet{"%token"}
+    InjectionHead: . "%inject" Literal #(Right, 1): TokenSet{"."}
+    Injection: . InjectionHead "." #(NonAssoc, 0): TokenSet{"%token"}
+    Definitions: . TokenDefinitions SkipDefinitions PrecedenceDefinitions #(NonAssoc, 0): TokenSet{"%%"}
+    TokenDefinitions: . OptionalInjection TokenDefinition #(NonAssoc, 0): TokenSet{"%inject", "%left", "%%", "%nonassoc", "%right", "%skip", "%token"}
+    TokenDefinitions: . TokenDefinitions OptionalInjection TokenDefinition OptionalInjection #(NonAssoc, 0): TokenSet{"%inject", "%left", "%%", "%nonassoc", "%right", "%skip", "%token"}
+  Parser Action Table:
+    Shifts:
+      "%inject" -> State<4>
+    Reductions:
+      "%token": reduce OptionalInjection: <empty> #(NonAssoc, 0)
+  Go To Table:
+    Definitions -> State<21>
+    Injection -> State<3>
+    InjectionHead -> State<5>
+    OptionalInjection -> State<23>
+    TokenDefinitions -> State<22>
+  Error Recovery State: <none>
+
+State<16>:
+  Grammar Items:
+    Configuration: AttributeType OptionalInjection . TargetType OptionalInjection ExpectedConflicts OptionalInjection #(NonAssoc, 0): TokenSet{"%%"}
+    TargetType: . "%target" Ident #(NonAssoc, 0): TokenSet{"%inject", "%%", "%reduce_reduce", "%shift_reduce"}
+  Parser Action Table:
+    Shifts:
+      "%target" -> State<11>
+  Go To Table:
+    TargetType -> State<24>
+  Error Recovery State: <none>
+
+State<17>:
+  Grammar Items:
+    Configuration: TargetType OptionalInjection . AttributeType OptionalInjection ExpectedConflicts OptionalInjection #(NonAssoc, 0): TokenSet{"%%"}
+    AttributeType: . "%attr" Ident #(NonAssoc, 0): TokenSet{"%inject", "%%", "%reduce_reduce", "%shift_reduce"}
+  Parser Action Table:
+    Shifts:
+      "%attr" -> State<10>
+  Go To Table:
+    AttributeType -> State<25>
+  Error Recovery State: <none>
+
+State<18>:
+  Grammar Items:
+    AttributeType: "%attr" Ident .  #(NonAssoc, 0): TokenSet{"%inject", "%%", "%reduce_reduce", "%shift_reduce", "%target"}
+  Parser Action Table:
+    Reductions:
+      "%inject" | "%%" | "%reduce_reduce" | "%shift_reduce" | "%target": reduce AttributeType: "%attr" Ident #(NonAssoc, 0)
+  Go To Table:
+    <empty>
+  Error Recovery State: <none>
+
+State<19>:
+  Grammar Items:
+    TargetType: "%target" Ident .  #(NonAssoc, 0): TokenSet{"%attr", "%inject", "%%", "%reduce_reduce", "%shift_reduce"}
+  Parser Action Table:
+    Reductions:
+      "%attr" | "%inject" | "%%" | "%reduce_reduce" | "%shift_reduce": reduce TargetType: "%target" Ident #(NonAssoc, 0)
+  Go To Table:
+    <empty>
+  Error Recovery State: <none>
+
+State<20>:
+  Grammar Items:
+    Preamble: OptionalInjection RustCode OptionalInjection .  #(NonAssoc, 0): TokenSet{"%attr", "%target"}
+  Parser Action Table:
+    Reductions:
+      "%attr" | "%target": reduce Preamble: OptionalInjection RustCode OptionalInjection #(NonAssoc, 0)
+  Go To Table:
+    <empty>
+  Error Recovery State: <none>
+
+State<21>:
+  Grammar Items:
+    Specification: Preamble Configuration "%%" Definitions . "%%" ProductionRules #(NonAssoc, 0): TokenSet{AAEnd}
+  Parser Action Table:
+    Shifts:
+      "%%" -> State<26>
+  Go To Table:
+    <empty>
+  Error Recovery State: <none>
+
+State<22>:
+  Grammar Items:
+    OptionalInjection: . <empty> #(NonAssoc, 0): TokenSet{"%token"}
+    OptionalInjection: . Injection #(NonAssoc, 0): TokenSet{"%token"}
+    InjectionHead: . "%inject" Literal #(Right, 1): TokenSet{"."}
+    Injection: . InjectionHead "." #(NonAssoc, 0): TokenSet{"%token"}
+    Definitions: TokenDefinitions . SkipDefinitions PrecedenceDefinitions #(NonAssoc, 0): TokenSet{"%%"}
+    TokenDefinitions: TokenDefinitions . OptionalInjection TokenDefinition OptionalInjection #(NonAssoc, 0): TokenSet{"%inject", "%left", "%%", "%nonassoc", "%right", "%skip", "%token"}
+    SkipDefinitions: . <empty> #(NonAssoc, 0): TokenSet{"%left", "%%", "%nonassoc", "%right", "%skip"}
+    SkipDefinitions: . SkipDefinitions OptionalInjection SkipDefinition OptionalInjection #(NonAssoc, 0): TokenSet{"%inject", "%left", "%%", "%nonassoc", "%right", "%skip"}
+  Parser Action Table:
+    Shifts:
+      "%inject" -> State<4>
+    Reductions:
+      "%token": reduce OptionalInjection: <empty> #(NonAssoc, 0)
+      "%left" | "%%" | "%nonassoc" | "%right" | "%skip": reduce SkipDefinitions: <empty> #(NonAssoc, 0)
+  Go To Table:
+    Injection -> State<3>
+    InjectionHead -> State<5>
+    OptionalInjection -> State<28>
+    SkipDefinitions -> State<27>
+  Error Recovery State: <none>
+
+State<23>:
+  Grammar Items:
+    TokenDefinitions: OptionalInjection . TokenDefinition #(NonAssoc, 0): TokenSet{"%inject", "%left", "%%", "%nonassoc", "%right", "%skip", "%token"}
+    TokenDefinition: . "%token" NewTokenName Literal #(NonAssoc, 0): TokenSet{"%inject", "%left", "%%", "%nonassoc", "%right", "%skip", "%token"}
+    TokenDefinition: . "%token" NewTokenName RegularExpression #(NonAssoc, 0): TokenSet{"%inject", "%left", "%%", "%nonassoc", "%right", "%skip", "%token"}
+  Parser Action Table:
+    Shifts:
+      "%token" -> State<30>
+  Go To Table:
+    TokenDefinition -> State<29>
+  Error Recovery State: <none>
+
+State<24>:
+  Grammar Items:
+    OptionalInjection: . <empty> #(NonAssoc, 0): TokenSet{"%%", "%reduce_reduce", "%shift_reduce"}
+    OptionalInjection: . Injection #(NonAssoc, 0): TokenSet{"%inject", "%%", "%reduce_reduce", "%shift_reduce"}
+    InjectionHead: . "%inject" Literal #(Right, 1): TokenSet{"."}
+    Injection: . InjectionHead "." #(NonAssoc, 0): TokenSet{"%inject", "%%", "%reduce_reduce", "%shift_reduce"}
+    Configuration: AttributeType OptionalInjection TargetType . OptionalInjection ExpectedConflicts OptionalInjection #(NonAssoc, 0): TokenSet{"%%"}
+  Parser Action Table:
+    Shifts:
+      "%inject" -> State<4>
+    Reductions:
+      "%%" | "%reduce_reduce" | "%shift_reduce": reduce OptionalInjection: <empty> #(NonAssoc, 0)
+  Go To Table:
+    Injection -> State<3>
+    InjectionHead -> State<5>
+    OptionalInjection -> State<31>
+  Error Recovery State: <none>
+
+State<25>:
+  Grammar Items:
+    OptionalInjection: . <empty> #(NonAssoc, 0): TokenSet{"%%", "%reduce_reduce", "%shift_reduce"}
+    OptionalInjection: . Injection #(NonAssoc, 0): TokenSet{"%inject", "%%", "%reduce_reduce", "%shift_reduce"}
+    InjectionHead: . "%inject" Literal #(Right, 1): TokenSet{"."}
+    Injection: . InjectionHead "." #(NonAssoc, 0): TokenSet{"%inject", "%%", "%reduce_reduce", "%shift_reduce"}
+    Configuration: TargetType OptionalInjection AttributeType . OptionalInjection ExpectedConflicts OptionalInjection #(NonAssoc, 0): TokenSet{"%%"}
+  Parser Action Table:
+    Shifts:
+      "%inject" -> State<4>
+    Reductions:
+      "%%" | "%reduce_reduce" | "%shift_reduce": reduce OptionalInjection: <empty> #(NonAssoc, 0)
+  Go To Table:
+    Injection -> State<3>
+    InjectionHead -> State<5>
+    OptionalInjection -> State<32>
+  Error Recovery State: <none>
+
+State<26>:
+  Grammar Items:
+    Specification: Preamble Configuration "%%" Definitions "%%" . ProductionRules #(NonAssoc, 0): TokenSet{AAEnd}
+    OptionalInjection: . <empty> #(NonAssoc, 0): TokenSet{Ident}
+    OptionalInjection: . Injection #(NonAssoc, 0): TokenSet{Ident}
+    InjectionHead: . "%inject" Literal #(Right, 1): TokenSet{"."}
+    Injection: . InjectionHead "." #(NonAssoc, 0): TokenSet{Ident}
+    ProductionRules: . OptionalInjection ProductionGroup OptionalInjection #(NonAssoc, 0): TokenSet{Ident, AAEnd}
+    ProductionRules: . ProductionRules ProductionGroup OptionalInjection #(NonAssoc, 0): TokenSet{Ident, AAEnd}
+  Parser Action Table:
+    Shifts:
+      "%inject" -> State<4>
+    Reductions:
+      Ident: reduce OptionalInjection: <empty> #(NonAssoc, 0)
+  Go To Table:
+    Injection -> State<3>
+    InjectionHead -> State<5>
+    OptionalInjection -> State<34>
+    ProductionRules -> State<33>
+  Error Recovery State: <none>
+
+State<27>:
+  Grammar Items:
+    OptionalInjection: . <empty> #(NonAssoc, 0): TokenSet{"%skip"}
+    OptionalInjection: . Injection #(NonAssoc, 0): TokenSet{"%skip"}
+    InjectionHead: . "%inject" Literal #(Right, 1): TokenSet{"."}
+    Injection: . InjectionHead "." #(NonAssoc, 0): TokenSet{"%skip"}
+    Definitions: TokenDefinitions SkipDefinitions . PrecedenceDefinitions #(NonAssoc, 0): TokenSet{"%%"}
+    SkipDefinitions: SkipDefinitions . OptionalInjection SkipDefinition OptionalInjection #(NonAssoc, 0): TokenSet{"%inject", "%left", "%%", "%nonassoc", "%right", "%skip"}
+    PrecedenceDefinitions: . <empty> #(NonAssoc, 0): TokenSet{"%left", "%%", "%nonassoc", "%right"}
+    PrecedenceDefinitions: . PrecedenceDefinitions OptionalInjection PrecedenceDefinition OptionalInjection #(NonAssoc, 0): TokenSet{"%inject", "%left", "%%", "%nonassoc", "%right"}
+  Parser Action Table:
+    Shifts:
+      "%inject" -> State<4>
+    Reductions:
+      "%skip": reduce OptionalInjection: <empty> #(NonAssoc, 0)
+      "%left" | "%%" | "%nonassoc" | "%right": reduce PrecedenceDefinitions: <empty> #(NonAssoc, 0)
+  Go To Table:
+    Injection -> State<3>
+    InjectionHead -> State<5>
+    OptionalInjection -> State<36>
+    PrecedenceDefinitions -> State<35>
+  Error Recovery State: <none>
+
+State<28>:
+  Grammar Items:
+    TokenDefinitions: TokenDefinitions OptionalInjection . TokenDefinition OptionalInjection #(NonAssoc, 0): TokenSet{"%inject", "%left", "%%", "%nonassoc", "%right", "%skip", "%token"}
+    TokenDefinition: . "%token" NewTokenName Literal #(NonAssoc, 0): TokenSet{"%inject", "%left", "%%", "%nonassoc", "%right", "%skip", "%token"}
+    TokenDefinition: . "%token" NewTokenName RegularExpression #(NonAssoc, 0): TokenSet{"%inject", "%left", "%%", "%nonassoc", "%right", "%skip", "%token"}
+  Parser Action Table:
+    Shifts:
+      "%token" -> State<30>
+  Go To Table:
+    TokenDefinition -> State<37>
+  Error Recovery State: <none>
+
+State<29>:
+  Grammar Items:
+    TokenDefinitions: OptionalInjection TokenDefinition .  #(NonAssoc, 0): TokenSet{"%inject", "%left", "%%", "%nonassoc", "%right", "%skip", "%token"}
+  Parser Action Table:
+    Reductions:
+      "%inject" | "%left" | "%%" | "%nonassoc" | "%right" | "%skip" | "%token": reduce TokenDefinitions: OptionalInjection TokenDefinition #(NonAssoc, 0)
+  Go To Table:
+    <empty>
+  Error Recovery State: <none>
+
+State<30>:
+  Grammar Items:
+    TokenDefinition: "%token" . NewTokenName Literal #(NonAssoc, 0): TokenSet{"%inject", "%left", "%%", "%nonassoc", "%right", "%skip", "%token"}
+    TokenDefinition: "%token" . NewTokenName RegularExpression #(NonAssoc, 0): TokenSet{"%inject", "%left", "%%", "%nonassoc", "%right", "%skip", "%token"}
+    NewTokenName: . Ident #(NonAssoc, 0) ?( !Self::is_allowable_name($1.matched_text()) ?): TokenSet{Literal, RegEx}
+    NewTokenName: . Ident #(NonAssoc, 0): TokenSet{Literal, RegEx}
+  Parser Action Table:
+    Shifts:
+      Ident -> State<39>
+  Go To Table:
+    NewTokenName -> State<38>
+  Error Recovery State: <none>
+
+State<31>:
+  Grammar Items:
+    Configuration: AttributeType OptionalInjection TargetType OptionalInjection . ExpectedConflicts OptionalInjection #(NonAssoc, 0): TokenSet{"%%"}
+    ExpectedConflicts: . <empty> #(NonAssoc, 0): TokenSet{"%inject", "%%"}
+    ExpectedConflicts: . ExpectedRRConflicts OptionalInjection ExpectedSRConflicts #(NonAssoc, 0): TokenSet{"%inject", "%%"}
+    ExpectedConflicts: . ExpectedSRConflicts OptionalInjection ExpectedRRConflicts #(NonAssoc, 0): TokenSet{"%inject", "%%"}
+    ExpectedConflicts: . ExpectedRRConflicts #(NonAssoc, 0): TokenSet{"%inject", "%%"}
+    ExpectedConflicts: . ExpectedSRConflicts #(NonAssoc, 0): TokenSet{"%inject", "%%"}
+    ExpectedRRConflicts: . "%reduce_reduce" Number #(NonAssoc, 0): TokenSet{"%inject", "%%", "%shift_reduce"}
+    ExpectedSRConflicts: . "%shift_reduce" Number #(NonAssoc, 0): TokenSet{"%inject", "%%", "%reduce_reduce"}
+  Parser Action Table:
+    Shifts:
+      "%reduce_reduce" -> State<43>
+      "%shift_reduce" -> State<44>
+    Reductions:
+      "%inject" | "%%": reduce ExpectedConflicts: <empty> #(NonAssoc, 0)
+  Go To Table:
+    ExpectedConflicts -> State<40>
+    ExpectedRRConflicts -> State<41>
+    ExpectedSRConflicts -> State<42>
+  Error Recovery State: <none>
+
+State<32>:
+  Grammar Items:
+    Configuration: TargetType OptionalInjection AttributeType OptionalInjection . ExpectedConflicts OptionalInjection #(NonAssoc, 0): TokenSet{"%%"}
+    ExpectedConflicts: . <empty> #(NonAssoc, 0): TokenSet{"%inject", "%%"}
+    ExpectedConflicts: . ExpectedRRConflicts OptionalInjection ExpectedSRConflicts #(NonAssoc, 0): TokenSet{"%inject", "%%"}
+    ExpectedConflicts: . ExpectedSRConflicts OptionalInjection ExpectedRRConflicts #(NonAssoc, 0): TokenSet{"%inject", "%%"}
+    ExpectedConflicts: . ExpectedRRConflicts #(NonAssoc, 0): TokenSet{"%inject", "%%"}
+    ExpectedConflicts: . ExpectedSRConflicts #(NonAssoc, 0): TokenSet{"%inject", "%%"}
+    ExpectedRRConflicts: . "%reduce_reduce" Number #(NonAssoc, 0): TokenSet{"%inject", "%%", "%shift_reduce"}
+    ExpectedSRConflicts: . "%shift_reduce" Number #(NonAssoc, 0): TokenSet{"%inject", "%%", "%reduce_reduce"}
+  Parser Action Table:
+    Shifts:
+      "%reduce_reduce" -> State<43>
+      "%shift_reduce" -> State<44>
+    Reductions:
+      "%inject" | "%%": reduce ExpectedConflicts: <empty> #(NonAssoc, 0)
+  Go To Table:
+    ExpectedConflicts -> State<45>
+    ExpectedRRConflicts -> State<41>
+    ExpectedSRConflicts -> State<42>
+  Error Recovery State: <none>
+
+State<33>:
+  Grammar Items:
+    Specification: Preamble Configuration "%%" Definitions "%%" ProductionRules .  #(NonAssoc, 0): TokenSet{AAEnd}
+    ProductionRules: ProductionRules . ProductionGroup OptionalInjection #(NonAssoc, 0): TokenSet{Ident, AAEnd}
+    ProductionGroup: . ProductionGroupHead ProductionTailList "." #(NonAssoc, 0): TokenSet{"%inject", Ident, AAEnd}
+    ProductionGroupHead: . Ident ":" #(NonAssoc, 0): TokenSet{".", "%error", "|", ActionCode, Ident, Literal, PredicateExpr}
+  Parser Action Table:
+    Shifts:
+      Ident -> State<48>
+    Reductions:
+      AAEnd: reduce Specification: Preamble Configuration "%%" Definitions "%%" ProductionRules #(NonAssoc, 0)
+  Go To Table:
+    ProductionGroup -> State<46>
+    ProductionGroupHead -> State<47>
+  Error Recovery State: <none>
+
+State<34>:
+  Grammar Items:
+    ProductionRules: OptionalInjection . ProductionGroup OptionalInjection #(NonAssoc, 0): TokenSet{Ident, AAEnd}
+    ProductionGroup: . ProductionGroupHead ProductionTailList "." #(NonAssoc, 0): TokenSet{"%inject", Ident, AAEnd}
+    ProductionGroupHead: . Ident ":" #(NonAssoc, 0): TokenSet{".", "%error", "|", ActionCode, Ident, Literal, PredicateExpr}
+  Parser Action Table:
+    Shifts:
+      Ident -> State<48>
+  Go To Table:
+    ProductionGroup -> State<49>
+    ProductionGroupHead -> State<47>
+  Error Recovery State: <none>
+
+State<35>:
+  Grammar Items:
+    OptionalInjection: . <empty> #(NonAssoc, 0): TokenSet{"%left", "%nonassoc", "%right"}
+    OptionalInjection: . Injection #(NonAssoc, 0): TokenSet{"%left", "%nonassoc", "%right"}
+    InjectionHead: . "%inject" Literal #(Right, 1): TokenSet{"."}
+    Injection: . InjectionHead "." #(NonAssoc, 0): TokenSet{"%left", "%nonassoc", "%right"}
+    Definitions: TokenDefinitions SkipDefinitions PrecedenceDefinitions .  #(NonAssoc, 0): TokenSet{"%%"}
+    PrecedenceDefinitions: PrecedenceDefinitions . OptionalInjection PrecedenceDefinition OptionalInjection #(NonAssoc, 0): TokenSet{"%inject", "%left", "%%", "%nonassoc", "%right"}
+  Parser Action Table:
+    Shifts:
+      "%inject" -> State<4>
+    Reductions:
+      "%left" | "%nonassoc" | "%right": reduce OptionalInjection: <empty> #(NonAssoc, 0)
+      "%%": reduce Definitions: TokenDefinitions SkipDefinitions PrecedenceDefinitions #(NonAssoc, 0)
+  Go To Table:
+    Injection -> State<3>
+    InjectionHead -> State<5>
+    OptionalInjection -> State<50>
+  Error Recovery State: <none>
+
+State<36>:
+  Grammar Items:
+    SkipDefinitions: SkipDefinitions OptionalInjection . SkipDefinition OptionalInjection #(NonAssoc, 0): TokenSet{"%inject", "%left", "%%", "%nonassoc", "%right", "%skip"}
+    SkipDefinition: . "%skip" RegularExpression #(NonAssoc, 0): TokenSet{"%inject", "%left", "%%", "%nonassoc", "%right", "%skip"}
+  Parser Action Table:
+    Shifts:
+      "%skip" -> State<52>
+  Go To Table:
+    SkipDefinition -> State<51>
+  Error Recovery State: <none>
+
+State<37>:
+  Grammar Items:
+    OptionalInjection: . <empty> #(NonAssoc, 0): TokenSet{"%left", "%%", "%nonassoc", "%right", "%skip", "%token"}
+    OptionalInjection: . Injection #(NonAssoc, 0): TokenSet{"%inject", "%left", "%%", "%nonassoc", "%right", "%skip", "%token"}
+    InjectionHead: . "%inject" Literal #(Right, 1): TokenSet{"."}
+    Injection: . InjectionHead "." #(NonAssoc, 0): TokenSet{"%inject", "%left", "%%", "%nonassoc", "%right", "%skip", "%token"}
+    TokenDefinitions: TokenDefinitions OptionalInjection TokenDefinition . OptionalInjection #(NonAssoc, 0): TokenSet{"%inject", "%left", "%%", "%nonassoc", "%right", "%skip", "%token"}
+  Parser Action Table:
+    Shifts:
+      "%inject" -> State<4>
+    Reductions:
+      "%left" | "%%" | "%nonassoc" | "%right" | "%skip" | "%token": reduce OptionalInjection: <empty> #(NonAssoc, 0)
+  Go To Table:
+    Injection -> State<3>
+    InjectionHead -> State<5>
+    OptionalInjection -> State<53>
+  Error Recovery State: <none>
+
+State<38>:
+  Grammar Items:
+    TokenDefinition: "%token" NewTokenName . Literal #(NonAssoc, 0): TokenSet{"%inject", "%left", "%%", "%nonassoc", "%right", "%skip", "%token"}
+    TokenDefinition: "%token" NewTokenName . RegularExpression #(NonAssoc, 0): TokenSet{"%inject", "%left", "%%", "%nonassoc", "%right", "%skip", "%token"}
+    RegularExpression: . RegEx #(NonAssoc, 0): TokenSet{"%inject", "%left", "%%", "%nonassoc", "%right", "%skip", "%token"}
+  Parser Action Table:
+    Shifts:
+      Literal -> State<54>
+      RegEx -> State<56>
+  Go To Table:
+    RegularExpression -> State<55>
+  Error Recovery State: <none>
+
+State<39>:
+  Grammar Items:
+    NewTokenName: Ident .  #(NonAssoc, 0) ?( !Self::is_allowable_name($1.matched_text()) ?): TokenSet{Literal, RegEx}
+    NewTokenName: Ident .  #(NonAssoc, 0): TokenSet{Literal, RegEx}
+  Parser Action Table:
+    Reductions:
+      Literal | RegEx: reduce NewTokenName: Ident #(NonAssoc, 0) ?( !Self::is_allowable_name($1.matched_text()) ?)
+      Literal | RegEx: reduce NewTokenName: Ident #(NonAssoc, 0)
+  Go To Table:
+    <empty>
+  Error Recovery State: <none>
+
+State<40>:
+  Grammar Items:
+    OptionalInjection: . <empty> #(NonAssoc, 0): TokenSet{"%%"}
+    OptionalInjection: . Injection #(NonAssoc, 0): TokenSet{"%%"}
+    InjectionHead: . "%inject" Literal #(Right, 1): TokenSet{"."}
+    Injection: . InjectionHead "." #(NonAssoc, 0): TokenSet{"%%"}
+    Configuration: AttributeType OptionalInjection TargetType OptionalInjection ExpectedConflicts . OptionalInjection #(NonAssoc, 0): TokenSet{"%%"}
+  Parser Action Table:
+    Shifts:
+      "%inject" -> State<4>
+    Reductions:
+      "%%": reduce OptionalInjection: <empty> #(NonAssoc, 0)
+  Go To Table:
+    Injection -> State<3>
+    InjectionHead -> State<5>
+    OptionalInjection -> State<57>
+  Error Recovery State: <none>
+
+State<41>:
+  Grammar Items:
+    OptionalInjection: . <empty> #(NonAssoc, 0): TokenSet{"%shift_reduce"}
+    OptionalInjection: . Injection #(NonAssoc, 0): TokenSet{"%shift_reduce"}
+    InjectionHead: . "%inject" Literal #(Right, 1): TokenSet{"."}
+    Injection: . InjectionHead "." #(NonAssoc, 0): TokenSet{"%shift_reduce"}
+    ExpectedConflicts: ExpectedRRConflicts . OptionalInjection ExpectedSRConflicts #(NonAssoc, 0): TokenSet{"%inject", "%%"}
+    ExpectedConflicts: ExpectedRRConflicts .  #(NonAssoc, 0): TokenSet{"%%"}
+  Parser Action Table:
+    Shifts:
+      "%inject" -> State<4>
+    Reductions:
+      "%shift_reduce": reduce OptionalInjection: <empty> #(NonAssoc, 0)
+      "%%": reduce ExpectedConflicts: ExpectedRRConflicts #(NonAssoc, 0)
+  Go To Table:
+    Injection -> State<3>
+    InjectionHead -> State<5>
+    OptionalInjection -> State<58>
+  Error Recovery State: <none>
+
+State<42>:
+  Grammar Items:
+    OptionalInjection: . <empty> #(NonAssoc, 0): TokenSet{"%reduce_reduce"}
+    OptionalInjection: . Injection #(NonAssoc, 0): TokenSet{"%reduce_reduce"}
+    InjectionHead: . "%inject" Literal #(Right, 1): TokenSet{"."}
+    Injection: . InjectionHead "." #(NonAssoc, 0): TokenSet{"%reduce_reduce"}
+    ExpectedConflicts: ExpectedSRConflicts . OptionalInjection ExpectedRRConflicts #(NonAssoc, 0): TokenSet{"%inject", "%%"}
+    ExpectedConflicts: ExpectedSRConflicts .  #(NonAssoc, 0): TokenSet{"%%"}
+  Parser Action Table:
+    Shifts:
+      "%inject" -> State<4>
+    Reductions:
+      "%reduce_reduce": reduce OptionalInjection: <empty> #(NonAssoc, 0)
+      "%%": reduce ExpectedConflicts: ExpectedSRConflicts #(NonAssoc, 0)
+  Go To Table:
+    Injection -> State<3>
+    InjectionHead -> State<5>
+    OptionalInjection -> State<59>
+  Error Recovery State: <none>
+
+State<43>:
+  Grammar Items:
+    ExpectedRRConflicts: "%reduce_reduce" . Number #(NonAssoc, 0): TokenSet{"%inject", "%%", "%shift_reduce"}
+    Number: . NumberExpr #(NonAssoc, 0): TokenSet{"%inject", "%%", "%shift_reduce"}
+  Parser Action Table:
+    Shifts:
+      NumberExpr -> State<61>
+  Go To Table:
+    Number -> State<60>
+  Error Recovery State: <none>
+
+State<44>:
+  Grammar Items:
+    ExpectedSRConflicts: "%shift_reduce" . Number #(NonAssoc, 0): TokenSet{"%inject", "%%", "%reduce_reduce"}
+    Number: . NumberExpr #(NonAssoc, 0): TokenSet{"%inject", "%%", "%reduce_reduce"}
+  Parser Action Table:
+    Shifts:
+      NumberExpr -> State<61>
+  Go To Table:
+    Number -> State<62>
+  Error Recovery State: <none>
+
+State<45>:
+  Grammar Items:
+    OptionalInjection: . <empty> #(NonAssoc, 0): TokenSet{"%%"}
+    OptionalInjection: . Injection #(NonAssoc, 0): TokenSet{"%%"}
+    InjectionHead: . "%inject" Literal #(Right, 1): TokenSet{"."}
+    Injection: . InjectionHead "." #(NonAssoc, 0): TokenSet{"%%"}
+    Configuration: TargetType OptionalInjection AttributeType OptionalInjection ExpectedConflicts . OptionalInjection #(NonAssoc, 0): TokenSet{"%%"}
+  Parser Action Table:
+    Shifts:
+      "%inject" -> State<4>
+    Reductions:
+      "%%": reduce OptionalInjection: <empty> #(NonAssoc, 0)
+  Go To Table:
+    Injection -> State<3>
+    InjectionHead -> State<5>
+    OptionalInjection -> State<63>
+  Error Recovery State: <none>
+
+State<46>:
+  Grammar Items:
+    OptionalInjection: . <empty> #(NonAssoc, 0): TokenSet{Ident, AAEnd}
+    OptionalInjection: . Injection #(NonAssoc, 0): TokenSet{Ident, AAEnd}
+    InjectionHead: . "%inject" Literal #(Right, 1): TokenSet{"."}
+    Injection: . InjectionHead "." #(NonAssoc, 0): TokenSet{Ident, AAEnd}
+    ProductionRules: ProductionRules ProductionGroup . OptionalInjection #(NonAssoc, 0): TokenSet{Ident, AAEnd}
+  Parser Action Table:
+    Shifts:
+      "%inject" -> State<4>
+    Reductions:
+      Ident | AAEnd: reduce OptionalInjection: <empty> #(NonAssoc, 0)
+  Go To Table:
+    Injection -> State<3>
+    InjectionHead -> State<5>
+    OptionalInjection -> State<64>
+  Error Recovery State: <none>
+
+State<47>:
+  Grammar Items:
+    ProductionGroup: ProductionGroupHead . ProductionTailList "." #(NonAssoc, 0): TokenSet{"%inject", Ident, AAEnd}
+    ProductionTailList: . ProductionTail #(NonAssoc, 0): TokenSet{".", "|"}
+    ProductionTailList: . ProductionTailList "|" ProductionTail #(NonAssoc, 0): TokenSet{".", "|"}
+    ProductionTail: . <empty> #(NonAssoc, 0): TokenSet{".", "|"}
+    ProductionTail: . Action #(NonAssoc, 0): TokenSet{".", "|"}
+    ProductionTail: . Predicate Action #(NonAssoc, 0): TokenSet{".", "|"}
+    ProductionTail: . Predicate #(NonAssoc, 0): TokenSet{".", "|"}
+    ProductionTail: . SymbolList Predicate TaggedPrecedence Action #(NonAssoc, 0): TokenSet{".", "|"}
+    ProductionTail: . SymbolList Predicate TaggedPrecedence #(NonAssoc, 0): TokenSet{".", "|"}
+    ProductionTail: . SymbolList Predicate Action #(NonAssoc, 0): TokenSet{".", "|"}
+    ProductionTail: . SymbolList Predicate #(NonAssoc, 0): TokenSet{".", "|"}
+    ProductionTail: . SymbolList TaggedPrecedence Action #(NonAssoc, 0): TokenSet{".", "|"}
+    ProductionTail: . SymbolList TaggedPrecedence #(NonAssoc, 0): TokenSet{".", "|"}
+    ProductionTail: . SymbolList Action #(NonAssoc, 0): TokenSet{".", "|"}
+    ProductionTail: . SymbolList #(NonAssoc, 0): TokenSet{".", "|"}
+    Action: . ActionCode #(NonAssoc, 0): TokenSet{".", "|"}
+    Predicate: . PredicateExpr #(NonAssoc, 0): TokenSet{".", "|", ActionCode}
+    SymbolList: . Symbol #(NonAssoc, 0): TokenSet{".", "%error", "%prec", "|", ActionCode, Ident, Literal, PredicateExpr}
+    SymbolList: . SymbolList Symbol #(NonAssoc, 0): TokenSet{".", "%error", "%prec", "|", ActionCode, Ident, Literal, PredicateExpr}
+    Symbol: . Ident #(NonAssoc, 0): TokenSet{".", "%error", "%prec", "|", ActionCode, Ident, Literal, PredicateExpr}
+    Symbol: . Literal #(NonAssoc, 0): TokenSet{".", "%error", "%prec", "|", ActionCode, Ident, Literal, PredicateExpr}
+    Symbol: . "%error" #(NonAssoc, 0): TokenSet{".", "%error", "%prec", "|", ActionCode, Ident, Literal, PredicateExpr}
+  Parser Action Table:
+    Shifts:
+      "%error" -> State<75>
+      ActionCode -> State<70>
+      Ident -> State<73>
+      Literal -> State<74>
+      PredicateExpr -> State<71>
+    Reductions:
+      "." | "|": reduce ProductionTail: <empty> #(NonAssoc, 0)
+  Go To Table:
+    Action -> State<67>
+    Predicate -> State<68>
+    ProductionTail -> State<66>
+    ProductionTailList -> State<65>
+    Symbol -> State<72>
+    SymbolList -> State<69>
+  Error Recovery State: <none>
+
+State<48>:
+  Grammar Items:
+    ProductionGroupHead: Ident . ":" #(NonAssoc, 0): TokenSet{".", "%error", "|", ActionCode, Ident, Literal, PredicateExpr}
+  Parser Action Table:
+    Shifts:
+      ":" -> State<76>
+  Go To Table:
+    <empty>
+  Error Recovery State: <none>
+
+State<49>:
+  Grammar Items:
+    OptionalInjection: . <empty> #(NonAssoc, 0): TokenSet{Ident, AAEnd}
+    OptionalInjection: . Injection #(NonAssoc, 0): TokenSet{Ident, AAEnd}
+    InjectionHead: . "%inject" Literal #(Right, 1): TokenSet{"."}
+    Injection: . InjectionHead "." #(NonAssoc, 0): TokenSet{Ident, AAEnd}
+    ProductionRules: OptionalInjection ProductionGroup . OptionalInjection #(NonAssoc, 0): TokenSet{Ident, AAEnd}
+  Parser Action Table:
+    Shifts:
+      "%inject" -> State<4>
+    Reductions:
+      Ident | AAEnd: reduce OptionalInjection: <empty> #(NonAssoc, 0)
+  Go To Table:
+    Injection -> State<3>
+    InjectionHead -> State<5>
+    OptionalInjection -> State<77>
+  Error Recovery State: <none>
+
+State<50>:
+  Grammar Items:
+    PrecedenceDefinitions: PrecedenceDefinitions OptionalInjection . PrecedenceDefinition OptionalInjection #(NonAssoc, 0): TokenSet{"%inject", "%left", "%%", "%nonassoc", "%right"}
+    PrecedenceDefinition: . "%left" TagList #(NonAssoc, 0): TokenSet{"%inject", "%left", "%%", "%nonassoc", "%right"}
+    PrecedenceDefinition: . "%right" TagList #(NonAssoc, 0): TokenSet{"%inject", "%left", "%%", "%nonassoc", "%right"}
+    PrecedenceDefinition: . "%nonassoc" TagList #(NonAssoc, 0): TokenSet{"%inject", "%left", "%%", "%nonassoc", "%right"}
+  Parser Action Table:
+    Shifts:
+      "%left" -> State<79>
+      "%nonassoc" -> State<81>
+      "%right" -> State<80>
+  Go To Table:
+    PrecedenceDefinition -> State<78>
+  Error Recovery State: <none>
+
+State<51>:
+  Grammar Items:
+    OptionalInjection: . <empty> #(NonAssoc, 0): TokenSet{"%left", "%%", "%nonassoc", "%right", "%skip"}
+    OptionalInjection: . Injection #(NonAssoc, 0): TokenSet{"%inject", "%left", "%%", "%nonassoc", "%right", "%skip"}
+    InjectionHead: . "%inject" Literal #(Right, 1): TokenSet{"."}
+    Injection: . InjectionHead "." #(NonAssoc, 0): TokenSet{"%inject", "%left", "%%", "%nonassoc", "%right", "%skip"}
+    SkipDefinitions: SkipDefinitions OptionalInjection SkipDefinition . OptionalInjection #(NonAssoc, 0): TokenSet{"%inject", "%left", "%%", "%nonassoc", "%right", "%skip"}
+  Parser Action Table:
+    Shifts:
+      "%inject" -> State<4>
+    Reductions:
+      "%left" | "%%" | "%nonassoc" | "%right" | "%skip": reduce OptionalInjection: <empty> #(NonAssoc, 0)
+  Go To Table:
+    Injection -> State<3>
+    InjectionHead -> State<5>
+    OptionalInjection -> State<82>
+  Error Recovery State: <none>
+
+State<52>:
+  Grammar Items:
+    RegularExpression: . RegEx #(NonAssoc, 0): TokenSet{"%inject", "%left", "%%", "%nonassoc", "%right", "%skip"}
+    SkipDefinition: "%skip" . RegularExpression #(NonAssoc, 0): TokenSet{"%inject", "%left", "%%", "%nonassoc", "%right", "%skip"}
+  Parser Action Table:
+    Shifts:
+      RegEx -> State<56>
+  Go To Table:
+    RegularExpression -> State<83>
+  Error Recovery State: <none>
+
+State<53>:
+  Grammar Items:
+    TokenDefinitions: TokenDefinitions OptionalInjection TokenDefinition OptionalInjection .  #(NonAssoc, 0): TokenSet{"%inject", "%left", "%%", "%nonassoc", "%right", "%skip", "%token"}
+  Parser Action Table:
+    Reductions:
+      "%inject" | "%left" | "%%" | "%nonassoc" | "%right" | "%skip" | "%token": reduce TokenDefinitions: TokenDefinitions OptionalInjection TokenDefinition OptionalInjection #(NonAssoc, 0)
+  Go To Table:
+    <empty>
+  Error Recovery State: <none>
+
+State<54>:
+  Grammar Items:
+    TokenDefinition: "%token" NewTokenName Literal .  #(NonAssoc, 0): TokenSet{"%inject", "%left", "%%", "%nonassoc", "%right", "%skip", "%token"}
+  Parser Action Table:
+    Reductions:
+      "%inject" | "%left" | "%%" | "%nonassoc" | "%right" | "%skip" | "%token": reduce TokenDefinition: "%token" NewTokenName Literal #(NonAssoc, 0)
+  Go To Table:
+    <empty>
+  Error Recovery State: <none>
+
+State<55>:
+  Grammar Items:
+    TokenDefinition: "%token" NewTokenName RegularExpression .  #(NonAssoc, 0): TokenSet{"%inject", "%left", "%%", "%nonassoc", "%right", "%skip", "%token"}
+  Parser Action Table:
+    Reductions:
+      "%inject" | "%left" | "%%" | "%nonassoc" | "%right" | "%skip" | "%token": reduce TokenDefinition: "%token" NewTokenName RegularExpression #(NonAssoc, 0)
+  Go To Table:
+    <empty>
+  Error Recovery State: <none>
+
+State<56>:
+  Grammar Items:
+    RegularExpression: RegEx .  #(NonAssoc, 0): TokenSet{"%inject", "%left", "%%", "%nonassoc", "%right", "%skip", "%token"}
+  Parser Action Table:
+    Reductions:
+      "%inject" | "%left" | "%%" | "%nonassoc" | "%right" | "%skip" | "%token": reduce RegularExpression: RegEx #(NonAssoc, 0)
+  Go To Table:
+    <empty>
+  Error Recovery State: <none>
+
+State<57>:
+  Grammar Items:
+    Configuration: AttributeType OptionalInjection TargetType OptionalInjection ExpectedConflicts OptionalInjection .  #(NonAssoc, 0): TokenSet{"%%"}
+  Parser Action Table:
+    Reductions:
+      "%%": reduce Configuration: AttributeType OptionalInjection TargetType OptionalInjection ExpectedConflicts OptionalInjection #(NonAssoc, 0)
+  Go To Table:
+    <empty>
+  Error Recovery State: <none>
+
+State<58>:
+  Grammar Items:
+    ExpectedConflicts: ExpectedRRConflicts OptionalInjection . ExpectedSRConflicts #(NonAssoc, 0): TokenSet{"%inject", "%%"}
+    ExpectedSRConflicts: . "%shift_reduce" Number #(NonAssoc, 0): TokenSet{"%inject", "%%"}
+  Parser Action Table:
+    Shifts:
+      "%shift_reduce" -> State<44>
+  Go To Table:
+    ExpectedSRConflicts -> State<84>
+  Error Recovery State: <none>
+
+State<59>:
+  Grammar Items:
+    ExpectedConflicts: ExpectedSRConflicts OptionalInjection . ExpectedRRConflicts #(NonAssoc, 0): TokenSet{"%inject", "%%"}
+    ExpectedRRConflicts: . "%reduce_reduce" Number #(NonAssoc, 0): TokenSet{"%inject", "%%"}
+  Parser Action Table:
+    Shifts:
+      "%reduce_reduce" -> State<43>
+  Go To Table:
+    ExpectedRRConflicts -> State<85>
+  Error Recovery State: <none>
+
+State<60>:
+  Grammar Items:
+    ExpectedRRConflicts: "%reduce_reduce" Number .  #(NonAssoc, 0): TokenSet{"%inject", "%%", "%shift_reduce"}
+  Parser Action Table:
+    Reductions:
+      "%inject" | "%%" | "%shift_reduce": reduce ExpectedRRConflicts: "%reduce_reduce" Number #(NonAssoc, 0)
+  Go To Table:
+    <empty>
+  Error Recovery State: <none>
+
+State<61>:
+  Grammar Items:
+    Number: NumberExpr .  #(NonAssoc, 0): TokenSet{"%inject", "%%", "%reduce_reduce", "%shift_reduce"}
+  Parser Action Table:
+    Reductions:
+      "%inject" | "%%" | "%reduce_reduce" | "%shift_reduce": reduce Number: NumberExpr #(NonAssoc, 0)
+  Go To Table:
+    <empty>
+  Error Recovery State: <none>
+
+State<62>:
+  Grammar Items:
+    ExpectedSRConflicts: "%shift_reduce" Number .  #(NonAssoc, 0): TokenSet{"%inject", "%%", "%reduce_reduce"}
+  Parser Action Table:
+    Reductions:
+      "%inject" | "%%" | "%reduce_reduce": reduce ExpectedSRConflicts: "%shift_reduce" Number #(NonAssoc, 0)
+  Go To Table:
+    <empty>
+  Error Recovery State: <none>
+
+State<63>:
+  Grammar Items:
+    Configuration: TargetType OptionalInjection AttributeType OptionalInjection ExpectedConflicts OptionalInjection .  #(NonAssoc, 0): TokenSet{"%%"}
+  Parser Action Table:
+    Reductions:
+      "%%": reduce Configuration: TargetType OptionalInjection AttributeType OptionalInjection ExpectedConflicts OptionalInjection #(NonAssoc, 0)
+  Go To Table:
+    <empty>
+  Error Recovery State: <none>
+
+State<64>:
+  Grammar Items:
+    ProductionRules: ProductionRules ProductionGroup OptionalInjection .  #(NonAssoc, 0): TokenSet{Ident, AAEnd}
+  Parser Action Table:
+    Reductions:
+      Ident | AAEnd: reduce ProductionRules: ProductionRules ProductionGroup OptionalInjection #(NonAssoc, 0)
+  Go To Table:
+    <empty>
+  Error Recovery State: <none>
+
+State<65>:
+  Grammar Items:
+    ProductionGroup: ProductionGroupHead ProductionTailList . "." #(NonAssoc, 0): TokenSet{"%inject", Ident, AAEnd}
+    ProductionTailList: ProductionTailList . "|" ProductionTail #(NonAssoc, 0): TokenSet{".", "|"}
+  Parser Action Table:
+    Shifts:
+      "." -> State<86>
+      "|" -> State<87>
+  Go To Table:
+    <empty>
+  Error Recovery State: <none>
+
+State<66>:
+  Grammar Items:
+    ProductionTailList: ProductionTail .  #(NonAssoc, 0): TokenSet{".", "|"}
+  Parser Action Table:
+    Reductions:
+      "." | "|": reduce ProductionTailList: ProductionTail #(NonAssoc, 0)
+  Go To Table:
+    <empty>
+  Error Recovery State: <none>
+
+State<67>:
+  Grammar Items:
+    ProductionTail: Action .  #(NonAssoc, 0): TokenSet{".", "|"}
+  Parser Action Table:
+    Reductions:
+      "." | "|": reduce ProductionTail: Action #(NonAssoc, 0)
+  Go To Table:
+    <empty>
+  Error Recovery State: <none>
+
+State<68>:
+  Grammar Items:
+    ProductionTail: Predicate . Action #(NonAssoc, 0): TokenSet{".", "|"}
+    ProductionTail: Predicate .  #(NonAssoc, 0): TokenSet{".", "|"}
+    Action: . ActionCode #(NonAssoc, 0): TokenSet{".", "|"}
+  Parser Action Table:
+    Shifts:
+      ActionCode -> State<70>
+    Reductions:
+      "." | "|": reduce ProductionTail: Predicate #(NonAssoc, 0)
+  Go To Table:
+    Action -> State<88>
+  Error Recovery State: <none>
+
+State<69>:
+  Grammar Items:
+    ProductionTail: SymbolList . Predicate TaggedPrecedence Action #(NonAssoc, 0): TokenSet{".", "|"}
+    ProductionTail: SymbolList . Predicate TaggedPrecedence #(NonAssoc, 0): TokenSet{".", "|"}
+    ProductionTail: SymbolList . Predicate Action #(NonAssoc, 0): TokenSet{".", "|"}
+    ProductionTail: SymbolList . Predicate #(NonAssoc, 0): TokenSet{".", "|"}
+    ProductionTail: SymbolList . TaggedPrecedence Action #(NonAssoc, 0): TokenSet{".", "|"}
+    ProductionTail: SymbolList . TaggedPrecedence #(NonAssoc, 0): TokenSet{".", "|"}
+    ProductionTail: SymbolList . Action #(NonAssoc, 0): TokenSet{".", "|"}
+    ProductionTail: SymbolList .  #(NonAssoc, 0): TokenSet{".", "|"}
+    Action: . ActionCode #(NonAssoc, 0): TokenSet{".", "|"}
+    Predicate: . PredicateExpr #(NonAssoc, 0): TokenSet{".", "%prec", "|", ActionCode}
+    TaggedPrecedence: . "%prec" Ident #(NonAssoc, 0): TokenSet{".", "|", ActionCode}
+    TaggedPrecedence: . "%prec" Literal #(NonAssoc, 0): TokenSet{".", "|", ActionCode}
+    SymbolList: SymbolList . Symbol #(NonAssoc, 0): TokenSet{".", "%error", "%prec", "|", ActionCode, Ident, Literal, PredicateExpr}
+    Symbol: . Ident #(NonAssoc, 0): TokenSet{".", "%error", "%prec", "|", ActionCode, Ident, Literal, PredicateExpr}
+    Symbol: . Literal #(NonAssoc, 0): TokenSet{".", "%error", "%prec", "|", ActionCode, Ident, Literal, PredicateExpr}
+    Symbol: . "%error" #(NonAssoc, 0): TokenSet{".", "%error", "%prec", "|", ActionCode, Ident, Literal, PredicateExpr}
+  Parser Action Table:
+    Shifts:
+      "%error" -> State<75>
+      "%prec" -> State<92>
+      ActionCode -> State<70>
+      Ident -> State<73>
+      Literal -> State<74>
+      PredicateExpr -> State<71>
+    Reductions:
+      "." | "|": reduce ProductionTail: SymbolList #(NonAssoc, 0)
+  Go To Table:
+    Action -> State<91>
+    Predicate -> State<89>
+    Symbol -> State<93>
+    TaggedPrecedence -> State<90>
+  Error Recovery State: <none>
+
+State<70>:
+  Grammar Items:
+    Action: ActionCode .  #(NonAssoc, 0): TokenSet{".", "|"}
+  Parser Action Table:
+    Reductions:
+      "." | "|": reduce Action: ActionCode #(NonAssoc, 0)
+  Go To Table:
+    <empty>
+  Error Recovery State: <none>
+
+State<71>:
+  Grammar Items:
+    Predicate: PredicateExpr .  #(NonAssoc, 0): TokenSet{".", "%prec", "|", ActionCode}
+  Parser Action Table:
+    Reductions:
+      "." | "%prec" | "|" | ActionCode: reduce Predicate: PredicateExpr #(NonAssoc, 0)
+  Go To Table:
+    <empty>
+  Error Recovery State: <none>
+
+State<72>:
+  Grammar Items:
+    SymbolList: Symbol .  #(NonAssoc, 0): TokenSet{".", "%error", "%prec", "|", ActionCode, Ident, Literal, PredicateExpr}
+  Parser Action Table:
+    Reductions:
+      "." | "%error" | "%prec" | "|" | ActionCode | Ident | Literal | PredicateExpr: reduce SymbolList: Symbol #(NonAssoc, 0)
+  Go To Table:
+    <empty>
+  Error Recovery State: <none>
+
+State<73>:
+  Grammar Items:
+    Symbol: Ident .  #(NonAssoc, 0): TokenSet{".", "%error", "%prec", "|", ActionCode, Ident, Literal, PredicateExpr}
+  Parser Action Table:
+    Reductions:
+      "." | "%error" | "%prec" | "|" | ActionCode | Ident | Literal | PredicateExpr: reduce Symbol: Ident #(NonAssoc, 0)
+  Go To Table:
+    <empty>
+  Error Recovery State: <none>
+
+State<74>:
+  Grammar Items:
+    Symbol: Literal .  #(NonAssoc, 0): TokenSet{".", "%error", "%prec", "|", ActionCode, Ident, Literal, PredicateExpr}
+  Parser Action Table:
+    Reductions:
+      "." | "%error" | "%prec" | "|" | ActionCode | Ident | Literal | PredicateExpr: reduce Symbol: Literal #(NonAssoc, 0)
+  Go To Table:
+    <empty>
+  Error Recovery State: <none>
+
+State<75>:
+  Grammar Items:
+    Symbol: "%error" .  #(NonAssoc, 0): TokenSet{".", "%error", "%prec", "|", ActionCode, Ident, Literal, PredicateExpr}
+  Parser Action Table:
+    Reductions:
+      "." | "%error" | "%prec" | "|" | ActionCode | Ident | Literal | PredicateExpr: reduce Symbol: "%error" #(NonAssoc, 0)
+  Go To Table:
+    <empty>
+  Error Recovery State: <none>
+
+State<76>:
+  Grammar Items:
+    ProductionGroupHead: Ident ":" .  #(NonAssoc, 0): TokenSet{".", "%error", "|", ActionCode, Ident, Literal, PredicateExpr}
+  Parser Action Table:
+    Reductions:
+      "." | "%error" | "|" | ActionCode | Ident | Literal | PredicateExpr: reduce ProductionGroupHead: Ident ":" #(NonAssoc, 0)
+  Go To Table:
+    <empty>
+  Error Recovery State: <none>
+
+State<77>:
+  Grammar Items:
+    ProductionRules: OptionalInjection ProductionGroup OptionalInjection .  #(NonAssoc, 0): TokenSet{Ident, AAEnd}
+  Parser Action Table:
+    Reductions:
+      Ident | AAEnd: reduce ProductionRules: OptionalInjection ProductionGroup OptionalInjection #(NonAssoc, 0)
+  Go To Table:
+    <empty>
+  Error Recovery State: <none>
+
+State<78>:
+  Grammar Items:
+    OptionalInjection: . <empty> #(NonAssoc, 0): TokenSet{"%left", "%%", "%nonassoc", "%right"}
+    OptionalInjection: . Injection #(NonAssoc, 0): TokenSet{"%inject", "%left", "%%", "%nonassoc", "%right"}
+    InjectionHead: . "%inject" Literal #(Right, 1): TokenSet{"."}
+    Injection: . InjectionHead "." #(NonAssoc, 0): TokenSet{"%inject", "%left", "%%", "%nonassoc", "%right"}
+    PrecedenceDefinitions: PrecedenceDefinitions OptionalInjection PrecedenceDefinition . OptionalInjection #(NonAssoc, 0): TokenSet{"%inject", "%left", "%%", "%nonassoc", "%right"}
+  Parser Action Table:
+    Shifts:
+      "%inject" -> State<4>
+    Reductions:
+      "%left" | "%%" | "%nonassoc" | "%right": reduce OptionalInjection: <empty> #(NonAssoc, 0)
+  Go To Table:
+    Injection -> State<3>
+    InjectionHead -> State<5>
+    OptionalInjection -> State<94>
+  Error Recovery State: <none>
+
+State<79>:
+  Grammar Items:
+    PrecedenceDefinition: "%left" . TagList #(NonAssoc, 0): TokenSet{"%inject", "%left", "%%", "%nonassoc", "%right"}
+    TagList: . Tag #(NonAssoc, 0): TokenSet{"%inject", "%left", "%%", "%nonassoc", "%right", Ident, Literal}
+    TagList: . TagList Tag #(NonAssoc, 0): TokenSet{"%inject", "%left", "%%", "%nonassoc", "%right", Ident, Literal}
+    Tag: . Literal #(NonAssoc, 0): TokenSet{"%inject", "%left", "%%", "%nonassoc", "%right", Ident, Literal}
+    Tag: . Ident #(NonAssoc, 0): TokenSet{"%inject", "%left", "%%", "%nonassoc", "%right", Ident, Literal}
+  Parser Action Table:
+    Shifts:
+      Ident -> State<98>
+      Literal -> State<97>
+  Go To Table:
+    Tag -> State<96>
+    TagList -> State<95>
+  Error Recovery State: <none>
+
+State<80>:
+  Grammar Items:
+    PrecedenceDefinition: "%right" . TagList #(NonAssoc, 0): TokenSet{"%inject", "%left", "%%", "%nonassoc", "%right"}
+    TagList: . Tag #(NonAssoc, 0): TokenSet{"%inject", "%left", "%%", "%nonassoc", "%right", Ident, Literal}
+    TagList: . TagList Tag #(NonAssoc, 0): TokenSet{"%inject", "%left", "%%", "%nonassoc", "%right", Ident, Literal}
+    Tag: . Literal #(NonAssoc, 0): TokenSet{"%inject", "%left", "%%", "%nonassoc", "%right", Ident, Literal}
+    Tag: . Ident #(NonAssoc, 0): TokenSet{"%inject", "%left", "%%", "%nonassoc", "%right", Ident, Literal}
+  Parser Action Table:
+    Shifts:
+      Ident -> State<98>
+      Literal -> State<97>
+  Go To Table:
+    Tag -> State<96>
+    TagList -> State<99>
+  Error Recovery State: <none>
+
+State<81>:
+  Grammar Items:
+    PrecedenceDefinition: "%nonassoc" . TagList #(NonAssoc, 0): TokenSet{"%inject", "%left", "%%", "%nonassoc", "%right"}
+    TagList: . Tag #(NonAssoc, 0): TokenSet{"%inject", "%left", "%%", "%nonassoc", "%right", Ident, Literal}
+    TagList: . TagList Tag #(NonAssoc, 0): TokenSet{"%inject", "%left", "%%", "%nonassoc", "%right", Ident, Literal}
+    Tag: . Literal #(NonAssoc, 0): TokenSet{"%inject", "%left", "%%", "%nonassoc", "%right", Ident, Literal}
+    Tag: . Ident #(NonAssoc, 0): TokenSet{"%inject", "%left", "%%", "%nonassoc", "%right", Ident, Literal}
+  Parser Action Table:
+    Shifts:
+      Ident -> State<98>
+      Literal -> State<97>
+  Go To Table:
+    Tag -> State<96>
+    TagList -> State<100>
+  Error Recovery State: <none>
+
+State<82>:
+  Grammar Items:
+    SkipDefinitions: SkipDefinitions OptionalInjection SkipDefinition OptionalInjection .  #(NonAssoc, 0): TokenSet{"%inject", "%left", "%%", "%nonassoc", "%right", "%skip"}
+  Parser Action Table:
+    Reductions:
+      "%inject" | "%left" | "%%" | "%nonassoc" | "%right" | "%skip": reduce SkipDefinitions: SkipDefinitions OptionalInjection SkipDefinition OptionalInjection #(NonAssoc, 0)
+  Go To Table:
+    <empty>
+  Error Recovery State: <none>
+
+State<83>:
+  Grammar Items:
+    SkipDefinition: "%skip" RegularExpression .  #(NonAssoc, 0): TokenSet{"%inject", "%left", "%%", "%nonassoc", "%right", "%skip"}
+  Parser Action Table:
+    Reductions:
+      "%inject" | "%left" | "%%" | "%nonassoc" | "%right" | "%skip": reduce SkipDefinition: "%skip" RegularExpression #(NonAssoc, 0)
+  Go To Table:
+    <empty>
+  Error Recovery State: <none>
+
+State<84>:
+  Grammar Items:
+    ExpectedConflicts: ExpectedRRConflicts OptionalInjection ExpectedSRConflicts .  #(NonAssoc, 0): TokenSet{"%inject", "%%"}
+  Parser Action Table:
+    Reductions:
+      "%inject" | "%%": reduce ExpectedConflicts: ExpectedRRConflicts OptionalInjection ExpectedSRConflicts #(NonAssoc, 0)
+  Go To Table:
+    <empty>
+  Error Recovery State: <none>
+
+State<85>:
+  Grammar Items:
+    ExpectedConflicts: ExpectedSRConflicts OptionalInjection ExpectedRRConflicts .  #(NonAssoc, 0): TokenSet{"%inject", "%%"}
+  Parser Action Table:
+    Reductions:
+      "%inject" | "%%": reduce ExpectedConflicts: ExpectedSRConflicts OptionalInjection ExpectedRRConflicts #(NonAssoc, 0)
+  Go To Table:
+    <empty>
+  Error Recovery State: <none>
+
+State<86>:
+  Grammar Items:
+    ProductionGroup: ProductionGroupHead ProductionTailList "." .  #(NonAssoc, 0): TokenSet{"%inject", Ident, AAEnd}
+  Parser Action Table:
+    Reductions:
+      "%inject" | Ident | AAEnd: reduce ProductionGroup: ProductionGroupHead ProductionTailList "." #(NonAssoc, 0)
+  Go To Table:
+    <empty>
+  Error Recovery State: <none>
+
+State<87>:
+  Grammar Items:
+    ProductionTailList: ProductionTailList "|" . ProductionTail #(NonAssoc, 0): TokenSet{".", "|"}
+    ProductionTail: . <empty> #(NonAssoc, 0): TokenSet{".", "|"}
+    ProductionTail: . Action #(NonAssoc, 0): TokenSet{".", "|"}
+    ProductionTail: . Predicate Action #(NonAssoc, 0): TokenSet{".", "|"}
+    ProductionTail: . Predicate #(NonAssoc, 0): TokenSet{".", "|"}
+    ProductionTail: . SymbolList Predicate TaggedPrecedence Action #(NonAssoc, 0): TokenSet{".", "|"}
+    ProductionTail: . SymbolList Predicate TaggedPrecedence #(NonAssoc, 0): TokenSet{".", "|"}
+    ProductionTail: . SymbolList Predicate Action #(NonAssoc, 0): TokenSet{".", "|"}
+    ProductionTail: . SymbolList Predicate #(NonAssoc, 0): TokenSet{".", "|"}
+    ProductionTail: . SymbolList TaggedPrecedence Action #(NonAssoc, 0): TokenSet{".", "|"}
+    ProductionTail: . SymbolList TaggedPrecedence #(NonAssoc, 0): TokenSet{".", "|"}
+    ProductionTail: . SymbolList Action #(NonAssoc, 0): TokenSet{".", "|"}
+    ProductionTail: . SymbolList #(NonAssoc, 0): TokenSet{".", "|"}
+    Action: . ActionCode #(NonAssoc, 0): TokenSet{".", "|"}
+    Predicate: . PredicateExpr #(NonAssoc, 0): TokenSet{".", "|", ActionCode}
+    SymbolList: . Symbol #(NonAssoc, 0): TokenSet{".", "%error", "%prec", "|", ActionCode, Ident, Literal, PredicateExpr}
+    SymbolList: . SymbolList Symbol #(NonAssoc, 0): TokenSet{".", "%error", "%prec", "|", ActionCode, Ident, Literal, PredicateExpr}
+    Symbol: . Ident #(NonAssoc, 0): TokenSet{".", "%error", "%prec", "|", ActionCode, Ident, Literal, PredicateExpr}
+    Symbol: . Literal #(NonAssoc, 0): TokenSet{".", "%error", "%prec", "|", ActionCode, Ident, Literal, PredicateExpr}
+    Symbol: . "%error" #(NonAssoc, 0): TokenSet{".", "%error", "%prec", "|", ActionCode, Ident, Literal, PredicateExpr}
+  Parser Action Table:
+    Shifts:
+      "%error" -> State<75>
+      ActionCode -> State<70>
+      Ident -> State<73>
+      Literal -> State<74>
+      PredicateExpr -> State<71>
+    Reductions:
+      "." | "|": reduce ProductionTail: <empty> #(NonAssoc, 0)
+  Go To Table:
+    Action -> State<67>
+    Predicate -> State<68>
+    ProductionTail -> State<101>
+    Symbol -> State<72>
+    SymbolList -> State<69>
+  Error Recovery State: <none>
+
+State<88>:
+  Grammar Items:
+    ProductionTail: Predicate Action .  #(NonAssoc, 0): TokenSet{".", "|"}
+  Parser Action Table:
+    Reductions:
+      "." | "|": reduce ProductionTail: Predicate Action #(NonAssoc, 0)
+  Go To Table:
+    <empty>
+  Error Recovery State: <none>
+
+State<89>:
+  Grammar Items:
+    ProductionTail: SymbolList Predicate . TaggedPrecedence Action #(NonAssoc, 0): TokenSet{".", "|"}
+    ProductionTail: SymbolList Predicate . TaggedPrecedence #(NonAssoc, 0): TokenSet{".", "|"}
+    ProductionTail: SymbolList Predicate . Action #(NonAssoc, 0): TokenSet{".", "|"}
+    ProductionTail: SymbolList Predicate .  #(NonAssoc, 0): TokenSet{".", "|"}
+    Action: . ActionCode #(NonAssoc, 0): TokenSet{".", "|"}
+    TaggedPrecedence: . "%prec" Ident #(NonAssoc, 0): TokenSet{".", "|", ActionCode}
+    TaggedPrecedence: . "%prec" Literal #(NonAssoc, 0): TokenSet{".", "|", ActionCode}
+  Parser Action Table:
+    Shifts:
+      "%prec" -> State<92>
+      ActionCode -> State<70>
+    Reductions:
+      "." | "|": reduce ProductionTail: SymbolList Predicate #(NonAssoc, 0)
+  Go To Table:
+    Action -> State<103>
+    TaggedPrecedence -> State<102>
+  Error Recovery State: <none>
+
+State<90>:
+  Grammar Items:
+    ProductionTail: SymbolList TaggedPrecedence . Action #(NonAssoc, 0): TokenSet{".", "|"}
+    ProductionTail: SymbolList TaggedPrecedence .  #(NonAssoc, 0): TokenSet{".", "|"}
+    Action: . ActionCode #(NonAssoc, 0): TokenSet{".", "|"}
+  Parser Action Table:
+    Shifts:
+      ActionCode -> State<70>
+    Reductions:
+      "." | "|": reduce ProductionTail: SymbolList TaggedPrecedence #(NonAssoc, 0)
+  Go To Table:
+    Action -> State<104>
+  Error Recovery State: <none>
+
+State<91>:
+  Grammar Items:
+    ProductionTail: SymbolList Action .  #(NonAssoc, 0): TokenSet{".", "|"}
+  Parser Action Table:
+    Reductions:
+      "." | "|": reduce ProductionTail: SymbolList Action #(NonAssoc, 0)
+  Go To Table:
+    <empty>
+  Error Recovery State: <none>
+
+State<92>:
+  Grammar Items:
+    TaggedPrecedence: "%prec" . Ident #(NonAssoc, 0): TokenSet{".", "|", ActionCode}
+    TaggedPrecedence: "%prec" . Literal #(NonAssoc, 0): TokenSet{".", "|", ActionCode}
+  Parser Action Table:
+    Shifts:
+      Ident -> State<105>
+      Literal -> State<106>
+  Go To Table:
+    <empty>
+  Error Recovery State: <none>
+
+State<93>:
+  Grammar Items:
+    SymbolList: SymbolList Symbol .  #(NonAssoc, 0): TokenSet{".", "%error", "%prec", "|", ActionCode, Ident, Literal, PredicateExpr}
+  Parser Action Table:
+    Reductions:
+      "." | "%error" | "%prec" | "|" | ActionCode | Ident | Literal | PredicateExpr: reduce SymbolList: SymbolList Symbol #(NonAssoc, 0)
+  Go To Table:
+    <empty>
+  Error Recovery State: <none>
+
+State<94>:
+  Grammar Items:
+    PrecedenceDefinitions: PrecedenceDefinitions OptionalInjection PrecedenceDefinition OptionalInjection .  #(NonAssoc, 0): TokenSet{"%inject", "%left", "%%", "%nonassoc", "%right"}
+  Parser Action Table:
+    Reductions:
+      "%inject" | "%left" | "%%" | "%nonassoc" | "%right": reduce PrecedenceDefinitions: PrecedenceDefinitions OptionalInjection PrecedenceDefinition OptionalInjection #(NonAssoc, 0)
+  Go To Table:
+    <empty>
+  Error Recovery State: <none>
+
+State<95>:
+  Grammar Items:
+    PrecedenceDefinition: "%left" TagList .  #(NonAssoc, 0): TokenSet{"%inject", "%left", "%%", "%nonassoc", "%right"}
+    TagList: TagList . Tag #(NonAssoc, 0): TokenSet{"%inject", "%left", "%%", "%nonassoc", "%right", Ident, Literal}
+    Tag: . Literal #(NonAssoc, 0): TokenSet{"%inject", "%left", "%%", "%nonassoc", "%right", Ident, Literal}
+    Tag: . Ident #(NonAssoc, 0): TokenSet{"%inject", "%left", "%%", "%nonassoc", "%right", Ident, Literal}
+  Parser Action Table:
+    Shifts:
+      Ident -> State<98>
+      Literal -> State<97>
+    Reductions:
+      "%inject" | "%left" | "%%" | "%nonassoc" | "%right": reduce PrecedenceDefinition: "%left" TagList #(NonAssoc, 0)
+  Go To Table:
+    Tag -> State<107>
+  Error Recovery State: <none>
+
+State<96>:
+  Grammar Items:
+    TagList: Tag .  #(NonAssoc, 0): TokenSet{"%inject", "%left", "%%", "%nonassoc", "%right", Ident, Literal}
+  Parser Action Table:
+    Reductions:
+      "%inject" | "%left" | "%%" | "%nonassoc" | "%right" | Ident | Literal: reduce TagList: Tag #(NonAssoc, 0)
+  Go To Table:
+    <empty>
+  Error Recovery State: <none>
+
+State<97>:
+  Grammar Items:
+    Tag: Literal .  #(NonAssoc, 0): TokenSet{"%inject", "%left", "%%", "%nonassoc", "%right", Ident, Literal}
+  Parser Action Table:
+    Reductions:
+      "%inject" | "%left" | "%%" | "%nonassoc" | "%right" | Ident | Literal: reduce Tag: Literal #(NonAssoc, 0)
+  Go To Table:
+    <empty>
+  Error Recovery State: <none>
+
+State<98>:
+  Grammar Items:
+    Tag: Ident .  #(NonAssoc, 0): TokenSet{"%inject", "%left", "%%", "%nonassoc", "%right", Ident, Literal}
+  Parser Action Table:
+    Reductions:
+      "%inject" | "%left" | "%%" | "%nonassoc" | "%right" | Ident | Literal: reduce Tag: Ident #(NonAssoc, 0)
+  Go To Table:
+    <empty>
+  Error Recovery State: <none>
+
+State<99>:
+  Grammar Items:
+    PrecedenceDefinition: "%right" TagList .  #(NonAssoc, 0): TokenSet{"%inject", "%left", "%%", "%nonassoc", "%right"}
+    TagList: TagList . Tag #(NonAssoc, 0): TokenSet{"%inject", "%left", "%%", "%nonassoc", "%right", Ident, Literal}
+    Tag: . Literal #(NonAssoc, 0): TokenSet{"%inject", "%left", "%%", "%nonassoc", "%right", Ident, Literal}
+    Tag: . Ident #(NonAssoc, 0): TokenSet{"%inject", "%left", "%%", "%nonassoc", "%right", Ident, Literal}
+  Parser Action Table:
+    Shifts:
+      Ident -> State<98>
+      Literal -> State<97>
+    Reductions:
+      "%inject" | "%left" | "%%" | "%nonassoc" | "%right": reduce PrecedenceDefinition: "%right" TagList #(NonAssoc, 0)
+  Go To Table:
+    Tag -> State<107>
+  Error Recovery State: <none>
+
+State<100>:
+  Grammar Items:
+    PrecedenceDefinition: "%nonassoc" TagList .  #(NonAssoc, 0): TokenSet{"%inject", "%left", "%%", "%nonassoc", "%right"}
+    TagList: TagList . Tag #(NonAssoc, 0): TokenSet{"%inject", "%left", "%%", "%nonassoc", "%right", Ident, Literal}
+    Tag: . Literal #(NonAssoc, 0): TokenSet{"%inject", "%left", "%%", "%nonassoc", "%right", Ident, Literal}
+    Tag: . Ident #(NonAssoc, 0): TokenSet{"%inject", "%left", "%%", "%nonassoc", "%right", Ident, Literal}
+  Parser Action Table:
+    Shifts:
+      Ident -> State<98>
+      Literal -> State<97>
+    Reductions:
+      "%inject" | "%left" | "%%" | "%nonassoc" | "%right": reduce PrecedenceDefinition: "%nonassoc" TagList #(NonAssoc, 0)
+  Go To Table:
+    Tag -> State<107>
+  Error Recovery State: <none>
+
+State<101>:
+  Grammar Items:
+    ProductionTailList: ProductionTailList "|" ProductionTail .  #(NonAssoc, 0): TokenSet{".", "|"}
+  Parser Action Table:
+    Reductions:
+      "." | "|": reduce ProductionTailList: ProductionTailList "|" ProductionTail #(NonAssoc, 0)
+  Go To Table:
+    <empty>
+  Error Recovery State: <none>
+
+State<102>:
+  Grammar Items:
+    ProductionTail: SymbolList Predicate TaggedPrecedence . Action #(NonAssoc, 0): TokenSet{".", "|"}
+    ProductionTail: SymbolList Predicate TaggedPrecedence .  #(NonAssoc, 0): TokenSet{".", "|"}
+    Action: . ActionCode #(NonAssoc, 0): TokenSet{".", "|"}
+  Parser Action Table:
+    Shifts:
+      ActionCode -> State<70>
+    Reductions:
+      "." | "|": reduce ProductionTail: SymbolList Predicate TaggedPrecedence #(NonAssoc, 0)
+  Go To Table:
+    Action -> State<108>
+  Error Recovery State: <none>
+
+State<103>:
+  Grammar Items:
+    ProductionTail: SymbolList Predicate Action .  #(NonAssoc, 0): TokenSet{".", "|"}
+  Parser Action Table:
+    Reductions:
+      "." | "|": reduce ProductionTail: SymbolList Predicate Action #(NonAssoc, 0)
+  Go To Table:
+    <empty>
+  Error Recovery State: <none>
+
+State<104>:
+  Grammar Items:
+    ProductionTail: SymbolList TaggedPrecedence Action .  #(NonAssoc, 0): TokenSet{".", "|"}
+  Parser Action Table:
+    Reductions:
+      "." | "|": reduce ProductionTail: SymbolList TaggedPrecedence Action #(NonAssoc, 0)
+  Go To Table:
+    <empty>
+  Error Recovery State: <none>
+
+State<105>:
+  Grammar Items:
+    TaggedPrecedence: "%prec" Ident .  #(NonAssoc, 0): TokenSet{".", "|", ActionCode}
+  Parser Action Table:
+    Reductions:
+      "." | "|" | ActionCode: reduce TaggedPrecedence: "%prec" Ident #(NonAssoc, 0)
+  Go To Table:
+    <empty>
+  Error Recovery State: <none>
+
+State<106>:
+  Grammar Items:
+    TaggedPrecedence: "%prec" Literal .  #(NonAssoc, 0): TokenSet{".", "|", ActionCode}
+  Parser Action Table:
+    Reductions:
+      "." | "|" | ActionCode: reduce TaggedPrecedence: "%prec" Literal #(NonAssoc, 0)
+  Go To Table:
+    <empty>
+  Error Recovery State: <none>
+
+State<107>:
+  Grammar Items:
+    TagList: TagList Tag .  #(NonAssoc, 0): TokenSet{"%inject", "%left", "%%", "%nonassoc", "%right", Ident, Literal}
+  Parser Action Table:
+    Reductions:
+      "%inject" | "%left" | "%%" | "%nonassoc" | "%right" | Ident | Literal: reduce TagList: TagList Tag #(NonAssoc, 0)
+  Go To Table:
+    <empty>
+  Error Recovery State: <none>
+
+State<108>:
+  Grammar Items:
+    ProductionTail: SymbolList Predicate TaggedPrecedence Action .  #(NonAssoc, 0): TokenSet{".", "|"}
+  Parser Action Table:
+    Reductions:
+      "." | "|": reduce ProductionTail: SymbolList Predicate TaggedPrecedence Action #(NonAssoc, 0)
+  Go To Table:
+    <empty>
+  Error Recovery State: <none>

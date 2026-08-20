@@ -1,57 +1,23 @@
 // Copyright (c) 2026 Peter Williams <pwil3058@bigpond.net.au> <pwil3058@gmail.com>.
 
-pub use std::{
+use std::{
     convert::From,
     default::Default,
-    fmt::{self, Debug, Display},
+    fmt::{Debug, Display},
     io::Write,
 };
+
+use thiserror::Error;
 
 use lalr1::OrderedSet;
 use lexan::TokenStream;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Error)]
 pub enum Error<T: Ord + Clone + Copy + Debug + Display + Eq> {
+    #[error("Lexical error: {0} expected {1}.")]
     LexicalError(lexan::Error<T>, OrderedSet<T>),
+    #[error("Syntax error: {0} expected {1}.")]
     SyntaxError(lexan::Token<T>, OrderedSet<T>),
-}
-
-fn format_set<T: Ord + Display + Clone>(set: &OrderedSet<T>) -> String {
-    let mut string = String::new();
-    let last = set.len() - 1;
-    for (index, item) in set.iter().enumerate() {
-        if index == 0 {
-            string += &item.to_string();
-        } else {
-            if index == last {
-                string += " or ";
-            } else {
-                string += ", ";
-            };
-            string += &item.to_string()
-        }
-    }
-    string
-}
-
-impl<T: Ord + Copy + Debug + Display + Eq> Display for Error<T> {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            Error::LexicalError(lex_err, expected) => write!(
-                f,
-                "Lexical Error: {}: expected: {}.",
-                lex_err,
-                format_set(expected)
-            ),
-            Error::SyntaxError(found, expected) => write!(
-                f,
-                "Syntax Error: expected: {} found: {} at: {}.",
-                format_set(expected),
-                found.tag(),
-                found.location()
-            ),
-        }
-    }
 }
 
 pub trait ReportError<T: Ord + Copy + Debug + Display + Eq> {
