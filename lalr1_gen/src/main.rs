@@ -24,7 +24,7 @@ fn with_changed_extension(path: &Path, new_extension: &str) -> PathBuf {
 
 #[derive(Debug, StructOpt)]
 #[structopt(
-    name = "lap_gen",
+    name = "lalr1_gen",
     about = "Lexical Analyzer and Parser Generator",
     author = crate_authors!(),
 )]

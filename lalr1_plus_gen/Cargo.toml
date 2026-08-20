@@ -4,3 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+clap = "2.34"
+structopt = "0.3"
+
+lalr1_plus_lib = { path = "../lalr1_plus_lib" }
