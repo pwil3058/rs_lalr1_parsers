@@ -110,12 +110,7 @@ pub struct Token<T: Display + Copy + Eq> {
 
 impl<T: Display + Copy + Eq> Display for Token<T> {
     fn fmt(&self, dest: &mut fmt::Formatter) -> fmt::Result {
-        let string = format!(
-            "{}({}) at {}",
-            self.tag.to_string(),
-            self.lexeme,
-            self.location
-        );
+        let string = format!("{}({}) at {}", self.tag, self.lexeme, self.location);
         write!(dest, "{}", string)
     }
 }

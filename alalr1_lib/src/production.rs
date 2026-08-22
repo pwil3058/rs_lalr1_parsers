@@ -1,7 +1,7 @@
 // Copyright (c) 2026 Peter Williams <pwil3058@bigpond.net.au> <pwil3058@gmail.com>.
 
 use crate::symbol::terminal::Token;
-use crate::symbol::{non_terminal::NonTerminal, terminal::TokenSet, Associativity, Symbol};
+use crate::symbol::{Associativity, Symbol, non_terminal::NonTerminal, terminal::TokenSet};
 
 use lalr1::OrderedSet;
 
@@ -45,10 +45,8 @@ impl ProductionTail {
         let action = o_action.map(|action| action.to_string());
         let (associativity, precedence) = if let Some(tuple) = associative_precedence {
             tuple
-        } else if let Some(tuple) = rhs_associated_precedence(right_hand_side) {
-            tuple
         } else {
-            (Associativity::default(), 0)
+            rhs_associated_precedence(right_hand_side).unwrap_or_default()
         };
         Self(Rc::new(ProductionTailData {
             right_hand_side: right_hand_side.to_vec(),
@@ -210,13 +208,13 @@ impl Eq for Production {}
 
 impl PartialOrd for Production {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        self.0.ident.partial_cmp(&other.0.ident)
+        Some(self.cmp(other))
     }
 }
 
 impl Ord for Production {
     fn cmp(&self, other: &Self) -> Ordering {
-        self.partial_cmp(other).unwrap()
+        self.ident().cmp(&other.ident())
     }
 }
 
@@ -493,7 +491,7 @@ impl GrammarItemSet {
                     productions.insert(item_key.production.clone());
                 }
             }
-            let look_ahead_set = reductions.entry(productions).or_insert(TokenSet::new());
+            let look_ahead_set = reductions.entry(productions).or_default();
             look_ahead_set.insert(token);
         }
         Reductions { reductions }

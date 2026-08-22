@@ -12,7 +12,7 @@ use crate::symbol::{Associativity, Symbol};
 use lalr1::OrderedSet;
 
 #[allow(unused)]
-#[derive(Debug, Clone)]
+#[derive(Debug, Default, Clone)]
 pub enum AttributeData {
     Token(lexan::Token<AATerminal>),
     SyntaxError(lexan::Token<AATerminal>, OrderedSet<AATerminal>),
@@ -28,13 +28,8 @@ pub enum AttributeData {
     Action(String),
     Predicate(String),
     AssociativityAndPrecedence(Associativity, u16),
+    #[default]
     Default,
-}
-
-impl Default for AttributeData {
-    fn default() -> Self {
-        AttributeData::Default
-    }
 }
 
 impl AttributeData {

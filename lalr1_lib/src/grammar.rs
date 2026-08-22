@@ -265,7 +265,7 @@ impl TryFrom<(Specification, bool, bool)> for Grammar {
         } else {
             let start_item_key = GrammarItemKey::from(&specification.productions[0]);
             let mut start_look_ahead_set = TokenSet::new();
-            start_look_ahead_set.insert(&Token::EndToken);
+            start_look_ahead_set.insert(&Token::End);
             let mut map = BTreeMap::<GrammarItemKey, TokenSet>::new();
             map.insert(start_item_key, start_look_ahead_set);
             let start_kernel = specification.closure(GrammarItemSet::from(map));
@@ -386,7 +386,7 @@ impl Grammar {
     }
 
     fn write_symbol_enum_code<W: Write>(&self, wtr: &mut W) -> io::Result<()> {
-        let special_tokens = [Token::EndToken];
+        let special_tokens = [Token::End];
         let special_non_terminals = self.specification.symbol_table.used_non_terminal_specials();
 
         wtr.write_all(b"use lalr1::OrderedSet;\n\n")?;
@@ -433,7 +433,7 @@ impl Grammar {
                         token_data.name, token_data.name
                     ))?;
                 }
-                Token::EndToken => {
+                Token::End => {
                     wtr.write_fmt(format_args!(
                         "{} => write!(f, r###\"{}\"###),\n",
                         token.name(),
@@ -503,7 +503,7 @@ impl Grammar {
             wtr.write_fmt(format_args!("r###\"{skip_rule}\"###,\n"))?;
         }
         wtr.write_all(b"            ],\n")?;
-        wtr.write_fmt(format_args!("            {},\n", Token::EndToken.name()))?;
+        wtr.write_fmt(format_args!("            {},\n", Token::End.name()))?;
         wtr.write_all(b"        )\n")?;
         wtr.write_all(b"    };\n")?;
         wtr.write_all(b"}\n\n")?;
@@ -555,7 +555,7 @@ impl Grammar {
     fn write_error_recovery_code<W: Write>(&self, wtr: &mut W) -> io::Result<()> {
         let mut default_required = false;
         let mut recovery_states = Vec::<(&str, OrderedSet<u32>)>::new();
-        for token in [Token::EndToken]
+        for token in [Token::End]
             .iter()
             .chain(self.specification.symbol_table.tokens())
         {
@@ -610,7 +610,7 @@ impl Grammar {
     fn write_look_ahead_set_code<W: Write>(&self, wtr: &mut W) -> io::Result<()> {
         wtr.write_all(b"    fn look_ahead_set(state: u32) -> OrderedSet<AATerminal> {\n")?;
         wtr.write_all(b"        use AATerminal::*;\n")?;
-        wtr.write_all(b"        return match state {\n")?;
+        wtr.write_all(b"        match state {\n")?;
         for parser_state in self.parser_states.iter() {
             wtr.write_fmt(format_args!(
                 "            {} => {},\n",
@@ -633,7 +633,7 @@ impl Grammar {
         wtr.write_all(b"        use lalr1::Action;\n")?;
         wtr.write_all(b"        use AATerminal::*;\n")?;
         wtr.write_all(b"        let aa_tag = *aa_token.tag();\n")?;
-        wtr.write_all(b"        return match aa_state {\n")?;
+        wtr.write_all(b"        match aa_state {\n")?;
         for parser_state in self.parser_states.iter() {
             parser_state.write_next_action_code(wtr, "            ")?;
         }
@@ -645,7 +645,7 @@ impl Grammar {
 
     fn write_goto_table_code<W: Write>(&self, wtr: &mut W) -> io::Result<()> {
         wtr.write_all(b"    fn goto_state(lhs: &AANonTerminal, current_state: u32) -> u32 {\n")?;
-        wtr.write_all(b"        return match current_state {\n")?;
+        wtr.write_all(b"        match current_state {\n")?;
         for parser_state in self.parser_states.iter() {
             parser_state.write_goto_table_code(wtr, "            ")?;
         }

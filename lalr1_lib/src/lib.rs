@@ -13,8 +13,6 @@ use std::path::Path;
 
 use thiserror::Error;
 
-use lalr1;
-
 use crate::parser::AATerminal;
 
 #[derive(Debug, Error)]

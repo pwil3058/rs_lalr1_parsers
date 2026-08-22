@@ -2,7 +2,7 @@
 use std::{cell::RefCell, cmp::Ordering, fmt, rc::Rc};
 
 use crate::production::Production;
-use crate::symbol::{terminal::TokenSet, Symbol};
+use crate::symbol::{Symbol, terminal::TokenSet};
 
 #[derive(Debug, Clone, Default)]
 pub struct FirstsData {
@@ -34,13 +34,13 @@ impl Eq for NonTerminalData {}
 
 impl PartialOrd for NonTerminalData {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        self.name.partial_cmp(&other.name)
+        Some(self.cmp(other))
     }
 }
 
 impl Ord for NonTerminalData {
     fn cmp(&self, other: &Self) -> Ordering {
-        self.partial_cmp(other).unwrap()
+        self.name.cmp(&other.name)
     }
 }
 

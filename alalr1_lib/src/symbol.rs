@@ -9,17 +9,12 @@ pub mod non_terminal;
 pub mod tag;
 pub mod terminal;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 pub enum Associativity {
+    #[default]
     NonAssoc,
     Left,
     Right,
-}
-
-impl Default for Associativity {
-    fn default() -> Self {
-        Associativity::NonAssoc
-    }
 }
 
 impl fmt::Display for Associativity {
@@ -335,7 +330,7 @@ impl SymbolTable {
     pub fn description(&self) -> String {
         let mut string = "Symbols:\n".to_string();
         string += "  Tokens:\n";
-        for token in [Token::EndToken].iter().chain(self.tokens()) {
+        for token in [Token::End].iter().chain(self.tokens()) {
             string += &format!(
                 "    {}({}): #({}, {})\n",
                 token.name(),

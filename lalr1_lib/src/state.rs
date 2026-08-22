@@ -13,17 +13,12 @@ use std::rc::Rc;
 
 use lalr1::OrderedSet;
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Default, Clone, Copy)]
 pub enum ProcessedState {
+    #[default]
     Unprocessed,
     NeedsReprocessing,
     Processed,
-}
-
-impl Default for ProcessedState {
-    fn default() -> Self {
-        ProcessedState::Unprocessed
-    }
 }
 
 #[derive(Debug, Default)]
@@ -57,13 +52,13 @@ impl Eq for ParserState {}
 
 impl PartialOrd for ParserState {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        self.0.ident.partial_cmp(&other.0.ident)
+        Some(self.cmp(other))
     }
 }
 
 impl Ord for ParserState {
     fn cmp(&self, other: &Self) -> Ordering {
-        self.partial_cmp(other).unwrap()
+        self.0.ident.cmp(&other.0.ident)
     }
 }
 
@@ -253,15 +248,14 @@ impl ParserState {
     }
 
     pub fn is_recovery_state_for_token(&self, token: &Token) -> bool {
-        if let Some(recovery_state) = self.0.error_recovery_state.borrow().clone() {
-            if recovery_state
+        if let Some(recovery_state) = self.0.error_recovery_state.borrow().clone()
+            && recovery_state
                 .0
                 .grammar_items
                 .borrow()
                 .error_recovery_look_ahead_set_contains(token)
-            {
-                return true;
-            }
+        {
+            return true;
         };
         false
     }
@@ -324,7 +318,7 @@ impl ParserState {
         wtr: &mut W,
         indent: &str,
     ) -> std::io::Result<()> {
-        if self.0.goto_table.borrow().len() > 0 {
+        if !self.0.goto_table.borrow().is_empty() {
             wtr.write_fmt(format_args!("{}{} => match lhs {{\n", indent, self.ident()))?;
             for (non_terminal, state) in self.0.goto_table.borrow().iter() {
                 wtr.write_fmt(format_args!(
@@ -350,7 +344,7 @@ impl ParserState {
         string += "  Parser Action Table:\n";
         let mut empty = true;
         let shift_list = self.0.shift_list.borrow();
-        if shift_list.len() > 0 {
+        if !shift_list.is_empty() {
             empty = false;
             string += "    Shifts:\n";
             for (token, state) in shift_list.iter() {
@@ -383,7 +377,7 @@ impl ParserState {
             string += "    <empty>\n";
         }
         string += "  Go To Table:\n";
-        if self.0.goto_table.borrow().len() == 0 {
+        if self.0.goto_table.borrow().is_empty() {
             string += "    <empty>\n";
         } else {
             for (non_terminal, state) in self.0.goto_table.borrow().iter() {
@@ -396,7 +390,7 @@ impl ParserState {
         } else {
             string += "  Error Recovery State: <none>\n";
         }
-        if self.0.shift_reduce_conflicts.borrow().len() > 0 {
+        if !self.0.shift_reduce_conflicts.borrow().is_empty() {
             string += "  Shift/Reduce Conflicts:\n";
             for (shift_token, goto_state, reducible_item, look_ahead_set) in
                 self.0.shift_reduce_conflicts.borrow().iter()
@@ -410,7 +404,7 @@ impl ParserState {
                 );
             }
         }
-        if self.0.reduce_reduce_conflicts.borrow().len() > 0 {
+        if !self.0.reduce_reduce_conflicts.borrow().is_empty() {
             string += "  Reduce/Reduce Conflicts:\n";
             for (items, intersection) in self.0.reduce_reduce_conflicts.borrow().iter() {
                 string += &format!("    {intersection}\n");

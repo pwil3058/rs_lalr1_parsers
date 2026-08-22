@@ -213,7 +213,7 @@ impl lalr1::Parser<AATerminal, AANonTerminal, AttributeData> for Specification {
 
     fn look_ahead_set(state: u32) -> OrderedSet<AATerminal> {
         use AATerminal::*;
-        return match state {
+        match state {
             0 => ordered_set![Attr, Inject, Target, RustCode],
             1 => ordered_set![AAEnd],
             2 => ordered_set![Attr, Target],
@@ -328,7 +328,7 @@ impl lalr1::Parser<AATerminal, AANonTerminal, AttributeData> for Specification {
         use lalr1::Action;
         use AATerminal::*;
         let aa_tag = *aa_token.tag();
-        return match aa_state {
+        match aa_state {
             0 => match aa_tag {
                 Inject => Action::Shift(4),
                 // OptionalInjection: <empty> #(NonAssoc, 0)
@@ -947,7 +947,7 @@ impl lalr1::Parser<AATerminal, AANonTerminal, AttributeData> for Specification {
     }
 
     fn goto_state(lhs: &AANonTerminal, current_state: u32) -> u32 {
-        return match current_state {
+        match current_state {
             0 => match lhs {
                 AANonTerminal::Injection => 3,
                 AANonTerminal::InjectionHead => 5,
