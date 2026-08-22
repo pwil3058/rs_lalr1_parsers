@@ -4,8 +4,8 @@ use std::{path::Path, process::Command};
 fn main() {
     let lalr1_gen_path = "../target/debug/lalr1_gen";
     if Path::new(lalr1_gen_path).exists() {
-        // println!("cargo::rerun-if-changed=src/parser.laps");
-        // println!("cargo::rerun-if-changed={lalr1_gen_path}");
+        println!("cargo::rerun-if-changed=src/parser.laps");
+        println!("cargo::rerun-if-changed={lalr1_gen_path}");
         match Command::new(lalr1_gen_path)
             .args(["-f", "src/parser.laps"])
             .status()
