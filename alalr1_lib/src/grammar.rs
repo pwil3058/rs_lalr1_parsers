@@ -408,7 +408,6 @@ impl Grammar {
         wtr.write_all(b"    };\n")?;
         wtr.write_all(b"}\n\n")?;
         wtr.write_all(b"#[derive(Debug, Clone, Copy, PartialOrd, Ord, PartialEq, Eq)]\n")?;
-        wtr.write_all(b"#[warn(clippy::upper_case_acronyms)]\n")?;
         wtr.write_all(b"pub enum AATerminal {\n")?;
         for token in special_tokens
             .iter()
