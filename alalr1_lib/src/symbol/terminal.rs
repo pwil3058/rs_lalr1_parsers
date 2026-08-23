@@ -2,7 +2,7 @@
 
 use std::cell::{Cell, RefCell};
 use std::cmp::Ordering;
-use std::collections::btree_set::{self, BTreeSet};
+use std::collections::{BTreeSet, btree_set};
 use std::fmt;
 use std::iter::FromIterator;
 use std::ops::{BitOr, BitOrAssign};

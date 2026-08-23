@@ -6,9 +6,9 @@ use std::collections::{BTreeSet, btree_set};
 use std::fmt;
 use std::iter::FromIterator;
 use std::ops::{BitOr, BitOrAssign};
+use std::rc::Rc;
 
 use crate::symbol::{Associativity, Symbol};
-use std::rc::Rc;
 
 #[derive(Debug, Default)]
 pub struct TokenData {
@@ -235,7 +235,7 @@ impl TokenSet {
         self.0.union(&other.0)
     }
 
-    pub fn iter(&self) -> btree_set::Iter<'_, Token> {
+    pub fn iter(&self) -> impl Iterator<Item = &Token> {
         self.0.iter()
     }
 

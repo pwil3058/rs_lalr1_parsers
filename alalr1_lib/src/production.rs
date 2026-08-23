@@ -16,7 +16,7 @@ use std::rc::Rc;
 use std::str::FromStr;
 use std::sync::atomic::{self, AtomicU32};
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct ProductionTailData {
     right_hand_side: Box<[Symbol]>,
     predicate: Option<String>,
@@ -87,7 +87,7 @@ impl Display for ProductionId {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ProductionData {
     pub ident: ProductionId,
     left_hand_side: NonTerminal,
