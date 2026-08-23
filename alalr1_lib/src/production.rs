@@ -18,7 +18,7 @@ use std::sync::atomic::{self, AtomicU32};
 
 #[derive(Debug, Default)]
 pub struct ProductionTailData {
-    right_hand_side: Vec<Symbol>,
+    right_hand_side: Box<[Symbol]>,
     predicate: Option<String>,
     associativity: Associativity,
     precedence: u16,
@@ -49,7 +49,7 @@ impl ProductionTail {
             rhs_associated_precedence(right_hand_side).unwrap_or_default()
         };
         Self(Rc::new(ProductionTailData {
-            right_hand_side: right_hand_side.to_vec(),
+            right_hand_side: right_hand_side.to_vec().into(),
             predicate,
             action,
             associativity,
