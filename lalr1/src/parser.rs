@@ -1,4 +1,4 @@
-// Copyright (c) 2026 Peter Williams <pwil3058@bigpond.net.au> <pwil3058@gmail.com>
+// Copyright (c) 2026 Peter Williams <pwil3058@bigpond.net.au> <pwil3058@gmail.com>.
 
 use std::fmt::{Debug, Display};
 use std::io::Write;
@@ -10,7 +10,7 @@ use lexan::TokenStream;
 use crate::OrderedSet;
 
 #[derive(Debug, Clone, Error)]
-pub enum Error<T: Ord + Copy + Debug + Display + Eq> {
+pub enum Error<T: Ord + Clone + Copy + Debug + Display + Eq> {
     #[error("Lexical error: {0} expected {1}.")]
     LexicalError(lexan::Error<T>, OrderedSet<T>),
     #[error("Syntax error: {0} expected {1}.")]
@@ -61,7 +61,7 @@ where
         }
     }
 
-    fn current_state(&self) -> u32 {
+    pub fn current_state(&self) -> u32 {
         self.states.last().unwrap().1
     }
 
@@ -140,7 +140,7 @@ where
     Self: ReportError<T>,
 {
     fn lexical_analyzer(&self) -> &lexan::LexicalAnalyzer<T>;
-    fn next_action(&self, state: u32, o_token: &lexan::Token<T>) -> Action;
+    fn next_action(&self, parse_stack: &ParseStack<T, N, A>, o_token: &lexan::Token<T>) -> Action;
     fn production_data(production_id: u32) -> (N, usize);
     fn goto_state(lhs: &N, current_state: u32) -> u32;
     fn do_semantic_action<F: FnMut(String, String)>(
@@ -197,7 +197,7 @@ where
                         return result;
                     }
                 }
-                Ok(token) => match self.next_action(parse_stack.current_state(), &token) {
+                Ok(token) => match self.next_action(&parse_stack, &token) {
                     Action::Accept => return result,
                     Action::Shift(next_state) => {
                         parse_stack.push_terminal(token, next_state);

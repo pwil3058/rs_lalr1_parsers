@@ -397,12 +397,13 @@ impl lalr1::parser::Parser<AATerminal, AANonTerminal, AttributeData> for Specifi
 
     fn next_action(
         &self,
-        aa_state: u32,
+        aa_parse_stack: &lalr1::parser::ParseStack<AATerminal, AANonTerminal, AttributeData>,
         aa_token: &lexan::Token<AATerminal>,
     ) -> lalr1::parser::Action {
         use AATerminal::*;
         use lalr1::parser::Action;
         let aa_tag = *aa_token.tag();
+        let aa_state = aa_parse_stack.current_state();
         match aa_state {
             0 => match aa_tag {
                 Inject => Action::Shift(4),

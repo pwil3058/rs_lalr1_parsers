@@ -7,6 +7,7 @@ use std::str::FromStr;
 use lazy_static::lazy_static;
 
 use crate as lalr1;
+use crate::parser::ParseStack;
 use crate::OrderedSet;
 
 #[allow(unused)]
@@ -250,12 +251,13 @@ impl lalr1::parser::Parser<AATerminal, AANonTerminal, AttributeData> for Calc {
 
     fn next_action(
         &self,
-        aa_state: u32,
+        aa_state_stack: &ParseStack<AATerminal, AANonTerminal, AttributeData>,
         aa_token: &lexan::Token<AATerminal>,
     ) -> lalr1::parser::Action {
         use lalr1::parser::Action;
         use AATerminal::*;
         let aa_tag = *aa_token.tag();
+        let aa_state = aa_state_stack.current_state();
         return match aa_state {
             0 => match aa_tag {
                 // SetUp: <empty> #(NonAssoc, 0)
