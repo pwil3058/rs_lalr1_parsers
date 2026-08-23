@@ -11,7 +11,7 @@ use crate::symbol::non_terminal::NonTerminal;
 use crate::symbol::terminal::{Token, TokenSet};
 use crate::symbol::{Symbol, SymbolTable};
 
-use alalr1::Parser;
+use alalr1::parser::Parser;
 use lalr1::OrderedSet;
 
 use std::collections::BTreeMap;
@@ -41,10 +41,10 @@ pub struct Specification {
     pub expected_sr_conflicts: u32,
 }
 
-impl alalr1::ReportError<AATerminal> for Specification {}
+impl alalr1::parser::ReportError<AATerminal> for Specification {}
 
 impl Specification {
-    pub fn new(text: &str, label: &str) -> Result<Self, alalr1::Error<AATerminal>> {
+    pub fn new(text: &str, label: &str) -> Result<Self, alalr1::parser::Error<AATerminal>> {
         let mut spec = Specification {
             attribute_type: "AttributeData".to_string(),
             target_type: "Specification".to_string(),

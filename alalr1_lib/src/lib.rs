@@ -17,12 +17,15 @@ use std::path::Path;
 
 use thiserror::Error;
 
+#[cfg(not(feature = "bootstrap"))]
 use crate::parser::AATerminal;
+#[cfg(feature = "bootstrap")]
+use bootstrap::AATerminal;
 
 #[derive(Debug, Error)]
 pub enum Error {
     #[error("Specification error {0}")]
-    SpecificationError(#[from] alalr1::Error<AATerminal>),
+    SpecificationError(#[from] alalr1::parser::Error<AATerminal>),
     #[error("Grammar error {0}")]
     GrammarError(#[from] grammar::Error),
     #[error("I/O error {0}")]

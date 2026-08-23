@@ -5,8 +5,8 @@
 use std::{fs::File, io::Read, str::FromStr};
 
 use crate::{
-    attributes::*, grammar::Specification, production::ProductionTail, symbol::tag::TagOrToken,
-    symbol::Associativity,
+    attributes::*, grammar::Specification, production::ProductionTail, symbol::Associativity,
+    symbol::tag::TagOrToken,
 };
 
 use lalr1::OrderedSet;
@@ -25,7 +25,7 @@ macro_rules! ordered_set {
     };
 }
 
-use lalr1_plus;
+use alalr1;
 use lexan;
 
 #[derive(Debug, Clone, Copy, PartialOrd, Ord, PartialEq, Eq)]
@@ -207,7 +207,7 @@ impl std::fmt::Display for AANonTerminal {
     }
 }
 
-impl lalr1_plus::Parser<AATerminal, AANonTerminal, AttributeData> for Specification {
+impl alalr1::parser::Parser<AATerminal, AANonTerminal, AttributeData> for Specification {
     fn lexical_analyzer(&self) -> &lexan::LexicalAnalyzer<AATerminal> {
         &AALEXAN
     }
@@ -300,13 +300,23 @@ impl lalr1_plus::Parser<AATerminal, AANonTerminal, AttributeData> for Specificat
             66 => ordered_set![DOT, VBAR],
             67 => ordered_set![DOT, VBAR],
             68 => ordered_set![DOT, VBAR, ACTION],
-            69 => ordered_set![DOT, ERROR, PRECEDENCE, VBAR, ACTION, IDENT, LITERAL, PREDICATE],
+            69 => ordered_set![
+                DOT, ERROR, PRECEDENCE, VBAR, ACTION, IDENT, LITERAL, PREDICATE
+            ],
             70 => ordered_set![DOT, VBAR],
             71 => ordered_set![DOT, PRECEDENCE, VBAR, ACTION],
-            72 => ordered_set![DOT, ERROR, PRECEDENCE, VBAR, ACTION, IDENT, LITERAL, PREDICATE],
-            73 => ordered_set![DOT, ERROR, PRECEDENCE, VBAR, ACTION, IDENT, LITERAL, PREDICATE],
-            74 => ordered_set![DOT, ERROR, PRECEDENCE, VBAR, ACTION, IDENT, LITERAL, PREDICATE],
-            75 => ordered_set![DOT, ERROR, PRECEDENCE, VBAR, ACTION, IDENT, LITERAL, PREDICATE],
+            72 => ordered_set![
+                DOT, ERROR, PRECEDENCE, VBAR, ACTION, IDENT, LITERAL, PREDICATE
+            ],
+            73 => ordered_set![
+                DOT, ERROR, PRECEDENCE, VBAR, ACTION, IDENT, LITERAL, PREDICATE
+            ],
+            74 => ordered_set![
+                DOT, ERROR, PRECEDENCE, VBAR, ACTION, IDENT, LITERAL, PREDICATE
+            ],
+            75 => ordered_set![
+                DOT, ERROR, PRECEDENCE, VBAR, ACTION, IDENT, LITERAL, PREDICATE
+            ],
             76 => ordered_set![DOT, ERROR, VBAR, ACTION, IDENT, LITERAL, PREDICATE],
             77 => ordered_set![IDENT, AAEnd],
             78 => ordered_set![INJECT, LEFT, NEWSECTION, NONASSOC, RIGHT],
@@ -324,7 +334,9 @@ impl lalr1_plus::Parser<AATerminal, AANonTerminal, AttributeData> for Specificat
             90 => ordered_set![DOT, VBAR, ACTION],
             91 => ordered_set![DOT, VBAR],
             92 => ordered_set![IDENT, LITERAL],
-            93 => ordered_set![DOT, ERROR, PRECEDENCE, VBAR, ACTION, IDENT, LITERAL, PREDICATE],
+            93 => ordered_set![
+                DOT, ERROR, PRECEDENCE, VBAR, ACTION, IDENT, LITERAL, PREDICATE
+            ],
             94 => ordered_set![INJECT, LEFT, NEWSECTION, NONASSOC, RIGHT],
             95 => ordered_set![INJECT, LEFT, NEWSECTION, NONASSOC, RIGHT, IDENT, LITERAL],
             96 => ordered_set![INJECT, LEFT, NEWSECTION, NONASSOC, RIGHT, IDENT, LITERAL],
@@ -347,11 +359,11 @@ impl lalr1_plus::Parser<AATerminal, AANonTerminal, AttributeData> for Specificat
     fn next_action(
         &self,
         aa_state: u32,
-        aa_attributes: &lalr1_plus::ParseStack<AATerminal, AANonTerminal, AttributeData>,
+        aa_attributes: &alalr1::parser::ParseStack<AATerminal, AANonTerminal, AttributeData>,
         aa_token: &lexan::Token<AATerminal>,
-    ) -> lalr1_plus::Action {
-        use lalr1_plus::Action;
+    ) -> alalr1::parser::Action {
         use AATerminal::*;
+        use alalr1::parser::Action;
         let aa_tag = *aa_token.tag();
         return match aa_state {
             0 => match aa_tag {
