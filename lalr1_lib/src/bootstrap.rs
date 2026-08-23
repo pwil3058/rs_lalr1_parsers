@@ -199,7 +199,7 @@ impl std::fmt::Display for AANonTerminal {
     }
 }
 
-impl lalr1::Parser<AATerminal, AANonTerminal, AttributeData> for Specification {
+impl lalr1::parser::Parser<AATerminal, AANonTerminal, AttributeData> for Specification {
     fn lexical_analyzer(&self) -> &lexan::LexicalAnalyzer<AATerminal> {
         &AALEXAN
     }
@@ -210,7 +210,7 @@ impl lalr1::Parser<AATerminal, AANonTerminal, AttributeData> for Specification {
 
     fn look_ahead_set(state: u32) -> OrderedSet<AATerminal> {
         use AATerminal::*;
-        return match state {
+        match state {
             0 => ordered_set![Attr, Inject, Target, RustCode],
             1 => ordered_set![AAEnd],
             2 => ordered_set![Attr, Target],
@@ -392,14 +392,18 @@ impl lalr1::Parser<AATerminal, AANonTerminal, AttributeData> for Specification {
             100 => ordered_set![Dot, VerticalBar, ActionCode],
             101 => ordered_set![Inject, Left, NewSection, NonAssoc, Right, Ident, Literal],
             _ => panic!("illegal state: {state}"),
-        };
+        }
     }
 
-    fn next_action(&self, aa_state: u32, aa_token: &lexan::Token<AATerminal>) -> lalr1::Action {
+    fn next_action(
+        &self,
+        aa_state: u32,
+        aa_token: &lexan::Token<AATerminal>,
+    ) -> lalr1::parser::Action {
         use AATerminal::*;
-        use lalr1::Action;
+        use lalr1::parser::Action;
         let aa_tag = *aa_token.tag();
-        return match aa_state {
+        match aa_state {
             0 => match aa_tag {
                 Inject => Action::Shift(4),
                 // OptionalInjection: <empty> #(NonAssoc, 0)
@@ -973,7 +977,7 @@ impl lalr1::Parser<AATerminal, AANonTerminal, AttributeData> for Specification {
                 _ => Action::SyntaxError,
             },
             _ => panic!("illegal state: {aa_state}"),
-        };
+        }
     }
 
     fn production_data(production_id: u32) -> (AANonTerminal, usize) {
@@ -1042,7 +1046,7 @@ impl lalr1::Parser<AATerminal, AANonTerminal, AttributeData> for Specification {
     }
 
     fn goto_state(lhs: &AANonTerminal, current_state: u32) -> u32 {
-        return match current_state {
+        match current_state {
             0 => match lhs {
                 AANonTerminal::Injection => 3,
                 AANonTerminal::InjectionHead => 5,
@@ -1303,7 +1307,7 @@ impl lalr1::Parser<AATerminal, AANonTerminal, AttributeData> for Specification {
                 _ => panic!("Malformed goto table: ({lhs}, {current_state})"),
             },
             _ => panic!("Malformed goto table: ({lhs}, {current_state})"),
-        };
+        }
     }
 
     fn do_semantic_action<F: FnMut(String, String)>(
