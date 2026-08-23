@@ -4,6 +4,7 @@
 use crate::bootstrap::AATerminal;
 #[cfg(not(feature = "bootstrap"))]
 use crate::parser::AATerminal;
+
 use crate::production::{GrammarItemKey, GrammarItemSet, Production, ProductionTail};
 use crate::state::ParserState;
 use crate::symbol::non_terminal::NonTerminal;

@@ -5,13 +5,13 @@ use crate::symbol::non_terminal::NonTerminal;
 use crate::symbol::terminal::{Token, TokenSet};
 use crate::symbol::{Associativity, Symbol};
 
+use lalr1::OrderedSet;
+
 use std::cell::{Cell, RefCell};
 use std::cmp::Ordering;
 use std::collections::BTreeMap;
 use std::io::Write;
 use std::rc::Rc;
-
-use lalr1::OrderedSet;
 
 #[derive(Debug, Default, Clone, Copy)]
 pub enum ProcessedState {

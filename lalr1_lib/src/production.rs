@@ -16,9 +16,9 @@ use std::rc::Rc;
 use std::str::FromStr;
 use std::sync::atomic::{self, AtomicU32};
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct ProductionTailData {
-    right_hand_side: Vec<Symbol>,
+    right_hand_side: Box<[Symbol]>,
     associativity: Associativity,
     precedence: u16,
     action: Option<String>,
@@ -46,7 +46,7 @@ impl ProductionTail {
             rhs_associated_precedence(right_hand_side).unwrap_or_default()
         };
         Self(Rc::new(ProductionTailData {
-            right_hand_side: right_hand_side.to_vec(),
+            right_hand_side: right_hand_side.to_vec().into(),
             action,
             associativity,
             precedence,
@@ -83,14 +83,34 @@ impl Display for ProductionId {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ProductionData {
     pub ident: ProductionId,
     left_hand_side: NonTerminal,
     tail: ProductionTail,
 }
 
-#[derive(Debug)]
+impl PartialEq for ProductionData {
+    fn eq(&self, other: &Self) -> bool {
+        self.ident == other.ident
+    }
+}
+
+impl Eq for ProductionData {}
+
+impl Ord for ProductionData {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.ident.cmp(&other.ident)
+    }
+}
+
+impl PartialOrd for ProductionData {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Production(Rc<ProductionData>);
 
 impl Clone for Production {
@@ -169,26 +189,6 @@ impl Production {
         } else {
             false
         }
-    }
-}
-
-impl PartialEq for Production {
-    fn eq(&self, other: &Self) -> bool {
-        self.0.ident == other.0.ident
-    }
-}
-
-impl Eq for Production {}
-
-impl PartialOrd for Production {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
-impl Ord for Production {
-    fn cmp(&self, other: &Self) -> Ordering {
-        self.0.ident.cmp(&other.0.ident)
     }
 }
 

@@ -1,6 +1,10 @@
 // Copyright (c) 2026 Peter Williams <pwil3058@bigpond.net.au> <pwil3058@gmail.com>.
 
+#[cfg(feature = "bootstrap")]
+use crate::bootstrap::AATerminal;
+#[cfg(not(feature = "bootstrap"))]
 use crate::parser::AATerminal;
+
 use crate::production::ProductionTail;
 use crate::symbol::non_terminal::NonTerminal;
 use crate::symbol::tag::TagOrToken;
@@ -8,6 +12,7 @@ use crate::symbol::{Associativity, Symbol};
 
 use lalr1::OrderedSet;
 
+#[allow(unused)]
 #[derive(Debug, Default, Clone)]
 pub enum AttributeData {
     Token(lexan::Token<AATerminal>),

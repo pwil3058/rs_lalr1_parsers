@@ -2,8 +2,12 @@
 
 pub mod grammar;
 
-mod attributes;
+#[cfg(feature = "bootstrap")]
+mod bootstrap;
+#[cfg(not(feature = "bootstrap"))]
 mod parser;
+
+mod attributes;
 mod production;
 mod state;
 mod symbol;
