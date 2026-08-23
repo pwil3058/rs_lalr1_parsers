@@ -94,7 +94,27 @@ pub struct ProductionData {
     tail: ProductionTail,
 }
 
-#[derive(Debug)]
+impl PartialEq for ProductionData {
+    fn eq(&self, other: &Self) -> bool {
+        self.ident == other.ident
+    }
+}
+
+impl Eq for ProductionData {}
+
+impl Ord for ProductionData {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.ident.cmp(&other.ident)
+    }
+}
+
+impl PartialOrd for ProductionData {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Production(Rc<ProductionData>);
 
 impl Clone for Production {
@@ -195,26 +215,6 @@ impl Production {
         } else {
             false
         }
-    }
-}
-
-impl PartialEq for Production {
-    fn eq(&self, other: &Self) -> bool {
-        self.0.ident == other.0.ident
-    }
-}
-
-impl Eq for Production {}
-
-impl PartialOrd for Production {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
-impl Ord for Production {
-    fn cmp(&self, other: &Self) -> Ordering {
-        self.ident().cmp(&other.ident())
     }
 }
 
