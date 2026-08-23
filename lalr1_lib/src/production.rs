@@ -447,6 +447,7 @@ impl GrammarItemSet {
 
     pub fn reductions(&self) -> Reductions {
         let expected_tokens = self.reducible_look_ahead_set();
+        #[allow(clippy::mutable_key_type)]
         let mut reductions: BTreeMap<OrderedSet<Production>, TokenSet> = BTreeMap::new();
         for token in expected_tokens.iter() {
             let mut productions: OrderedSet<Production> = OrderedSet::new();

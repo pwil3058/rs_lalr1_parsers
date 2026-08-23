@@ -266,6 +266,7 @@ impl TryFrom<(Specification, bool, bool)> for Grammar {
             let start_item_key = GrammarItemKey::from(&specification.productions[0]);
             let mut start_look_ahead_set = TokenSet::new();
             start_look_ahead_set.insert(&Token::End);
+            #[allow(clippy::mutable_key_type)]
             let mut map = BTreeMap::<GrammarItemKey, TokenSet>::new();
             map.insert(start_item_key, start_look_ahead_set);
             let start_kernel = specification.closure(GrammarItemSet::from(map));
