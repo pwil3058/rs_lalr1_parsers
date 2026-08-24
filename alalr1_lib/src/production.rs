@@ -178,7 +178,7 @@ impl Production {
             let string = RHS_CRE
                 .replace_all(predicate, |caps: &regex::Captures| {
                     format!(
-                        "aa_attributes.at_len_minus_n({})",
+                        "aa_parse_stack.at_len_minus_n({})",
                         rhs_len + 1 - usize::from_str(&caps[1]).unwrap()
                     )
                 })

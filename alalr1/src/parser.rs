@@ -61,7 +61,7 @@ where
         }
     }
 
-    fn current_state(&self) -> u32 {
+    pub fn current_state(&self) -> u32 {
         self.states.last().unwrap().1
     }
 
@@ -140,12 +140,7 @@ where
     Self: ReportError<T>,
 {
     fn lexical_analyzer(&self) -> &lexan::LexicalAnalyzer<T>;
-    fn next_action(
-        &self,
-        state: u32,
-        attributes: &ParseStack<T, N, A>,
-        o_token: &lexan::Token<T>,
-    ) -> Action;
+    fn next_action(&self, parse_stack: &ParseStack<T, N, A>, o_token: &lexan::Token<T>) -> Action;
     fn production_data(production_id: u32) -> (N, usize);
     fn goto_state(lhs: &N, current_state: u32) -> u32;
     fn do_semantic_action<F: FnMut(String, String)>(
@@ -202,34 +197,31 @@ where
                         return result;
                     }
                 }
-                Ok(token) => {
-                    match self.next_action(parse_stack.current_state(), &parse_stack, &token) {
-                        Action::Accept => return result,
-                        Action::Shift(next_state) => {
-                            parse_stack.push_terminal(token, next_state);
-                            tokens.advance();
-                        }
-                        Action::Reduce(production_id) => {
-                            let (lhs, rhs_len) = Self::production_data(production_id);
-                            let rhs = parse_stack.pop_n(rhs_len);
-                            let next_state = Self::goto_state(&lhs, parse_stack.current_state());
-                            let attribute = self.do_semantic_action(production_id, rhs, |s, l| {
-                                tokens.inject(&s, &l)
-                            });
-                            parse_stack.push_non_terminal(lhs, attribute, next_state);
-                        }
-                        Action::SyntaxError => {
-                            let expected_tokens = Self::look_ahead_set(parse_stack.current_state());
-                            let error = Error::SyntaxError(token.clone(), expected_tokens);
-                            self.report_error(&error);
-                            result = Err(error.clone());
-                            if !Self::recover_from_error(error, &mut parse_stack, &mut tokens) {
-                                return result;
-                            }
+                Ok(token) => match self.next_action(&parse_stack, &token) {
+                    Action::Accept => return result,
+                    Action::Shift(next_state) => {
+                        parse_stack.push_terminal(token, next_state);
+                        tokens.advance();
+                    }
+                    Action::Reduce(production_id) => {
+                        let (lhs, rhs_len) = Self::production_data(production_id);
+                        let rhs = parse_stack.pop_n(rhs_len);
+                        let next_state = Self::goto_state(&lhs, parse_stack.current_state());
+                        let attribute = self
+                            .do_semantic_action(production_id, rhs, |s, l| tokens.inject(&s, &l));
+                        parse_stack.push_non_terminal(lhs, attribute, next_state);
+                    }
+                    Action::SyntaxError => {
+                        let expected_tokens = Self::look_ahead_set(parse_stack.current_state());
+                        let error = Error::SyntaxError(token.clone(), expected_tokens);
+                        self.report_error(&error);
+                        result = Err(error.clone());
+                        if !Self::recover_from_error(error, &mut parse_stack, &mut tokens) {
+                            return result;
                         }
                     }
-                }
-            }
+                },
+            };
         }
     }
 }

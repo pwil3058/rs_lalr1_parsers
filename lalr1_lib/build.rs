@@ -22,6 +22,6 @@ fn main() {
             }
             Err(err) => panic!("Build error: {err}"),
         }
-        println!("cargo::rerun-if-changed=buildx");
+        println!("cargo::rerun-if-changed=build");
     }
 }

@@ -519,8 +519,9 @@ impl Grammar {
     fn write_parser_implementation_code<W: Write>(&self, wtr: &mut W) -> io::Result<()> {
         let attr = &self.specification.attribute_type;
         let parser = &self.specification.target_type;
-        let text =
-            format!("impl alalr1::Parser<AATerminal, AANonTerminal, {attr}> for {parser} {{\n");
+        let text = format!(
+            "impl alalr1::parser::Parser<AATerminal, AANonTerminal, {attr}> for {parser} {{\n"
+        );
         wtr.write_all(text.as_bytes())?;
         wtr.write_all(
             b"    fn lexical_analyzer(&self) -> &lexan::LexicalAnalyzer<AATerminal> {\n",
@@ -633,16 +634,16 @@ impl Grammar {
     fn write_next_action_code<W: Write>(&self, wtr: &mut W) -> io::Result<()> {
         wtr.write_all(b"    fn next_action(\n")?;
         wtr.write_all(b"        &self,\n")?;
-        wtr.write_all(b"        aa_state: u32,\n")?;
         wtr.write_fmt(format_args!(
-            "        aa_attributes: &alalr1::ParseStack<AATerminal, AANonTerminal, {}>,\n",
+            "        aa_parse_stack: &alalr1::parser::ParseStack<AATerminal, AANonTerminal, {}>,\n",
             self.specification.attribute_type
         ))?;
         wtr.write_all(b"        aa_token: &lexan::Token<AATerminal>,\n")?;
-        wtr.write_all(b"    ) -> alalr1::Action {\n")?;
-        wtr.write_all(b"        use alalr1::Action;\n")?;
+        wtr.write_all(b"    ) -> alalr1::parser::Action {\n")?;
+        wtr.write_all(b"        use alalr1::parser::Action;\n")?;
         wtr.write_all(b"        use AATerminal::*;\n")?;
         wtr.write_all(b"        let aa_tag = *aa_token.tag();\n")?;
+        wtr.write_all(b"        let aa_state = aa_parse_stack.current_state();\n")?;
         wtr.write_all(b"        match aa_state {\n")?;
         for parser_state in self.parser_states.iter() {
             parser_state.write_next_action_code(wtr, "            ")?;

@@ -358,13 +358,13 @@ impl alalr1::parser::Parser<AATerminal, AANonTerminal, AttributeData> for Specif
 
     fn next_action(
         &self,
-        aa_state: u32,
-        aa_attributes: &alalr1::parser::ParseStack<AATerminal, AANonTerminal, AttributeData>,
+        aa_parse_stack: &alalr1::parser::ParseStack<AATerminal, AANonTerminal, AttributeData>,
         aa_token: &lexan::Token<AATerminal>,
     ) -> alalr1::parser::Action {
         use AATerminal::*;
         use alalr1::parser::Action;
         let aa_tag = *aa_token.tag();
+        let aa_state = aa_parse_stack.current_state();
         return match aa_state {
             0 => match aa_tag {
                 INJECT => Action::Shift(4),
@@ -576,7 +576,7 @@ impl alalr1::parser::Parser<AATerminal, AANonTerminal, AttributeData> for Specif
             },
             39 => match aa_tag {
                 LITERAL | REGEX => {
-                    if !Self::is_allowable_name(aa_attributes.at_len_minus_n(1).matched_text()) {
+                    if !Self::is_allowable_name(aa_parse_stack.at_len_minus_n(1).matched_text()) {
                         // NewTokenName: IDENT #(NonAssoc, 0) ?( !Self::is_allowable_name($1.matched_text()) ?)
                         Action::Reduce(26)
                     } else {
