@@ -5,7 +5,11 @@ use std::{
     fmt::{self, Debug, Display},
 };
 
+pub mod attributes;
 pub mod parser;
+pub mod production;
+pub mod state;
+pub mod symbol;
 
 // Create a wrapper around BTreeSet so we can implement Display on it
 #[derive(Debug, Default, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]

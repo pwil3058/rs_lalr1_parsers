@@ -1,13 +1,17 @@
 [package]
 name = "lalr1"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[features]
+default = []
+augmented = []
 
 [dependencies]
-lazy_static = "1.3.0"
-thiserror = "2.0.20"
+lazy_static = "1.5"
+thiserror = "2.0"
+regex = "1.13"
 
 lexan = { path = "../lexan" }
 
