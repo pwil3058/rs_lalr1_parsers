@@ -270,25 +270,12 @@ impl ParserState {
             .collect()
     }
 
-    pub fn write_next_action_code<W: Write>(
+    pub fn write_reductions_code<W: Write>(
         &self,
         wtr: &mut W,
         indent: &str,
     ) -> std::io::Result<()> {
         let reductions = self.0.grammar_items.borrow().reductions();
-        wtr.write_fmt(format_args!(
-            "{}{} => match aa_tag {{\n",
-            indent,
-            self.ident()
-        ))?;
-        for (token, state) in self.0.shift_list.borrow().iter() {
-            wtr.write_fmt(format_args!(
-                "{}    {} => Action::Shift({}),\n",
-                indent,
-                token.name(),
-                state.ident()
-            ))?;
-        }
         for (productions, look_ahead_set) in reductions.reductions() {
             if productions.len() == 1 {
                 // NB this is clumsy but first() for OrderedSet is only experimental
@@ -346,6 +333,28 @@ impl ParserState {
                 wtr.write_fmt(format_args!("{indent}    }}\n"))?;
             }
         }
+        Ok(())
+    }
+
+    pub fn write_next_action_code<W: Write>(
+        &self,
+        wtr: &mut W,
+        indent: &str,
+    ) -> std::io::Result<()> {
+        wtr.write_fmt(format_args!(
+            "{}{} => match aa_tag {{\n",
+            indent,
+            self.ident()
+        ))?;
+        for (token, state) in self.0.shift_list.borrow().iter() {
+            wtr.write_fmt(format_args!(
+                "{}    {} => Action::Shift({}),\n",
+                indent,
+                token.name(),
+                state.ident()
+            ))?;
+        }
+        self.write_reductions_code(wtr, indent)?;
         wtr.write_fmt(format_args!("{indent}    _ => Action::SyntaxError,\n",))?;
         wtr.write_fmt(format_args!("{indent}}},\n"))?;
         Ok(())
