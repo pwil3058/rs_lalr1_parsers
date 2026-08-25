@@ -5,7 +5,13 @@ use std::{
     fmt::{self, Debug, Display},
 };
 
+#[cfg(feature = "augmented")]
+pub mod alalr1_parser;
+#[cfg(not(feature = "augmented"))]
+pub mod lalr1_parser;
+
 pub mod attributes;
+pub mod grammar;
 pub mod parser;
 pub mod production;
 pub mod state;

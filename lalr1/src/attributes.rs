@@ -1,6 +1,11 @@
 // Copyright (c) 2026 Peter Williams <pwil3058@bigpond.net.au> <pwil3058@gmail.com>.
 
-use std::fmt::{Debug, Display};
+#[cfg(all(feature = "bootstrap", not(feature = "augmented")))]
+use crate::lalr1_parser::bootstrap::AATerminal;
+#[cfg(all(not(feature = "bootstrap"), not(feature = "augmented")))]
+use crate::lalr1_parser::parser::AATerminal;
+
+use std::fmt::Debug;
 
 use crate::production::ProductionTail;
 use crate::symbol::non_terminal::NonTerminal;
@@ -11,10 +16,10 @@ use crate::OrderedSet;
 
 #[allow(unused)]
 #[derive(Debug, Default, Clone)]
-pub enum AttributeData<A: Copy + Ord + Debug + Display> {
-    Token(lexan::Token<A>),
-    SyntaxError(lexan::Token<A>, OrderedSet<A>),
-    LexicalError(lexan::Error<A>, OrderedSet<A>),
+pub enum AttributeData {
+    Token(lexan::Token<AATerminal>),
+    SyntaxError(lexan::Token<AATerminal>, OrderedSet<AATerminal>),
+    LexicalError(lexan::Error<AATerminal>, OrderedSet<AATerminal>),
     Number(u32),
     Symbol(Symbol),
     SymbolList(Vec<Symbol>),
@@ -31,7 +36,7 @@ pub enum AttributeData<A: Copy + Ord + Debug + Display> {
     Default,
 }
 
-impl<A: Copy + Ord + Debug + Display> AttributeData<A> {
+impl AttributeData {
     pub fn matched_text(&self) -> &String {
         match self {
             AttributeData::Token(token) => token.lexeme(),
@@ -173,14 +178,14 @@ impl<A: Copy + Ord + Debug + Display> AttributeData<A> {
     }
 }
 
-impl<A: Copy + Ord + Debug + Display> From<lexan::Token<A>> for AttributeData<A> {
-    fn from(token: lexan::Token<A>) -> Self {
+impl From<lexan::Token<AATerminal>> for AttributeData {
+    fn from(token: lexan::Token<AATerminal>) -> Self {
         AttributeData::Token(token)
     }
 }
 
-impl<A: Copy + Ord + Debug + Display> From<crate::parser::Error<A>> for AttributeData<A> {
-    fn from(error: crate::parser::Error<A>) -> Self {
+impl From<crate::parser::Error<AATerminal>> for AttributeData {
+    fn from(error: crate::parser::Error<AATerminal>) -> Self {
         match error {
             crate::parser::Error::LexicalError(error, expected) => {
                 AttributeData::LexicalError(error, expected)
