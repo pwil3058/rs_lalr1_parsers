@@ -2,8 +2,8 @@
 use std::cell::{Cell, RefCell};
 use std::rc::Rc;
 
-use crate::symbol::terminal::Token;
 use crate::symbol::Associativity;
+use crate::symbol::terminal::Token;
 
 #[derive(Debug, Default)]
 pub struct TagData {

@@ -6,15 +6,14 @@ use std::str::FromStr;
 
 use lazy_static::lazy_static;
 
-use crate as lalr1;
-use crate::parser::ParseStack;
 use crate::OrderedSet;
+use crate::ParseStack;
 
 #[allow(unused)]
 #[derive(Debug, Clone)]
 pub enum AttributeData {
     Token(lexan::Token<AATerminal>),
-    Error(lalr1::parser::Error<AATerminal>),
+    Error(crate::Error<AATerminal>),
     Value(f64),
     Id(String),
     Default,
@@ -58,8 +57,8 @@ impl From<lexan::Token<AATerminal>> for AttributeData {
     }
 }
 
-impl From<lalr1::parser::Error<AATerminal>> for AttributeData {
-    fn from(error: lalr1::parser::Error<AATerminal>) -> Self {
+impl From<crate::Error<AATerminal>> for AttributeData {
+    fn from(error: crate::Error<AATerminal>) -> Self {
         AttributeData::Error(error)
     }
 }
@@ -74,7 +73,7 @@ pub struct Calc {
     variables: HashMap<String, f64>,
 }
 
-impl lalr1::parser::ReportError<AATerminal> for Calc {}
+impl crate::ReportError<AATerminal> for Calc {}
 
 impl Calc {
     pub fn new() -> Self {
@@ -196,7 +195,7 @@ impl std::fmt::Display for AANonTerminal {
     }
 }
 
-impl lalr1::parser::Parser<AATerminal, AANonTerminal, AttributeData> for Calc {
+impl crate::Parser<AATerminal, AANonTerminal, AttributeData> for Calc {
     fn lexical_analyzer(&self) -> &lexan::LexicalAnalyzer<AATerminal> {
         &AALEXAN
     }
@@ -253,8 +252,8 @@ impl lalr1::parser::Parser<AATerminal, AANonTerminal, AttributeData> for Calc {
         &self,
         aa_state_stack: &ParseStack<AATerminal, AANonTerminal, AttributeData>,
         aa_token: &lexan::Token<AATerminal>,
-    ) -> lalr1::parser::Action {
-        use lalr1::parser::Action;
+    ) -> crate::Action {
+        use crate::Action;
         use AATerminal::*;
         let aa_tag = *aa_token.tag();
         let aa_state = aa_state_stack.current_state();
@@ -588,7 +587,7 @@ impl lalr1::parser::Parser<AATerminal, AANonTerminal, AttributeData> for Calc {
 
 #[test]
 fn calc_works() {
-    use crate::parser::Parser;
+    use crate::Parser;
     let mut calc = Calc::new();
     assert!(calc.parse_text("a = (3 + 4)\n", "raw").is_ok());
     assert_eq!(calc.variables.get("a"), Some(&7.0));

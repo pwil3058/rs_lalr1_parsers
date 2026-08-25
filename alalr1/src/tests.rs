@@ -1,5 +1,5 @@
 // Copyright (c) 2026 Peter Williams <pwil3058@bigpond.net.au> <pwil3058@gmail.com>.
-use crate::parser::ReportError;
+use lalr1::ReportError;
 
 use std::collections::HashMap;
 use std::convert::From;
@@ -95,8 +95,8 @@ impl From<lexan::Token<Terminal>> for AttributeData {
     }
 }
 
-impl From<crate::parser::Error<Terminal>> for AttributeData {
-    fn from(_error: crate::parser::Error<Terminal>) -> Self {
+impl From<lalr1::Error<Terminal>> for AttributeData {
+    fn from(_error: lalr1::Error<Terminal>) -> Self {
         AttributeData::default()
     }
 }
@@ -166,7 +166,7 @@ impl Calc {
     }
 }
 
-impl crate::parser::Parser<Terminal, NonTerminal, AttributeData> for Calc {
+impl lalr1::Parser<Terminal, NonTerminal, AttributeData> for Calc {
     fn lexical_analyzer(&self) -> &lexan::LexicalAnalyzer<Terminal> {
         &AALEXAN
     }
@@ -215,10 +215,10 @@ impl crate::parser::Parser<Terminal, NonTerminal, AttributeData> for Calc {
 
     fn next_action(
         &self,
-        parse_stack: &crate::parser::ParseStack<Terminal, NonTerminal, AttributeData>,
+        parse_stack: &lalr1::ParseStack<Terminal, NonTerminal, AttributeData>,
         token: &lexan::Token<Terminal>,
-    ) -> crate::parser::Action {
-        use crate::parser::Action;
+    ) -> lalr1::Action {
+        use lalr1::Action;
         use Terminal::*;
         let tag = *token.tag();
         let state = parse_stack.current_state();
@@ -579,7 +579,7 @@ impl crate::parser::Parser<Terminal, NonTerminal, AttributeData> for Calc {
 
 #[test]
 fn calc_works() {
-    use crate::parser::Parser;
+    use lalr1::Parser;
     let mut calc = Calc::new();
     assert!(calc.parse_text("a = (3 + 4)\n", "raw").is_ok());
     assert_eq!(calc.variables.get("a"), Some(&7.0));
