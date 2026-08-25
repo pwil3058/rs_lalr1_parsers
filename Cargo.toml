@@ -6,8 +6,6 @@ members = [
     "lexan",
     "lalr1",
     "lalr1_common",
-    #    "alap_gen",
-    #    "lap_gen",
     "lalr1_lib",
     "lalr1_gen",
     "alalr1",
