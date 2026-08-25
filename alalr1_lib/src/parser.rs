@@ -205,7 +205,7 @@ impl std::fmt::Display for AANonTerminal {
     }
 }
 
-impl alalr1::parser::Parser<AATerminal, AANonTerminal, AttributeData> for Specification {
+impl lalr1::Parser<AATerminal, AANonTerminal, AttributeData> for Specification {
     fn lexical_analyzer(&self) -> &lexan::LexicalAnalyzer<AATerminal> {
         &AALEXAN
     }
@@ -332,10 +332,10 @@ impl alalr1::parser::Parser<AATerminal, AANonTerminal, AttributeData> for Specif
 
     fn next_action(
         &self,
-        aa_parse_stack: &alalr1::parser::ParseStack<AATerminal, AANonTerminal, AttributeData>,
+        aa_parse_stack: &lalr1::ParseStack<AATerminal, AANonTerminal, AttributeData>,
         aa_token: &lexan::Token<AATerminal>,
-    ) -> alalr1::parser::Action {
-        use alalr1::parser::Action;
+    ) -> lalr1::Action {
+        use lalr1::Action;
         use AATerminal::*;
         let aa_tag = *aa_token.tag();
         let aa_state = aa_parse_stack.current_state();

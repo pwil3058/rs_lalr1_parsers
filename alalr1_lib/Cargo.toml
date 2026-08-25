@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [features]
-default = ["bootstrap"]
+default = []
 bootstrap = []
 
 [dependencies]
@@ -14,5 +14,4 @@ thiserror = "2.0.20"
 
 lexan = { path = "../lexan" }
 lalr1 = { path = "../lalr1" }
-alalr1 = { path = "../alalr1" }
 
