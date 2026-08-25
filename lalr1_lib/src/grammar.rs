@@ -44,11 +44,7 @@ impl lalr1::ReportError<AATerminal> for Specification {}
 
 impl Specification {
     pub fn new(text: &str, label: &str) -> Result<Self, lalr1::Error<AATerminal>> {
-        let mut spec = Specification {
-            attribute_type: "AttributeData".to_string(),
-            target_type: "Specification".to_string(),
-            ..Specification::default()
-        };
+        let mut spec = Specification::default();
         spec.parse_text(text, label)?;
         // Add dummy error production last so that it has lowest precedence during conflict resolution
         let symbol = spec.symbol_table.error_non_terminal.clone();

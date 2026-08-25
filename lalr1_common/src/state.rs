@@ -5,7 +5,7 @@ use crate::symbol::non_terminal::NonTerminal;
 use crate::symbol::terminal::{Token, TokenSet};
 use crate::symbol::{Associativity, Symbol};
 
-use crate::OrderedSet;
+use lalr1::OrderedSet;
 
 use std::cell::{Cell, RefCell};
 use std::cmp::Ordering;
@@ -299,7 +299,7 @@ impl ParserState {
         Ok(())
     }
 
-    #[cfg(feature = "augmented")]    
+    #[cfg(feature = "augmented")]
     pub fn write_reductions_code<W: Write>(
         &self,
         wtr: &mut W,

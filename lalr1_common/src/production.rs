@@ -1,13 +1,12 @@
 // Copyright (c) 2026 Peter Williams <pwil3058@bigpond.net.au> <pwil3058@gmail.com>.
 
-use crate::{
-    symbol::{
-        non_terminal::NonTerminal,
-        terminal::{Token, TokenSet},
-        Associativity, Symbol,
-    },
-    OrderedSet,
+use crate::symbol::{
+    Associativity, Symbol,
+    non_terminal::NonTerminal,
+    terminal::{Token, TokenSet},
 };
+
+use lalr1::OrderedSet;
 
 use lazy_static::lazy_static;
 use regex;
@@ -43,8 +42,7 @@ impl Clone for ProductionTail {
 impl ProductionTail {
     pub fn new(
         right_hand_side: &[Symbol],
-        #[cfg(feature = "augmented")]
-        o_predicate: Option<&str>,
+        #[cfg(feature = "augmented")] o_predicate: Option<&str>,
         associative_precedence: Option<(Associativity, u16)>,
         o_action: Option<&str>,
     ) -> Self {

@@ -1,16 +1,11 @@
 // Copyright (c) 2026 Peter Williams <pwil3058@bigpond.net.au> <pwil3058@gmail.com>.
 
-#[cfg(feature = "bootstrap")]
-use crate::lalr1_parser::bootstrap::AATerminal;
-#[cfg(not(feature = "bootstrap"))]
-use crate::lalr1_parser::parser::AATerminal;
-
 use crate::production::{GrammarItemKey, GrammarItemSet, Production, ProductionTail};
 use crate::state::ParserState;
 use crate::symbol::non_terminal::NonTerminal;
 use crate::symbol::terminal::{Token, TokenSet};
 use crate::symbol::{Symbol, SymbolTable};
-use crate::{OrderedSet, parser::Parser};
+use lalr1::{OrderedSet, Parser};
 
 use std::collections::BTreeMap;
 use std::convert::TryFrom;
@@ -96,7 +91,7 @@ impl Specification {
             let start_symbol = self.symbol_table.start_non_terminal_used_at(&location);
             #[cfg(not(feature = "augmented"))]
             let start_tail = ProductionTail::new(&[left_hand_side.into()], None, None);
-            #[cfg(feature= "augmented")]
+            #[cfg(feature = "augmented")]
             let start_tail = ProductionTail::new(&[left_hand_side.into()], None, None, None);
             let start_production = Production::new(start_symbol, start_tail);
             self.productions.push(start_production);

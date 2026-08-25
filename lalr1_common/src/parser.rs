@@ -7,7 +7,7 @@ use thiserror::Error;
 
 use lexan::TokenStream;
 
-use crate::OrderedSet;
+use lalr1::OrderedSet;
 
 #[derive(Debug, Clone, Error)]
 pub enum Error<T: Ord + Clone + Copy + Debug + Display + Eq> {

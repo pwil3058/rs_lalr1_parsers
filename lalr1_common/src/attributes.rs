@@ -1,10 +1,5 @@
 // Copyright (c) 2026 Peter Williams <pwil3058@bigpond.net.au> <pwil3058@gmail.com>.
 
-#[cfg(all(feature = "bootstrap", not(feature = "augmented")))]
-use crate::lalr1_parser::bootstrap::AATerminal;
-#[cfg(all(not(feature = "bootstrap"), not(feature = "augmented")))]
-use crate::lalr1_parser::parser::AATerminal;
-
 use std::fmt::Debug;
 
 use crate::production::ProductionTail;
@@ -12,7 +7,7 @@ use crate::symbol::non_terminal::NonTerminal;
 use crate::symbol::tag::TagOrToken;
 use crate::symbol::{Associativity, Symbol};
 
-use crate::OrderedSet;
+use lalr1::OrderedSet;
 
 #[allow(unused)]
 #[derive(Debug, Default, Clone)]
