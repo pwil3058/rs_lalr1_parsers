@@ -5,11 +5,12 @@ resolver = "3"
 members = [
     "lexan",
     "lalr1",
-    "alalr1",
+    "lalr1_common",
     #    "alap_gen",
     #    "lap_gen",
     "lalr1_lib",
     "lalr1_gen",
+    "alalr1",
     "alalr1_lib",
     "alalr1_gen",
 ]

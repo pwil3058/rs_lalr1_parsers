@@ -25,64 +25,61 @@ macro_rules! ordered_set {
     };
 }
 
-use alalr1;
-use lexan;
-
 #[derive(Debug, Clone, Copy, PartialOrd, Ord, PartialEq, Eq)]
 pub enum AATerminal {
     AAEnd,
-    ACTION,
-    ATTR,
-    COLON,
-    DOT,
-    ERROR,
-    IDENT,
-    INJECT,
-    LEFT,
-    LITERAL,
-    NEWSECTION,
-    NONASSOC,
-    NUMBER,
-    PRECEDENCE,
-    PREDICATE,
-    REGEX,
-    RIGHT,
-    RR,
-    RUSTCODE,
-    SKIP,
-    SR,
-    TARGET,
-    TOKEN,
-    VBAR,
+    Action,
+    Attr,
+    Colon,
+    Dot,
+    Error,
+    Ident,
+    Inject,
+    Left,
+    Literal,
+    NewSection,
+    NonAssoc,
+    Number,
+    Precedence,
+    Predicate,
+    RegEx,
+    Right,
+    ReduceReduce,
+    RustCode,
+    Skip,
+    ShiftReduce,
+    Target,
+    Token,
+    VBar,
 }
 
 impl std::fmt::Display for AATerminal {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
             AATerminal::AAEnd => write!(f, r###"AAEnd"###),
-            AATerminal::ACTION => write!(f, r###"ACTION"###),
-            AATerminal::ATTR => write!(f, r###""%attr""###),
-            AATerminal::COLON => write!(f, r###"":""###),
-            AATerminal::DOT => write!(f, r###"".""###),
-            AATerminal::ERROR => write!(f, r###""%error""###),
-            AATerminal::IDENT => write!(f, r###"IDENT"###),
-            AATerminal::INJECT => write!(f, r###""%inject""###),
-            AATerminal::LEFT => write!(f, r###""%left""###),
-            AATerminal::LITERAL => write!(f, r###"LITERAL"###),
-            AATerminal::NEWSECTION => write!(f, r###""%%""###),
-            AATerminal::NONASSOC => write!(f, r###""%nonassoc""###),
-            AATerminal::NUMBER => write!(f, r###"NUMBER"###),
-            AATerminal::PRECEDENCE => write!(f, r###""%prec""###),
-            AATerminal::PREDICATE => write!(f, r###"PREDICATE"###),
-            AATerminal::REGEX => write!(f, r###"REGEX"###),
-            AATerminal::RIGHT => write!(f, r###""%right""###),
-            AATerminal::RR => write!(f, r###""%reduce_reduce""###),
-            AATerminal::RUSTCODE => write!(f, r###"RUSTCODE"###),
-            AATerminal::SKIP => write!(f, r###""%skip""###),
-            AATerminal::SR => write!(f, r###""%shift_reduce""###),
-            AATerminal::TARGET => write!(f, r###""%target""###),
-            AATerminal::TOKEN => write!(f, r###""%token""###),
-            AATerminal::VBAR => write!(f, r###""|""###),
+            AATerminal::Action => write!(f, r###"ACTION"###),
+            AATerminal::Attr => write!(f, r###""%attr""###),
+            AATerminal::Colon => write!(f, r###"":""###),
+            AATerminal::Dot => write!(f, r###"".""###),
+            AATerminal::Error => write!(f, r###""%error""###),
+            AATerminal::Ident => write!(f, r###"IDENT"###),
+            AATerminal::Inject => write!(f, r###""%inject""###),
+            AATerminal::Left => write!(f, r###""%left""###),
+            AATerminal::Literal => write!(f, r###"LITERAL"###),
+            AATerminal::NewSection => write!(f, r###""%%""###),
+            AATerminal::NonAssoc => write!(f, r###""%nonassoc""###),
+            AATerminal::Number => write!(f, r###"NUMBER"###),
+            AATerminal::Precedence => write!(f, r###""%prec""###),
+            AATerminal::Predicate => write!(f, r###"PREDICATE"###),
+            AATerminal::RegEx => write!(f, r###"REGEX"###),
+            AATerminal::Right => write!(f, r###""%right""###),
+            AATerminal::ReduceReduce => write!(f, r###""%reduce_reduce""###),
+            AATerminal::RustCode => write!(f, r###"RUSTCODE"###),
+            AATerminal::Skip => write!(f, r###""%skip""###),
+            AATerminal::ShiftReduce => write!(f, r###""%shift_reduce""###),
+            AATerminal::Target => write!(f, r###""%target""###),
+            AATerminal::Token => write!(f, r###""%token""###),
+            AATerminal::VBar => write!(f, r###""|""###),
         }
     }
 }
@@ -92,31 +89,31 @@ lazy_static::lazy_static! {
         use AATerminal::*;
         lexan::LexicalAnalyzer::new(
             &[
-                (NEWSECTION, r###"%%"###),
-                (ATTR, r###"%attr"###),
-                (ERROR, r###"%error"###),
-                (INJECT, r###"%inject"###),
-                (LEFT, r###"%left"###),
-                (NONASSOC, r###"%nonassoc"###),
-                (PRECEDENCE, r###"%prec"###),
-                (RR, r###"%reduce_reduce"###),
-                (RIGHT, r###"%right"###),
-                (SR, r###"%shift_reduce"###),
-                (SKIP, r###"%skip"###),
-                (TARGET, r###"%target"###),
-                (TOKEN, r###"%token"###),
-                (DOT, r###"."###),
-                (COLON, r###":"###),
-                (VBAR, r###"|"###),
+                (NewSection, r###"%%"###),
+                (Attr, r###"%attr"###),
+                (Error, r###"%error"###),
+                (Inject, r###"%inject"###),
+                (Left, r###"%left"###),
+                (NonAssoc, r###"%nonassoc"###),
+                (Precedence, r###"%prec"###),
+                (ReduceReduce, r###"%reduce_reduce"###),
+                (Right, r###"%right"###),
+                (ShiftReduce, r###"%shift_reduce"###),
+                (Skip, r###"%skip"###),
+                (Target, r###"%target"###),
+                (Token, r###"%token"###),
+                (Dot, r###"."###),
+                (Colon, r###":"###),
+                (VBar, r###"|"###),
             ],
             &[
-                (ACTION, r###"(!\{(.|[\n\r])*?!\})"###),
-                (LITERAL, r###"("(\\"|[^"\t\r\n\v\f])*")"###),
-                (RUSTCODE, r###"(%\{(.|[\n\r])*?%\})"###),
-                (NUMBER, r###"([0-9]+)"###),
-                (IDENT, r###"([a-zA-Z]+[a-zA-Z0-9_]*)"###),
-                (REGEX, r###"(\(.+\))"###),
-                (PREDICATE, r###"(\?\((.|[\n\r])*?\?\))"###),
+                (Action, r###"(!\{(.|[\n\r])*?!\})"###),
+                (Literal, r###"("(\\"|[^"\t\r\n\v\f])*")"###),
+                (RustCode, r###"(%\{(.|[\n\r])*?%\})"###),
+                (Number, r###"([0-9]+)"###),
+                (Ident, r###"([a-zA-Z]+[a-zA-Z0-9_]*)"###),
+                (RegEx, r###"(\(.+\))"###),
+                (Predicate, r###"(\?\((.|[\n\r])*?\?\))"###),
             ],
             &[
                 r###"(/\*(.|[\n\r])*?\*/)"###,
@@ -207,7 +204,7 @@ impl std::fmt::Display for AANonTerminal {
     }
 }
 
-impl alalr1::parser::Parser<AATerminal, AANonTerminal, AttributeData> for Specification {
+impl lalr1::Parser<AATerminal, AANonTerminal, AttributeData> for Specification {
     fn lexical_analyzer(&self) -> &lexan::LexicalAnalyzer<AATerminal> {
         &AALEXAN
     }
@@ -217,161 +214,183 @@ impl alalr1::parser::Parser<AATerminal, AANonTerminal, AttributeData> for Specif
     }
 
     fn error_goto_state(state: u32) -> u32 {
-        match state {
-            _ => panic!("No error go to state for {}", state),
-        }
+        panic!("No error go to state for {}", state)
     }
 
     fn look_ahead_set(state: u32) -> OrderedSet<AATerminal> {
         use AATerminal::*;
-        return match state {
-            0 => ordered_set![ATTR, INJECT, TARGET, RUSTCODE],
+        match state {
+            0 => ordered_set![Attr, Inject, Target, RustCode],
             1 => ordered_set![AAEnd],
-            2 => ordered_set![ATTR, TARGET],
+            2 => ordered_set![Attr, Target],
             3 => ordered_set![
-                ATTR, INJECT, LEFT, NEWSECTION, NONASSOC, RIGHT, RR, SKIP, SR, TARGET, TOKEN,
-                IDENT, RUSTCODE, AAEnd
+                Attr,
+                Inject,
+                Left,
+                NewSection,
+                NonAssoc,
+                Right,
+                ReduceReduce,
+                Skip,
+                ShiftReduce,
+                Target,
+                Token,
+                Ident,
+                RustCode,
+                AAEnd
             ],
-            4 => ordered_set![LITERAL],
-            5 => ordered_set![DOT],
-            6 => ordered_set![RUSTCODE],
-            7 => ordered_set![NEWSECTION],
-            8 => ordered_set![INJECT, TARGET],
-            9 => ordered_set![ATTR, INJECT],
-            10 => ordered_set![IDENT],
-            11 => ordered_set![IDENT],
-            12 => ordered_set![DOT],
+            4 => ordered_set![Literal],
+            5 => ordered_set![Dot],
+            6 => ordered_set![RustCode],
+            7 => ordered_set![NewSection],
+            8 => ordered_set![Inject, Target],
+            9 => ordered_set![Attr, Inject],
+            10 => ordered_set![Ident],
+            11 => ordered_set![Ident],
+            12 => ordered_set![Dot],
             13 => ordered_set![
-                ATTR, INJECT, LEFT, NEWSECTION, NONASSOC, RIGHT, RR, SKIP, SR, TARGET, TOKEN,
-                IDENT, RUSTCODE, AAEnd
+                Attr,
+                Inject,
+                Left,
+                NewSection,
+                NonAssoc,
+                Right,
+                ReduceReduce,
+                Skip,
+                ShiftReduce,
+                Target,
+                Token,
+                Ident,
+                RustCode,
+                AAEnd
             ],
-            14 => ordered_set![ATTR, INJECT, TARGET],
-            15 => ordered_set![INJECT, TOKEN],
-            16 => ordered_set![TARGET],
-            17 => ordered_set![ATTR],
-            18 => ordered_set![INJECT, NEWSECTION, RR, SR, TARGET],
-            19 => ordered_set![ATTR, INJECT, NEWSECTION, RR, SR],
-            20 => ordered_set![ATTR, TARGET],
-            21 => ordered_set![NEWSECTION],
-            22 => ordered_set![INJECT, LEFT, NEWSECTION, NONASSOC, RIGHT, SKIP, TOKEN],
-            23 => ordered_set![TOKEN],
-            24 => ordered_set![INJECT, NEWSECTION, RR, SR],
-            25 => ordered_set![INJECT, NEWSECTION, RR, SR],
-            26 => ordered_set![INJECT, IDENT],
-            27 => ordered_set![INJECT, LEFT, NEWSECTION, NONASSOC, RIGHT, SKIP],
-            28 => ordered_set![TOKEN],
-            29 => ordered_set![INJECT, LEFT, NEWSECTION, NONASSOC, RIGHT, SKIP, TOKEN],
-            30 => ordered_set![IDENT],
-            31 => ordered_set![INJECT, NEWSECTION, RR, SR],
-            32 => ordered_set![INJECT, NEWSECTION, RR, SR],
-            33 => ordered_set![IDENT, AAEnd],
-            34 => ordered_set![IDENT],
-            35 => ordered_set![INJECT, LEFT, NEWSECTION, NONASSOC, RIGHT],
-            36 => ordered_set![SKIP],
-            37 => ordered_set![INJECT, LEFT, NEWSECTION, NONASSOC, RIGHT, SKIP, TOKEN],
-            38 => ordered_set![LITERAL, REGEX],
-            39 => ordered_set![LITERAL, REGEX],
-            40 => ordered_set![INJECT, NEWSECTION],
-            41 => ordered_set![INJECT, NEWSECTION, SR],
-            42 => ordered_set![INJECT, NEWSECTION, RR],
-            43 => ordered_set![NUMBER],
-            44 => ordered_set![NUMBER],
-            45 => ordered_set![INJECT, NEWSECTION],
-            46 => ordered_set![INJECT, IDENT, AAEnd],
-            47 => ordered_set![DOT, ERROR, VBAR, ACTION, IDENT, LITERAL, PREDICATE],
-            48 => ordered_set![COLON],
-            49 => ordered_set![INJECT, IDENT, AAEnd],
-            50 => ordered_set![LEFT, NONASSOC, RIGHT],
-            51 => ordered_set![INJECT, LEFT, NEWSECTION, NONASSOC, RIGHT, SKIP],
-            52 => ordered_set![REGEX],
-            53 => ordered_set![INJECT, LEFT, NEWSECTION, NONASSOC, RIGHT, SKIP, TOKEN],
-            54 => ordered_set![INJECT, LEFT, NEWSECTION, NONASSOC, RIGHT, SKIP, TOKEN],
-            55 => ordered_set![INJECT, LEFT, NEWSECTION, NONASSOC, RIGHT, SKIP, TOKEN],
-            56 => ordered_set![INJECT, LEFT, NEWSECTION, NONASSOC, RIGHT, SKIP, TOKEN],
-            57 => ordered_set![NEWSECTION],
-            58 => ordered_set![SR],
-            59 => ordered_set![RR],
-            60 => ordered_set![INJECT, NEWSECTION, SR],
-            61 => ordered_set![INJECT, NEWSECTION, RR, SR],
-            62 => ordered_set![INJECT, NEWSECTION, RR],
-            63 => ordered_set![NEWSECTION],
-            64 => ordered_set![IDENT, AAEnd],
-            65 => ordered_set![DOT, VBAR],
-            66 => ordered_set![DOT, VBAR],
-            67 => ordered_set![DOT, VBAR],
-            68 => ordered_set![DOT, VBAR, ACTION],
+            14 => ordered_set![Attr, Inject, Target],
+            15 => ordered_set![Inject, Token],
+            16 => ordered_set![Target],
+            17 => ordered_set![Attr],
+            18 => ordered_set![Inject, NewSection, ReduceReduce, ShiftReduce, Target],
+            19 => ordered_set![Attr, Inject, NewSection, ReduceReduce, ShiftReduce],
+            20 => ordered_set![Attr, Target],
+            21 => ordered_set![NewSection],
+            22 => ordered_set![Inject, Left, NewSection, NonAssoc, Right, Skip, Token],
+            23 => ordered_set![Token],
+            24 => ordered_set![Inject, NewSection, ReduceReduce, ShiftReduce],
+            25 => ordered_set![Inject, NewSection, ReduceReduce, ShiftReduce],
+            26 => ordered_set![Inject, Ident],
+            27 => ordered_set![Inject, Left, NewSection, NonAssoc, Right, Skip],
+            28 => ordered_set![Token],
+            29 => ordered_set![Inject, Left, NewSection, NonAssoc, Right, Skip, Token],
+            30 => ordered_set![Ident],
+            31 => ordered_set![Inject, NewSection, ReduceReduce, ShiftReduce],
+            32 => ordered_set![Inject, NewSection, ReduceReduce, ShiftReduce],
+            33 => ordered_set![Ident, AAEnd],
+            34 => ordered_set![Ident],
+            35 => ordered_set![Inject, Left, NewSection, NonAssoc, Right],
+            36 => ordered_set![Skip],
+            37 => ordered_set![Inject, Left, NewSection, NonAssoc, Right, Skip, Token],
+            38 => ordered_set![Literal, RegEx],
+            39 => ordered_set![Literal, RegEx],
+            40 => ordered_set![Inject, NewSection],
+            41 => ordered_set![Inject, NewSection, ShiftReduce],
+            42 => ordered_set![Inject, NewSection, ReduceReduce],
+            43 => ordered_set![Number],
+            44 => ordered_set![Number],
+            45 => ordered_set![Inject, NewSection],
+            46 => ordered_set![Inject, Ident, AAEnd],
+            47 => ordered_set![Dot, Error, VBar, Action, Ident, Literal, Predicate],
+            48 => ordered_set![Colon],
+            49 => ordered_set![Inject, Ident, AAEnd],
+            50 => ordered_set![Left, NonAssoc, Right],
+            51 => ordered_set![Inject, Left, NewSection, NonAssoc, Right, Skip],
+            52 => ordered_set![RegEx],
+            53 => ordered_set![Inject, Left, NewSection, NonAssoc, Right, Skip, Token],
+            54 => ordered_set![Inject, Left, NewSection, NonAssoc, Right, Skip, Token],
+            55 => ordered_set![Inject, Left, NewSection, NonAssoc, Right, Skip, Token],
+            56 => ordered_set![Inject, Left, NewSection, NonAssoc, Right, Skip, Token],
+            57 => ordered_set![NewSection],
+            58 => ordered_set![ShiftReduce],
+            59 => ordered_set![ReduceReduce],
+            60 => ordered_set![Inject, NewSection, ShiftReduce],
+            61 => ordered_set![Inject, NewSection, ReduceReduce, ShiftReduce],
+            62 => ordered_set![Inject, NewSection, ReduceReduce],
+            63 => ordered_set![NewSection],
+            64 => ordered_set![Ident, AAEnd],
+            65 => ordered_set![Dot, VBar],
+            66 => ordered_set![Dot, VBar],
+            67 => ordered_set![Dot, VBar],
+            68 => ordered_set![Dot, VBar, Action],
             69 => ordered_set![
-                DOT, ERROR, PRECEDENCE, VBAR, ACTION, IDENT, LITERAL, PREDICATE
+                Dot, Error, Precedence, VBar, Action, Ident, Literal, Predicate
             ],
-            70 => ordered_set![DOT, VBAR],
-            71 => ordered_set![DOT, PRECEDENCE, VBAR, ACTION],
+            70 => ordered_set![Dot, VBar],
+            71 => ordered_set![Dot, Precedence, VBar, Action],
             72 => ordered_set![
-                DOT, ERROR, PRECEDENCE, VBAR, ACTION, IDENT, LITERAL, PREDICATE
+                Dot, Error, Precedence, VBar, Action, Ident, Literal, Predicate
             ],
             73 => ordered_set![
-                DOT, ERROR, PRECEDENCE, VBAR, ACTION, IDENT, LITERAL, PREDICATE
+                Dot, Error, Precedence, VBar, Action, Ident, Literal, Predicate
             ],
             74 => ordered_set![
-                DOT, ERROR, PRECEDENCE, VBAR, ACTION, IDENT, LITERAL, PREDICATE
+                Dot, Error, Precedence, VBar, Action, Ident, Literal, Predicate
             ],
             75 => ordered_set![
-                DOT, ERROR, PRECEDENCE, VBAR, ACTION, IDENT, LITERAL, PREDICATE
+                Dot, Error, Precedence, VBar, Action, Ident, Literal, Predicate
             ],
-            76 => ordered_set![DOT, ERROR, VBAR, ACTION, IDENT, LITERAL, PREDICATE],
-            77 => ordered_set![IDENT, AAEnd],
-            78 => ordered_set![INJECT, LEFT, NEWSECTION, NONASSOC, RIGHT],
-            79 => ordered_set![IDENT, LITERAL],
-            80 => ordered_set![IDENT, LITERAL],
-            81 => ordered_set![IDENT, LITERAL],
-            82 => ordered_set![INJECT, LEFT, NEWSECTION, NONASSOC, RIGHT, SKIP],
-            83 => ordered_set![INJECT, LEFT, NEWSECTION, NONASSOC, RIGHT, SKIP],
-            84 => ordered_set![INJECT, NEWSECTION],
-            85 => ordered_set![INJECT, NEWSECTION],
-            86 => ordered_set![INJECT, IDENT, AAEnd],
-            87 => ordered_set![DOT, ERROR, VBAR, ACTION, IDENT, LITERAL, PREDICATE],
-            88 => ordered_set![DOT, VBAR],
-            89 => ordered_set![DOT, PRECEDENCE, VBAR, ACTION],
-            90 => ordered_set![DOT, VBAR, ACTION],
-            91 => ordered_set![DOT, VBAR],
-            92 => ordered_set![IDENT, LITERAL],
+            76 => ordered_set![Dot, Error, VBar, Action, Ident, Literal, Predicate],
+            77 => ordered_set![Ident, AAEnd],
+            78 => ordered_set![Inject, Left, NewSection, NonAssoc, Right],
+            79 => ordered_set![Ident, Literal],
+            80 => ordered_set![Ident, Literal],
+            81 => ordered_set![Ident, Literal],
+            82 => ordered_set![Inject, Left, NewSection, NonAssoc, Right, Skip],
+            83 => ordered_set![Inject, Left, NewSection, NonAssoc, Right, Skip],
+            84 => ordered_set![Inject, NewSection],
+            85 => ordered_set![Inject, NewSection],
+            86 => ordered_set![Inject, Ident, AAEnd],
+            87 => ordered_set![Dot, Error, VBar, Action, Ident, Literal, Predicate],
+            88 => ordered_set![Dot, VBar],
+            89 => ordered_set![Dot, Precedence, VBar, Action],
+            90 => ordered_set![Dot, VBar, Action],
+            91 => ordered_set![Dot, VBar],
+            92 => ordered_set![Ident, Literal],
             93 => ordered_set![
-                DOT, ERROR, PRECEDENCE, VBAR, ACTION, IDENT, LITERAL, PREDICATE
+                Dot, Error, Precedence, VBar, Action, Ident, Literal, Predicate
             ],
-            94 => ordered_set![INJECT, LEFT, NEWSECTION, NONASSOC, RIGHT],
-            95 => ordered_set![INJECT, LEFT, NEWSECTION, NONASSOC, RIGHT, IDENT, LITERAL],
-            96 => ordered_set![INJECT, LEFT, NEWSECTION, NONASSOC, RIGHT, IDENT, LITERAL],
-            97 => ordered_set![INJECT, LEFT, NEWSECTION, NONASSOC, RIGHT, IDENT, LITERAL],
-            98 => ordered_set![INJECT, LEFT, NEWSECTION, NONASSOC, RIGHT, IDENT, LITERAL],
-            99 => ordered_set![INJECT, LEFT, NEWSECTION, NONASSOC, RIGHT, IDENT, LITERAL],
-            100 => ordered_set![INJECT, LEFT, NEWSECTION, NONASSOC, RIGHT, IDENT, LITERAL],
-            101 => ordered_set![DOT, VBAR],
-            102 => ordered_set![DOT, VBAR, ACTION],
-            103 => ordered_set![DOT, VBAR],
-            104 => ordered_set![DOT, VBAR],
-            105 => ordered_set![DOT, VBAR, ACTION],
-            106 => ordered_set![DOT, VBAR, ACTION],
-            107 => ordered_set![INJECT, LEFT, NEWSECTION, NONASSOC, RIGHT, IDENT, LITERAL],
-            108 => ordered_set![DOT, VBAR],
+            94 => ordered_set![Inject, Left, NewSection, NonAssoc, Right],
+            95 => ordered_set![Inject, Left, NewSection, NonAssoc, Right, Ident, Literal],
+            96 => ordered_set![Inject, Left, NewSection, NonAssoc, Right, Ident, Literal],
+            97 => ordered_set![Inject, Left, NewSection, NonAssoc, Right, Ident, Literal],
+            98 => ordered_set![Inject, Left, NewSection, NonAssoc, Right, Ident, Literal],
+            99 => ordered_set![Inject, Left, NewSection, NonAssoc, Right, Ident, Literal],
+            100 => ordered_set![Inject, Left, NewSection, NonAssoc, Right, Ident, Literal],
+            101 => ordered_set![Dot, VBar],
+            102 => ordered_set![Dot, VBar, Action],
+            103 => ordered_set![Dot, VBar],
+            104 => ordered_set![Dot, VBar],
+            105 => ordered_set![Dot, VBar, Action],
+            106 => ordered_set![Dot, VBar, Action],
+            107 => ordered_set![Inject, Left, NewSection, NonAssoc, Right, Ident, Literal],
+            108 => ordered_set![Dot, VBar],
             _ => panic!("illegal state: {}", state),
-        };
+        }
     }
 
     fn next_action(
         &self,
-        aa_parse_stack: &alalr1::parser::ParseStack<AATerminal, AANonTerminal, AttributeData>,
+        aa_parse_stack: &lalr1::ParseStack<AATerminal, AANonTerminal, AttributeData>,
         aa_token: &lexan::Token<AATerminal>,
-    ) -> alalr1::parser::Action {
+    ) -> lalr1::Action {
         use AATerminal::*;
-        use alalr1::parser::Action;
+        use lalr1::Action;
         let aa_tag = *aa_token.tag();
         let aa_state = aa_parse_stack.current_state();
-        return match aa_state {
+        match aa_state {
             0 => match aa_tag {
-                INJECT => Action::Shift(4),
+                Inject => Action::Shift(4),
                 // OptionalInjection: <empty> #(NonAssoc, 0)
-                RUSTCODE => Action::Reduce(2),
+                RustCode => Action::Reduce(2),
                 // Preamble: <empty> #(NonAssoc, 0)
-                ATTR | TARGET => Action::Reduce(6),
+                Attr | Target => Action::Reduce(6),
                 _ => Action::SyntaxError,
             },
             1 => match aa_tag {
@@ -380,202 +399,202 @@ impl alalr1::parser::Parser<AATerminal, AANonTerminal, AttributeData> for Specif
                 _ => Action::SyntaxError,
             },
             2 => match aa_tag {
-                ATTR => Action::Shift(10),
-                TARGET => Action::Shift(11),
+                Attr => Action::Shift(10),
+                Target => Action::Shift(11),
                 _ => Action::SyntaxError,
             },
             3 => match aa_tag {
                 // OptionalInjection: Injection #(NonAssoc, 0)
-                ATTR | INJECT | LEFT | NEWSECTION | NONASSOC | RIGHT | RR | SKIP | SR | TARGET
-                | TOKEN | IDENT | RUSTCODE | AAEnd => Action::Reduce(3),
+                Attr | Inject | Left | NewSection | NonAssoc | Right | ReduceReduce | Skip
+                | ShiftReduce | Target | Token | Ident | RustCode | AAEnd => Action::Reduce(3),
                 _ => Action::SyntaxError,
             },
             4 => match aa_tag {
-                LITERAL => Action::Shift(12),
+                Literal => Action::Shift(12),
                 _ => Action::SyntaxError,
             },
             5 => match aa_tag {
-                DOT => Action::Shift(13),
+                Dot => Action::Shift(13),
                 _ => Action::SyntaxError,
             },
             6 => match aa_tag {
-                RUSTCODE => Action::Shift(14),
+                RustCode => Action::Shift(14),
                 _ => Action::SyntaxError,
             },
             7 => match aa_tag {
-                NEWSECTION => Action::Shift(15),
+                NewSection => Action::Shift(15),
                 _ => Action::SyntaxError,
             },
             8 => match aa_tag {
-                INJECT => Action::Shift(4),
+                Inject => Action::Shift(4),
                 // OptionalInjection: <empty> #(NonAssoc, 0)
-                TARGET => Action::Reduce(2),
+                Target => Action::Reduce(2),
                 _ => Action::SyntaxError,
             },
             9 => match aa_tag {
-                INJECT => Action::Shift(4),
+                Inject => Action::Shift(4),
                 // OptionalInjection: <empty> #(NonAssoc, 0)
-                ATTR => Action::Reduce(2),
+                Attr => Action::Reduce(2),
                 _ => Action::SyntaxError,
             },
             10 => match aa_tag {
-                IDENT => Action::Shift(18),
+                Ident => Action::Shift(18),
                 _ => Action::SyntaxError,
             },
             11 => match aa_tag {
-                IDENT => Action::Shift(19),
+                Ident => Action::Shift(19),
                 _ => Action::SyntaxError,
             },
             12 => match aa_tag {
                 // InjectionHead: "%inject" LITERAL #(Right, 1)
-                DOT => Action::Reduce(4),
+                Dot => Action::Reduce(4),
                 _ => Action::SyntaxError,
             },
             13 => match aa_tag {
                 // Injection: InjectionHead "." #(NonAssoc, 0)
-                ATTR | INJECT | LEFT | NEWSECTION | NONASSOC | RIGHT | RR | SKIP | SR | TARGET
-                | TOKEN | IDENT | RUSTCODE | AAEnd => Action::Reduce(5),
+                Attr | Inject | Left | NewSection | NonAssoc | Right | ReduceReduce | Skip
+                | ShiftReduce | Target | Token | Ident | RustCode | AAEnd => Action::Reduce(5),
                 _ => Action::SyntaxError,
             },
             14 => match aa_tag {
-                INJECT => Action::Shift(4),
+                Inject => Action::Shift(4),
                 // OptionalInjection: <empty> #(NonAssoc, 0)
-                ATTR | TARGET => Action::Reduce(2),
+                Attr | Target => Action::Reduce(2),
                 _ => Action::SyntaxError,
             },
             15 => match aa_tag {
-                INJECT => Action::Shift(4),
+                Inject => Action::Shift(4),
                 // OptionalInjection: <empty> #(NonAssoc, 0)
-                TOKEN => Action::Reduce(2),
+                Token => Action::Reduce(2),
                 _ => Action::SyntaxError,
             },
             16 => match aa_tag {
-                TARGET => Action::Shift(11),
+                Target => Action::Shift(11),
                 _ => Action::SyntaxError,
             },
             17 => match aa_tag {
-                ATTR => Action::Shift(10),
+                Attr => Action::Shift(10),
                 _ => Action::SyntaxError,
             },
             18 => match aa_tag {
                 // AttributeType: "%attr" IDENT #(NonAssoc, 0)
-                INJECT | NEWSECTION | RR | SR | TARGET => Action::Reduce(10),
+                Inject | NewSection | ReduceReduce | ShiftReduce | Target => Action::Reduce(10),
                 _ => Action::SyntaxError,
             },
             19 => match aa_tag {
                 // TargetType: "%target" IDENT #(NonAssoc, 0)
-                ATTR | INJECT | NEWSECTION | RR | SR => Action::Reduce(11),
+                Attr | Inject | NewSection | ReduceReduce | ShiftReduce => Action::Reduce(11),
                 _ => Action::SyntaxError,
             },
             20 => match aa_tag {
                 // Preamble: OptionalInjection RUSTCODE OptionalInjection #(NonAssoc, 0)
-                ATTR | TARGET => Action::Reduce(7),
+                Attr | Target => Action::Reduce(7),
                 _ => Action::SyntaxError,
             },
             21 => match aa_tag {
-                NEWSECTION => Action::Shift(26),
+                NewSection => Action::Shift(26),
                 _ => Action::SyntaxError,
             },
             22 => match aa_tag {
-                INJECT => Action::Shift(4),
+                Inject => Action::Shift(4),
                 // OptionalInjection: <empty> #(NonAssoc, 0)
-                TOKEN => Action::Reduce(2),
+                Token => Action::Reduce(2),
                 // SkipDefinitions: <empty> #(NonAssoc, 0)
-                LEFT | NEWSECTION | NONASSOC | RIGHT | SKIP => Action::Reduce(28),
+                Left | NewSection | NonAssoc | Right | Skip => Action::Reduce(28),
                 _ => Action::SyntaxError,
             },
             23 => match aa_tag {
-                TOKEN => Action::Shift(30),
+                Token => Action::Shift(30),
                 _ => Action::SyntaxError,
             },
             24 => match aa_tag {
-                INJECT => Action::Shift(4),
+                Inject => Action::Shift(4),
                 // OptionalInjection: <empty> #(NonAssoc, 0)
-                NEWSECTION | RR | SR => Action::Reduce(2),
+                NewSection | ReduceReduce | ShiftReduce => Action::Reduce(2),
                 _ => Action::SyntaxError,
             },
             25 => match aa_tag {
-                INJECT => Action::Shift(4),
+                Inject => Action::Shift(4),
                 // OptionalInjection: <empty> #(NonAssoc, 0)
-                NEWSECTION | RR | SR => Action::Reduce(2),
+                NewSection | ReduceReduce | ShiftReduce => Action::Reduce(2),
                 _ => Action::SyntaxError,
             },
             26 => match aa_tag {
-                INJECT => Action::Shift(4),
+                Inject => Action::Shift(4),
                 // OptionalInjection: <empty> #(NonAssoc, 0)
-                IDENT => Action::Reduce(2),
+                Ident => Action::Reduce(2),
                 _ => Action::SyntaxError,
             },
             27 => match aa_tag {
-                INJECT => Action::Shift(4),
+                Inject => Action::Shift(4),
                 // OptionalInjection: <empty> #(NonAssoc, 0)
-                SKIP => Action::Reduce(2),
+                Skip => Action::Reduce(2),
                 // PrecedenceDefinitions: <empty> #(NonAssoc, 0)
-                LEFT | NEWSECTION | NONASSOC | RIGHT => Action::Reduce(31),
+                Left | NewSection | NonAssoc | Right => Action::Reduce(31),
                 _ => Action::SyntaxError,
             },
             28 => match aa_tag {
-                TOKEN => Action::Shift(30),
+                Token => Action::Shift(30),
                 _ => Action::SyntaxError,
             },
             29 => match aa_tag {
                 // TokenDefinitions: OptionalInjection TokenDefinition #(NonAssoc, 0)
-                INJECT | LEFT | NEWSECTION | NONASSOC | RIGHT | SKIP | TOKEN => Action::Reduce(21),
+                Inject | Left | NewSection | NonAssoc | Right | Skip | Token => Action::Reduce(21),
                 _ => Action::SyntaxError,
             },
             30 => match aa_tag {
-                IDENT => Action::Shift(39),
+                Ident => Action::Shift(39),
                 _ => Action::SyntaxError,
             },
             31 => match aa_tag {
-                RR => Action::Shift(43),
-                SR => Action::Shift(44),
+                ReduceReduce => Action::Shift(43),
+                ShiftReduce => Action::Shift(44),
                 // ExpectedConflicts: <empty> #(NonAssoc, 0)
-                INJECT | NEWSECTION => Action::Reduce(12),
+                Inject | NewSection => Action::Reduce(12),
                 _ => Action::SyntaxError,
             },
             32 => match aa_tag {
-                RR => Action::Shift(43),
-                SR => Action::Shift(44),
+                ReduceReduce => Action::Shift(43),
+                ShiftReduce => Action::Shift(44),
                 // ExpectedConflicts: <empty> #(NonAssoc, 0)
-                INJECT | NEWSECTION => Action::Reduce(12),
+                Inject | NewSection => Action::Reduce(12),
                 _ => Action::SyntaxError,
             },
             33 => match aa_tag {
-                IDENT => Action::Shift(48),
+                Ident => Action::Shift(48),
                 // Specification: Preamble Configuration "%%" Definitions "%%" ProductionRules #(NonAssoc, 0)
                 AAEnd => Action::Reduce(1),
                 _ => Action::SyntaxError,
             },
             34 => match aa_tag {
-                IDENT => Action::Shift(48),
+                Ident => Action::Shift(48),
                 _ => Action::SyntaxError,
             },
             35 => match aa_tag {
-                INJECT => Action::Shift(4),
+                Inject => Action::Shift(4),
                 // OptionalInjection: <empty> #(NonAssoc, 0)
-                LEFT | NONASSOC | RIGHT => Action::Reduce(2),
+                Left | NonAssoc | Right => Action::Reduce(2),
                 // Definitions: TokenDefinitions SkipDefinitions PrecedenceDefinitions #(NonAssoc, 0)
-                NEWSECTION => Action::Reduce(20),
+                NewSection => Action::Reduce(20),
                 _ => Action::SyntaxError,
             },
             36 => match aa_tag {
-                SKIP => Action::Shift(52),
+                Skip => Action::Shift(52),
                 _ => Action::SyntaxError,
             },
             37 => match aa_tag {
-                INJECT => Action::Shift(4),
+                Inject => Action::Shift(4),
                 // OptionalInjection: <empty> #(NonAssoc, 0)
-                LEFT | NEWSECTION | NONASSOC | RIGHT | SKIP | TOKEN => Action::Reduce(2),
+                Left | NewSection | NonAssoc | Right | Skip | Token => Action::Reduce(2),
                 _ => Action::SyntaxError,
             },
             38 => match aa_tag {
-                LITERAL => Action::Shift(54),
-                REGEX => Action::Shift(56),
+                Literal => Action::Shift(54),
+                RegEx => Action::Shift(56),
                 _ => Action::SyntaxError,
             },
             39 => match aa_tag {
-                LITERAL | REGEX => {
+                Literal | RegEx => {
                     if !Self::is_allowable_name(aa_parse_stack.at_len_minus_n(1).matched_text()) {
                         // NewTokenName: IDENT #(NonAssoc, 0) ?( !Self::is_allowable_name($1.matched_text()) ?)
                         Action::Reduce(26)
@@ -587,404 +606,404 @@ impl alalr1::parser::Parser<AATerminal, AANonTerminal, AttributeData> for Specif
                 _ => Action::SyntaxError,
             },
             40 => match aa_tag {
-                INJECT => Action::Shift(4),
+                Inject => Action::Shift(4),
                 // OptionalInjection: <empty> #(NonAssoc, 0)
-                NEWSECTION => Action::Reduce(2),
+                NewSection => Action::Reduce(2),
                 _ => Action::SyntaxError,
             },
             41 => match aa_tag {
-                INJECT => Action::Shift(4),
+                Inject => Action::Shift(4),
                 // OptionalInjection: <empty> #(NonAssoc, 0)
-                SR => Action::Reduce(2),
+                ShiftReduce => Action::Reduce(2),
                 // ExpectedConflicts: ExpectedRRConflicts #(NonAssoc, 0)
-                NEWSECTION => Action::Reduce(15),
+                NewSection => Action::Reduce(15),
                 _ => Action::SyntaxError,
             },
             42 => match aa_tag {
-                INJECT => Action::Shift(4),
+                Inject => Action::Shift(4),
                 // OptionalInjection: <empty> #(NonAssoc, 0)
-                RR => Action::Reduce(2),
+                ReduceReduce => Action::Reduce(2),
                 // ExpectedConflicts: ExpectedSRConflicts #(NonAssoc, 0)
-                NEWSECTION => Action::Reduce(16),
+                NewSection => Action::Reduce(16),
                 _ => Action::SyntaxError,
             },
             43 => match aa_tag {
-                NUMBER => Action::Shift(61),
+                Number => Action::Shift(61),
                 _ => Action::SyntaxError,
             },
             44 => match aa_tag {
-                NUMBER => Action::Shift(61),
+                Number => Action::Shift(61),
                 _ => Action::SyntaxError,
             },
             45 => match aa_tag {
-                INJECT => Action::Shift(4),
+                Inject => Action::Shift(4),
                 // OptionalInjection: <empty> #(NonAssoc, 0)
-                NEWSECTION => Action::Reduce(2),
+                NewSection => Action::Reduce(2),
                 _ => Action::SyntaxError,
             },
             46 => match aa_tag {
-                INJECT => Action::Shift(4),
+                Inject => Action::Shift(4),
                 // OptionalInjection: <empty> #(NonAssoc, 0)
-                IDENT | AAEnd => Action::Reduce(2),
+                Ident | AAEnd => Action::Reduce(2),
                 _ => Action::SyntaxError,
             },
             47 => match aa_tag {
-                ERROR => Action::Shift(75),
-                ACTION => Action::Shift(70),
-                IDENT => Action::Shift(73),
-                LITERAL => Action::Shift(74),
-                PREDICATE => Action::Shift(71),
+                Error => Action::Shift(75),
+                Action => Action::Shift(70),
+                Ident => Action::Shift(73),
+                Literal => Action::Shift(74),
+                Predicate => Action::Shift(71),
                 // ProductionTail: <empty> #(NonAssoc, 0)
-                DOT | VBAR => Action::Reduce(46),
+                Dot | VBar => Action::Reduce(46),
                 _ => Action::SyntaxError,
             },
             48 => match aa_tag {
-                COLON => Action::Shift(76),
+                Colon => Action::Shift(76),
                 _ => Action::SyntaxError,
             },
             49 => match aa_tag {
-                INJECT => Action::Shift(4),
+                Inject => Action::Shift(4),
                 // OptionalInjection: <empty> #(NonAssoc, 0)
-                IDENT | AAEnd => Action::Reduce(2),
+                Ident | AAEnd => Action::Reduce(2),
                 _ => Action::SyntaxError,
             },
             50 => match aa_tag {
-                LEFT => Action::Shift(79),
-                NONASSOC => Action::Shift(81),
-                RIGHT => Action::Shift(80),
+                Left => Action::Shift(79),
+                NonAssoc => Action::Shift(81),
+                Right => Action::Shift(80),
                 _ => Action::SyntaxError,
             },
             51 => match aa_tag {
-                INJECT => Action::Shift(4),
+                Inject => Action::Shift(4),
                 // OptionalInjection: <empty> #(NonAssoc, 0)
-                LEFT | NEWSECTION | NONASSOC | RIGHT | SKIP => Action::Reduce(2),
+                Left | NewSection | NonAssoc | Right | Skip => Action::Reduce(2),
                 _ => Action::SyntaxError,
             },
             52 => match aa_tag {
-                REGEX => Action::Shift(56),
+                RegEx => Action::Shift(56),
                 _ => Action::SyntaxError,
             },
             53 => match aa_tag {
                 // TokenDefinitions: TokenDefinitions OptionalInjection TokenDefinition OptionalInjection #(NonAssoc, 0)
-                INJECT | LEFT | NEWSECTION | NONASSOC | RIGHT | SKIP | TOKEN => Action::Reduce(22),
+                Inject | Left | NewSection | NonAssoc | Right | Skip | Token => Action::Reduce(22),
                 _ => Action::SyntaxError,
             },
             54 => match aa_tag {
                 // TokenDefinition: "%token" NewTokenName LITERAL #(NonAssoc, 0)
-                INJECT | LEFT | NEWSECTION | NONASSOC | RIGHT | SKIP | TOKEN => Action::Reduce(23),
+                Inject | Left | NewSection | NonAssoc | Right | Skip | Token => Action::Reduce(23),
                 _ => Action::SyntaxError,
             },
             55 => match aa_tag {
                 // TokenDefinition: "%token" NewTokenName RegEx #(NonAssoc, 0)
-                INJECT | LEFT | NEWSECTION | NONASSOC | RIGHT | SKIP | TOKEN => Action::Reduce(24),
+                Inject | Left | NewSection | NonAssoc | Right | Skip | Token => Action::Reduce(24),
                 _ => Action::SyntaxError,
             },
             56 => match aa_tag {
                 // RegEx: REGEX #(NonAssoc, 0)
-                INJECT | LEFT | NEWSECTION | NONASSOC | RIGHT | SKIP | TOKEN => Action::Reduce(25),
+                Inject | Left | NewSection | NonAssoc | Right | Skip | Token => Action::Reduce(25),
                 _ => Action::SyntaxError,
             },
             57 => match aa_tag {
                 // Configuration: AttributeType OptionalInjection TargetType OptionalInjection ExpectedConflicts OptionalInjection #(NonAssoc, 0)
-                NEWSECTION => Action::Reduce(8),
+                NewSection => Action::Reduce(8),
                 _ => Action::SyntaxError,
             },
             58 => match aa_tag {
-                SR => Action::Shift(44),
+                ShiftReduce => Action::Shift(44),
                 _ => Action::SyntaxError,
             },
             59 => match aa_tag {
-                RR => Action::Shift(43),
+                ReduceReduce => Action::Shift(43),
                 _ => Action::SyntaxError,
             },
             60 => match aa_tag {
                 // ExpectedRRConflicts: "%reduce_reduce" Number #(NonAssoc, 0)
-                INJECT | NEWSECTION | SR => Action::Reduce(17),
+                Inject | NewSection | ShiftReduce => Action::Reduce(17),
                 _ => Action::SyntaxError,
             },
             61 => match aa_tag {
                 // Number: NUMBER #(NonAssoc, 0)
-                INJECT | NEWSECTION | RR | SR => Action::Reduce(19),
+                Inject | NewSection | ReduceReduce | ShiftReduce => Action::Reduce(19),
                 _ => Action::SyntaxError,
             },
             62 => match aa_tag {
                 // ExpectedSRConflicts: "%shift_reduce" Number #(NonAssoc, 0)
-                INJECT | NEWSECTION | RR => Action::Reduce(18),
+                Inject | NewSection | ReduceReduce => Action::Reduce(18),
                 _ => Action::SyntaxError,
             },
             63 => match aa_tag {
                 // Configuration: TargetType OptionalInjection AttributeType OptionalInjection ExpectedConflicts OptionalInjection #(NonAssoc, 0)
-                NEWSECTION => Action::Reduce(9),
+                NewSection => Action::Reduce(9),
                 _ => Action::SyntaxError,
             },
             64 => match aa_tag {
                 // ProductionRules: ProductionRules ProductionGroup OptionalInjection #(NonAssoc, 0)
-                IDENT | AAEnd => Action::Reduce(41),
+                Ident | AAEnd => Action::Reduce(41),
                 _ => Action::SyntaxError,
             },
             65 => match aa_tag {
-                DOT => Action::Shift(86),
-                VBAR => Action::Shift(87),
+                Dot => Action::Shift(86),
+                VBar => Action::Shift(87),
                 _ => Action::SyntaxError,
             },
             66 => match aa_tag {
                 // ProductionTailList: ProductionTail #(NonAssoc, 0)
-                DOT | VBAR => Action::Reduce(44),
+                Dot | VBar => Action::Reduce(44),
                 _ => Action::SyntaxError,
             },
             67 => match aa_tag {
                 // ProductionTail: Action #(NonAssoc, 0)
-                DOT | VBAR => Action::Reduce(47),
+                Dot | VBar => Action::Reduce(47),
                 _ => Action::SyntaxError,
             },
             68 => match aa_tag {
-                ACTION => Action::Shift(70),
+                Action => Action::Shift(70),
                 // ProductionTail: Predicate #(NonAssoc, 0)
-                DOT | VBAR => Action::Reduce(49),
+                Dot | VBar => Action::Reduce(49),
                 _ => Action::SyntaxError,
             },
             69 => match aa_tag {
-                ERROR => Action::Shift(75),
-                PRECEDENCE => Action::Shift(92),
-                ACTION => Action::Shift(70),
-                IDENT => Action::Shift(73),
-                LITERAL => Action::Shift(74),
-                PREDICATE => Action::Shift(71),
+                Error => Action::Shift(75),
+                Precedence => Action::Shift(92),
+                Action => Action::Shift(70),
+                Ident => Action::Shift(73),
+                Literal => Action::Shift(74),
+                Predicate => Action::Shift(71),
                 // ProductionTail: SymbolList #(NonAssoc, 0)
-                DOT | VBAR => Action::Reduce(57),
+                Dot | VBar => Action::Reduce(57),
                 _ => Action::SyntaxError,
             },
             70 => match aa_tag {
                 // Action: ACTION #(NonAssoc, 0)
-                DOT | VBAR => Action::Reduce(58),
+                Dot | VBar => Action::Reduce(58),
                 _ => Action::SyntaxError,
             },
             71 => match aa_tag {
                 // Predicate: PREDICATE #(NonAssoc, 0)
-                DOT | PRECEDENCE | VBAR | ACTION => Action::Reduce(59),
+                Dot | Precedence | VBar | Action => Action::Reduce(59),
                 _ => Action::SyntaxError,
             },
             72 => match aa_tag {
                 // SymbolList: Symbol #(NonAssoc, 0)
-                DOT | ERROR | PRECEDENCE | VBAR | ACTION | IDENT | LITERAL | PREDICATE => {
+                Dot | Error | Precedence | VBar | Action | Ident | Literal | Predicate => {
                     Action::Reduce(62)
                 }
                 _ => Action::SyntaxError,
             },
             73 => match aa_tag {
                 // Symbol: IDENT #(NonAssoc, 0)
-                DOT | ERROR | PRECEDENCE | VBAR | ACTION | IDENT | LITERAL | PREDICATE => {
+                Dot | Error | Precedence | VBar | Action | Ident | Literal | Predicate => {
                     Action::Reduce(64)
                 }
                 _ => Action::SyntaxError,
             },
             74 => match aa_tag {
                 // Symbol: LITERAL #(NonAssoc, 0)
-                DOT | ERROR | PRECEDENCE | VBAR | ACTION | IDENT | LITERAL | PREDICATE => {
+                Dot | Error | Precedence | VBar | Action | Ident | Literal | Predicate => {
                     Action::Reduce(65)
                 }
                 _ => Action::SyntaxError,
             },
             75 => match aa_tag {
                 // Symbol: "%error" #(NonAssoc, 0)
-                DOT | ERROR | PRECEDENCE | VBAR | ACTION | IDENT | LITERAL | PREDICATE => {
+                Dot | Error | Precedence | VBar | Action | Ident | Literal | Predicate => {
                     Action::Reduce(66)
                 }
                 _ => Action::SyntaxError,
             },
             76 => match aa_tag {
                 // ProductionGroupHead: IDENT ":" #(NonAssoc, 0)
-                DOT | ERROR | VBAR | ACTION | IDENT | LITERAL | PREDICATE => Action::Reduce(43),
+                Dot | Error | VBar | Action | Ident | Literal | Predicate => Action::Reduce(43),
                 _ => Action::SyntaxError,
             },
             77 => match aa_tag {
                 // ProductionRules: OptionalInjection ProductionGroup OptionalInjection #(NonAssoc, 0)
-                IDENT | AAEnd => Action::Reduce(40),
+                Ident | AAEnd => Action::Reduce(40),
                 _ => Action::SyntaxError,
             },
             78 => match aa_tag {
-                INJECT => Action::Shift(4),
+                Inject => Action::Shift(4),
                 // OptionalInjection: <empty> #(NonAssoc, 0)
-                LEFT | NEWSECTION | NONASSOC | RIGHT => Action::Reduce(2),
+                Left | NewSection | NonAssoc | Right => Action::Reduce(2),
                 _ => Action::SyntaxError,
             },
             79 => match aa_tag {
-                IDENT => Action::Shift(98),
-                LITERAL => Action::Shift(97),
+                Ident => Action::Shift(98),
+                Literal => Action::Shift(97),
                 _ => Action::SyntaxError,
             },
             80 => match aa_tag {
-                IDENT => Action::Shift(98),
-                LITERAL => Action::Shift(97),
+                Ident => Action::Shift(98),
+                Literal => Action::Shift(97),
                 _ => Action::SyntaxError,
             },
             81 => match aa_tag {
-                IDENT => Action::Shift(98),
-                LITERAL => Action::Shift(97),
+                Ident => Action::Shift(98),
+                Literal => Action::Shift(97),
                 _ => Action::SyntaxError,
             },
             82 => match aa_tag {
                 // SkipDefinitions: SkipDefinitions OptionalInjection SkipDefinition OptionalInjection #(NonAssoc, 0)
-                INJECT | LEFT | NEWSECTION | NONASSOC | RIGHT | SKIP => Action::Reduce(29),
+                Inject | Left | NewSection | NonAssoc | Right | Skip => Action::Reduce(29),
                 _ => Action::SyntaxError,
             },
             83 => match aa_tag {
                 // SkipDefinition: "%skip" RegEx #(NonAssoc, 0)
-                INJECT | LEFT | NEWSECTION | NONASSOC | RIGHT | SKIP => Action::Reduce(30),
+                Inject | Left | NewSection | NonAssoc | Right | Skip => Action::Reduce(30),
                 _ => Action::SyntaxError,
             },
             84 => match aa_tag {
                 // ExpectedConflicts: ExpectedRRConflicts OptionalInjection ExpectedSRConflicts #(NonAssoc, 0)
-                INJECT | NEWSECTION => Action::Reduce(13),
+                Inject | NewSection => Action::Reduce(13),
                 _ => Action::SyntaxError,
             },
             85 => match aa_tag {
                 // ExpectedConflicts: ExpectedSRConflicts OptionalInjection ExpectedRRConflicts #(NonAssoc, 0)
-                INJECT | NEWSECTION => Action::Reduce(14),
+                Inject | NewSection => Action::Reduce(14),
                 _ => Action::SyntaxError,
             },
             86 => match aa_tag {
                 // ProductionGroup: ProductionGroupHead ProductionTailList "." #(NonAssoc, 0)
-                INJECT | IDENT | AAEnd => Action::Reduce(42),
+                Inject | Ident | AAEnd => Action::Reduce(42),
                 _ => Action::SyntaxError,
             },
             87 => match aa_tag {
-                ERROR => Action::Shift(75),
-                ACTION => Action::Shift(70),
-                IDENT => Action::Shift(73),
-                LITERAL => Action::Shift(74),
-                PREDICATE => Action::Shift(71),
+                Error => Action::Shift(75),
+                Action => Action::Shift(70),
+                Ident => Action::Shift(73),
+                Literal => Action::Shift(74),
+                Predicate => Action::Shift(71),
                 // ProductionTail: <empty> #(NonAssoc, 0)
-                DOT | VBAR => Action::Reduce(46),
+                Dot | VBar => Action::Reduce(46),
                 _ => Action::SyntaxError,
             },
             88 => match aa_tag {
                 // ProductionTail: Predicate Action #(NonAssoc, 0)
-                DOT | VBAR => Action::Reduce(48),
+                Dot | VBar => Action::Reduce(48),
                 _ => Action::SyntaxError,
             },
             89 => match aa_tag {
-                PRECEDENCE => Action::Shift(92),
-                ACTION => Action::Shift(70),
+                Precedence => Action::Shift(92),
+                Action => Action::Shift(70),
                 // ProductionTail: SymbolList Predicate #(NonAssoc, 0)
-                DOT | VBAR => Action::Reduce(53),
+                Dot | VBar => Action::Reduce(53),
                 _ => Action::SyntaxError,
             },
             90 => match aa_tag {
-                ACTION => Action::Shift(70),
+                Action => Action::Shift(70),
                 // ProductionTail: SymbolList TaggedPrecedence #(NonAssoc, 0)
-                DOT | VBAR => Action::Reduce(55),
+                Dot | VBar => Action::Reduce(55),
                 _ => Action::SyntaxError,
             },
             91 => match aa_tag {
                 // ProductionTail: SymbolList Action #(NonAssoc, 0)
-                DOT | VBAR => Action::Reduce(56),
+                Dot | VBar => Action::Reduce(56),
                 _ => Action::SyntaxError,
             },
             92 => match aa_tag {
-                IDENT => Action::Shift(105),
-                LITERAL => Action::Shift(106),
+                Ident => Action::Shift(105),
+                Literal => Action::Shift(106),
                 _ => Action::SyntaxError,
             },
             93 => match aa_tag {
                 // SymbolList: SymbolList Symbol #(NonAssoc, 0)
-                DOT | ERROR | PRECEDENCE | VBAR | ACTION | IDENT | LITERAL | PREDICATE => {
+                Dot | Error | Precedence | VBar | Action | Ident | Literal | Predicate => {
                     Action::Reduce(63)
                 }
                 _ => Action::SyntaxError,
             },
             94 => match aa_tag {
                 // PrecedenceDefinitions: PrecedenceDefinitions OptionalInjection PrecedenceDefinition OptionalInjection #(NonAssoc, 0)
-                INJECT | LEFT | NEWSECTION | NONASSOC | RIGHT => Action::Reduce(32),
+                Inject | Left | NewSection | NonAssoc | Right => Action::Reduce(32),
                 _ => Action::SyntaxError,
             },
             95 => match aa_tag {
-                IDENT => Action::Shift(98),
-                LITERAL => Action::Shift(97),
+                Ident => Action::Shift(98),
+                Literal => Action::Shift(97),
                 // PrecedenceDefinition: "%left" TagList #(NonAssoc, 0)
-                INJECT | LEFT | NEWSECTION | NONASSOC | RIGHT => Action::Reduce(33),
+                Inject | Left | NewSection | NonAssoc | Right => Action::Reduce(33),
                 _ => Action::SyntaxError,
             },
             96 => match aa_tag {
                 // TagList: Tag #(NonAssoc, 0)
-                INJECT | LEFT | NEWSECTION | NONASSOC | RIGHT | IDENT | LITERAL => {
+                Inject | Left | NewSection | NonAssoc | Right | Ident | Literal => {
                     Action::Reduce(36)
                 }
                 _ => Action::SyntaxError,
             },
             97 => match aa_tag {
                 // Tag: LITERAL #(NonAssoc, 0)
-                INJECT | LEFT | NEWSECTION | NONASSOC | RIGHT | IDENT | LITERAL => {
+                Inject | Left | NewSection | NonAssoc | Right | Ident | Literal => {
                     Action::Reduce(38)
                 }
                 _ => Action::SyntaxError,
             },
             98 => match aa_tag {
                 // Tag: IDENT #(NonAssoc, 0)
-                INJECT | LEFT | NEWSECTION | NONASSOC | RIGHT | IDENT | LITERAL => {
+                Inject | Left | NewSection | NonAssoc | Right | Ident | Literal => {
                     Action::Reduce(39)
                 }
                 _ => Action::SyntaxError,
             },
             99 => match aa_tag {
-                IDENT => Action::Shift(98),
-                LITERAL => Action::Shift(97),
+                Ident => Action::Shift(98),
+                Literal => Action::Shift(97),
                 // PrecedenceDefinition: "%right" TagList #(NonAssoc, 0)
-                INJECT | LEFT | NEWSECTION | NONASSOC | RIGHT => Action::Reduce(34),
+                Inject | Left | NewSection | NonAssoc | Right => Action::Reduce(34),
                 _ => Action::SyntaxError,
             },
             100 => match aa_tag {
-                IDENT => Action::Shift(98),
-                LITERAL => Action::Shift(97),
+                Ident => Action::Shift(98),
+                Literal => Action::Shift(97),
                 // PrecedenceDefinition: "%nonassoc" TagList #(NonAssoc, 0)
-                INJECT | LEFT | NEWSECTION | NONASSOC | RIGHT => Action::Reduce(35),
+                Inject | Left | NewSection | NonAssoc | Right => Action::Reduce(35),
                 _ => Action::SyntaxError,
             },
             101 => match aa_tag {
                 // ProductionTailList: ProductionTailList "|" ProductionTail #(NonAssoc, 0)
-                DOT | VBAR => Action::Reduce(45),
+                Dot | VBar => Action::Reduce(45),
                 _ => Action::SyntaxError,
             },
             102 => match aa_tag {
-                ACTION => Action::Shift(70),
+                Action => Action::Shift(70),
                 // ProductionTail: SymbolList Predicate TaggedPrecedence #(NonAssoc, 0)
-                DOT | VBAR => Action::Reduce(51),
+                Dot | VBar => Action::Reduce(51),
                 _ => Action::SyntaxError,
             },
             103 => match aa_tag {
                 // ProductionTail: SymbolList Predicate Action #(NonAssoc, 0)
-                DOT | VBAR => Action::Reduce(52),
+                Dot | VBar => Action::Reduce(52),
                 _ => Action::SyntaxError,
             },
             104 => match aa_tag {
                 // ProductionTail: SymbolList TaggedPrecedence Action #(NonAssoc, 0)
-                DOT | VBAR => Action::Reduce(54),
+                Dot | VBar => Action::Reduce(54),
                 _ => Action::SyntaxError,
             },
             105 => match aa_tag {
                 // TaggedPrecedence: "%prec" IDENT #(NonAssoc, 0)
-                DOT | VBAR | ACTION => Action::Reduce(60),
+                Dot | VBar | Action => Action::Reduce(60),
                 _ => Action::SyntaxError,
             },
             106 => match aa_tag {
                 // TaggedPrecedence: "%prec" LITERAL #(NonAssoc, 0)
-                DOT | VBAR | ACTION => Action::Reduce(61),
+                Dot | VBar | Action => Action::Reduce(61),
                 _ => Action::SyntaxError,
             },
             107 => match aa_tag {
                 // TagList: TagList Tag #(NonAssoc, 0)
-                INJECT | LEFT | NEWSECTION | NONASSOC | RIGHT | IDENT | LITERAL => {
+                Inject | Left | NewSection | NonAssoc | Right | Ident | Literal => {
                     Action::Reduce(37)
                 }
                 _ => Action::SyntaxError,
             },
             108 => match aa_tag {
                 // ProductionTail: SymbolList Predicate TaggedPrecedence Action #(NonAssoc, 0)
-                DOT | VBAR => Action::Reduce(50),
+                Dot | VBar => Action::Reduce(50),
                 _ => Action::SyntaxError,
             },
             _ => panic!("illegal state: {}", aa_state),
-        };
+        }
     }
 
     fn production_data(production_id: u32) -> (AANonTerminal, usize) {
@@ -1061,7 +1080,7 @@ impl alalr1::parser::Parser<AATerminal, AANonTerminal, AttributeData> for Specif
     }
 
     fn goto_state(lhs: &AANonTerminal, current_state: u32) -> u32 {
-        return match current_state {
+        match current_state {
             0 => match lhs {
                 AANonTerminal::Injection => 3,
                 AANonTerminal::InjectionHead => 5,
@@ -1338,7 +1357,7 @@ impl alalr1::parser::Parser<AATerminal, AANonTerminal, AttributeData> for Specif
                 _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
             },
             _ => panic!("Malformed goto table: ({}, {})", lhs, current_state),
-        };
+        }
     }
 
     fn do_semantic_action<F: FnMut(String, String)>(
@@ -1362,21 +1381,21 @@ impl alalr1::parser::Parser<AATerminal, AANonTerminal, AttributeData> for Specif
 
                 let (text, location) = aa_rhs[1].text_and_location();
                 let file_path = text.trim_matches('"');
-                match File::open(&file_path) {
+                match File::open(file_path) {
                     Ok(mut file) => {
                         let mut text = String::new();
                         if let Err(err) = file.read_to_string(&mut text) {
-                            self.error(&location, &format!("Injecting: {}", err));
-                        } else if text.len() == 0 {
+                            self.error(location, &format!("Injecting: {}", err));
+                        } else if text.is_empty() {
                             self.error(
-                                &location,
+                                location,
                                 &format!("Injected file \"{}\" is empty.", file_path),
                             );
                         } else {
                             aa_inject(text, file_path.to_string());
                         }
                     }
-                    Err(err) => self.error(&location, &format!("Injecting: {}.", err)),
+                    Err(err) => self.error(location, &format!("Injecting: {}.", err)),
                 };
             }
             6 => {
@@ -1445,11 +1464,7 @@ impl alalr1::parser::Parser<AATerminal, AANonTerminal, AttributeData> for Specif
                 if let Err(err) = regex::Regex::new(text) {
                     self.error(
                         location,
-                        &format!(
-                            "malformed regular expression \"{}\": {}",
-                            text,
-                            err.to_string()
-                        ),
+                        &format!("malformed regular expression \"{}\": {}", text, err),
                     );
                 }
             }
