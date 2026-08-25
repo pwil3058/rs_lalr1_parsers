@@ -1,20 +1,23 @@
 // Copyright (c) 2026 Peter Williams <pwil3058@bigpond.net.au> <pwil3058@gmail.com>.
 
-use std::fmt::Debug;
-
 use crate::production::ProductionTail;
 use crate::symbol::non_terminal::NonTerminal;
 use crate::symbol::tag::TagOrToken;
 use crate::symbol::{Associativity, Symbol};
 
+use std::fmt::{Debug, Display};
+use std::hash::Hash;
+
 use lalr1::OrderedSet;
+
+pub trait AATTraits: Debug + Default + Display + Clone + Copy + Eq + Ord + Hash {}
 
 #[allow(unused)]
 #[derive(Debug, Default, Clone)]
-pub enum AttributeData {
-    Token(lexan::Token<AATerminal>),
-    SyntaxError(lexan::Token<AATerminal>, OrderedSet<AATerminal>),
-    LexicalError(lexan::Error<AATerminal>, OrderedSet<AATerminal>),
+pub enum AttributeData<T: AATTraits> {
+    Token(lexan::Token<T>),
+    SyntaxError(lexan::Token<T>, OrderedSet<T>),
+    LexicalError(lexan::Error<T>, OrderedSet<T>),
     Number(u32),
     Symbol(Symbol),
     SymbolList(Vec<Symbol>),
@@ -31,7 +34,7 @@ pub enum AttributeData {
     Default,
 }
 
-impl AttributeData {
+impl<T: AATTraits> AttributeData<T> {
     pub fn matched_text(&self) -> &String {
         match self {
             AttributeData::Token(token) => token.lexeme(),
@@ -173,14 +176,14 @@ impl AttributeData {
     }
 }
 
-impl From<lexan::Token<AATerminal>> for AttributeData {
-    fn from(token: lexan::Token<AATerminal>) -> Self {
+impl<T: AATTraits> From<lexan::Token<T>> for AttributeData<T> {
+    fn from(token: lexan::Token<T>) -> Self {
         AttributeData::Token(token)
     }
 }
 
-impl From<crate::parser::Error<AATerminal>> for AttributeData {
-    fn from(error: crate::parser::Error<AATerminal>) -> Self {
+impl<T: AATTraits> From<crate::parser::Error<T>> for AttributeData<T> {
+    fn from(error: crate::parser::Error<T>) -> Self {
         match error {
             crate::parser::Error::LexicalError(error, expected) => {
                 AttributeData::LexicalError(error, expected)
