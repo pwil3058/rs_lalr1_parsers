@@ -230,6 +230,48 @@ impl Productions {
     pub fn base(&self) -> &Production {
         self.0.first().expect("Productions is empty")
     }
+
+    pub fn closure(&self, mut closure_set: GrammarItemSet) -> GrammarItemSet {
+        let mut additions_made = true;
+        while additions_made {
+            additions_made = false;
+            // Closables extraction as a new separate map necessary to avoid borrow conflict
+            for (item_key, look_ahead_set) in closure_set.closable_set() {
+                if let Some(symbol) = item_key.next_symbol() {
+                    match symbol {
+                        Symbol::Terminal(_) => debug_assert!(!item_key.is_closable()),
+                        Symbol::NonTerminal(prospective_lhs) => {
+                            debug_assert!(item_key.is_closable());
+                            for look_ahead_symbol in look_ahead_set.iter() {
+                                let firsts = TokenSet::first_all_caps(
+                                    item_key.rhs_tail(),
+                                    look_ahead_symbol,
+                                );
+                                for production in self
+                                    .0
+                                    .iter()
+                                    .filter(|x| x.left_hand_side() == prospective_lhs)
+                                {
+                                    let prospective_key = GrammarItemKey::from(production);
+                                    if let Some(set) = closure_set.get_mut(&prospective_key) {
+                                        let len = set.len();
+                                        *set |= &firsts;
+                                        additions_made = additions_made || set.len() > len;
+                                    } else {
+                                        closure_set.insert(prospective_key, firsts.clone());
+                                        additions_made = true;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    debug_assert!(!item_key.is_closable());
+                }
+            }
+        }
+        closure_set
+    }
 }
 
 #[derive(Debug, Default)]
