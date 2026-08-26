@@ -10,6 +10,8 @@ use lazy_static::lazy_static;
 use std::cmp::Ordering;
 use std::collections::BTreeMap;
 use std::fmt::Display;
+use std::io;
+use std::io::Write;
 use std::iter::FromIterator;
 use std::ops::Index;
 use std::rc::Rc;
@@ -271,6 +273,64 @@ impl Productions {
             }
         }
         closure_set
+    }
+}
+
+impl Productions {
+    pub fn write_production_data_code<W: Write>(&self, wtr: &mut W) -> io::Result<()> {
+        wtr.write_all(b"    fn production_data(production_id: u32) -> (AANonTerminal, usize) {\n")?;
+        wtr.write_all(b"        match production_id {\n")?;
+        for production in self.0.iter() {
+            wtr.write_fmt(format_args!(
+                "            {} => (AANonTerminal::{}, {}),\n",
+                production.ident(),
+                production.left_hand_side().name(),
+                production.len(),
+            ))?;
+        }
+        wtr.write_all(b"            _ => panic!(\"malformed production data table\"),\n")?;
+        wtr.write_all(b"        }\n")?;
+        wtr.write_all(b"    }\n\n")?;
+        Ok(())
+    }
+
+    pub fn write_semantic_action_code<W: Write>(
+        &self,
+        wtr: &mut W,
+        attribute_type: &str,
+    ) -> io::Result<()> {
+        wtr.write_all(b"    fn do_semantic_action<F: FnMut(String, String)>(\n")?;
+        wtr.write_all(b"        &mut self,\n")?;
+        wtr.write_all(b"        aa_production_id: u32,\n")?;
+        wtr.write_fmt(format_args!("        aa_rhs: Vec<{}>,\n", attribute_type))?;
+        wtr.write_all(b"        mut aa_inject: F,\n")?;
+        wtr.write_fmt(format_args!("    ) -> {} {{\n", attribute_type))?;
+        wtr.write_all(b"        let mut aa_lhs = if let Some(a) = aa_rhs.first() {\n")?;
+        wtr.write_all(b"            a.clone()\n")?;
+        wtr.write_all(b"        } else {\n")?;
+        wtr.write_fmt(format_args!("           {}::default()\n", attribute_type))?;
+        wtr.write_all(b"        };\n")?;
+        wtr.write_all(b"        match aa_production_id {\n")?;
+        for production in self.0.iter() {
+            if let Some(action_code) = production.expanded_action() {
+                wtr.write_fmt(format_args!("            {} => {{\n", production.ident()))?;
+                wtr.write_fmt(format_args!("                // {production}\n"))?;
+                wtr.write_fmt(format_args!("                {action_code}\n"))?;
+                wtr.write_all(b"            }\n")?;
+            }
+        }
+        wtr.write_all(b"            _ => aa_inject(String::new(), String::new()),\n")?;
+        wtr.write_all(b"        };\n")?;
+        wtr.write_all(b"        aa_lhs\n")?;
+        wtr.write_all(b"    }\n\n")?;
+        Ok(())
+    }
+
+    pub fn write_description<W: Write>(&self, wtr: &mut W) -> io::Result<()> {
+        for production in self.0.iter() {
+            wtr.write_fmt(format_args!("  {production}\n"))?;
+        }
+        Ok(())
     }
 }
 

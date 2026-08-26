@@ -101,57 +101,6 @@ impl Specification {
         wtr.write_all(self.preamble.as_bytes())?;
         Ok(())
     }
-
-    pub fn write_production_data_code<W: Write>(&self, wtr: &mut W) -> io::Result<()> {
-        wtr.write_all(b"    fn production_data(production_id: u32) -> (AANonTerminal, usize) {\n")?;
-        wtr.write_all(b"        match production_id {\n")?;
-        for production in self.productions.iter() {
-            wtr.write_fmt(format_args!(
-                "            {} => (AANonTerminal::{}, {}),\n",
-                production.ident(),
-                production.left_hand_side().name(),
-                production.len(),
-            ))?;
-        }
-        wtr.write_all(b"            _ => panic!(\"malformed production data table\"),\n")?;
-        wtr.write_all(b"        }\n")?;
-        wtr.write_all(b"    }\n\n")?;
-        Ok(())
-    }
-
-    pub fn write_semantic_action_code<W: Write>(&self, wtr: &mut W) -> io::Result<()> {
-        wtr.write_all(b"    fn do_semantic_action<F: FnMut(String, String)>(\n")?;
-        wtr.write_all(b"        &mut self,\n")?;
-        wtr.write_all(b"        aa_production_id: u32,\n")?;
-        wtr.write_fmt(format_args!(
-            "        aa_rhs: Vec<{}>,\n",
-            self.attribute_type
-        ))?;
-        wtr.write_all(b"        mut aa_inject: F,\n")?;
-        wtr.write_fmt(format_args!("    ) -> {} {{\n", self.attribute_type))?;
-        wtr.write_all(b"        let mut aa_lhs = if let Some(a) = aa_rhs.first() {\n")?;
-        wtr.write_all(b"            a.clone()\n")?;
-        wtr.write_all(b"        } else {\n")?;
-        wtr.write_fmt(format_args!(
-            "           {}::default()\n",
-            self.attribute_type
-        ))?;
-        wtr.write_all(b"        };\n")?;
-        wtr.write_all(b"        match aa_production_id {\n")?;
-        for production in self.productions.iter() {
-            if let Some(action_code) = production.expanded_action() {
-                wtr.write_fmt(format_args!("            {} => {{\n", production.ident()))?;
-                wtr.write_fmt(format_args!("                // {production}\n"))?;
-                wtr.write_fmt(format_args!("                {action_code}\n"))?;
-                wtr.write_all(b"            }\n")?;
-            }
-        }
-        wtr.write_all(b"            _ => aa_inject(String::new(), String::new()),\n")?;
-        wtr.write_all(b"        };\n")?;
-        wtr.write_all(b"        aa_lhs\n")?;
-        wtr.write_all(b"    }\n\n")?;
-        Ok(())
-    }
 }
 
 pub struct Grammar {
@@ -321,9 +270,13 @@ impl Grammar {
         self.parser_states.write_look_ahead_set_code(wtr)?;
         self.parser_states
             .write_next_action_code(wtr, &self.specification.attribute_type)?;
-        self.specification.write_production_data_code(wtr)?;
+        self.specification
+            .productions
+            .write_production_data_code(wtr)?;
         self.parser_states.write_goto_table_code(wtr)?;
-        self.specification.write_semantic_action_code(wtr)?;
+        self.specification
+            .productions
+            .write_semantic_action_code(wtr, &self.specification.attribute_type)?;
         wtr.write_all(b"}\n")?;
         Ok(())
     }
@@ -332,9 +285,9 @@ impl Grammar {
         let mut file = std::fs::File::create(file_path)?;
         file.write_all(self.specification.symbol_table.description().as_bytes())?;
         file.write_all(b"\nProductions:\n")?;
-        for production in self.specification.productions.iter() {
-            file.write_fmt(format_args!("  {production}\n"))?;
-        }
+        self.specification
+            .productions
+            .write_description(&mut file)?;
         self.parser_states.write_description(&mut file)?;
         Ok(())
     }

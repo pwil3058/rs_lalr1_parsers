@@ -5,6 +5,7 @@ use crate::state::ParserState;
 use crate::symbol::non_terminal::NonTerminal;
 use crate::symbol::terminal::{Token, TokenSet};
 use crate::symbol::{Symbol, SymbolTable};
+
 use lalr1::{OrderedSet, Parser};
 
 use std::collections::BTreeMap;
