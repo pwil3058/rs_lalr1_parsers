@@ -706,7 +706,7 @@ impl ParserStates {
 }
 
 impl TryFrom<(&Productions, u32, bool, u32, bool)> for ParserStates {
-    type Error = lalr1::GrammarError;
+    type Error = crate::GrammarError;
 
     fn try_from(arg: (&Productions, u32, bool, u32, bool)) -> Result<Self, Self::Error> {
         let productions = arg.0;
