@@ -208,6 +208,31 @@ impl Display for Production {
 }
 
 #[derive(Debug, Default)]
+pub struct Productions(Vec<Production>);
+
+impl Productions {
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.0.len() == 0
+    }
+
+    pub fn iter(&self) -> impl Iterator<Item = &Production> {
+        self.0.iter()
+    }
+
+    pub fn push(&mut self, production: Production) {
+        self.0.push(production);
+    }
+
+    pub fn base(&self) -> &Production {
+        self.0.first().expect("Productions is empty")
+    }
+}
+
+#[derive(Debug, Default)]
 pub struct Reductions {
     reductions: BTreeMap<OrderedSet<Production>, TokenSet>,
 }

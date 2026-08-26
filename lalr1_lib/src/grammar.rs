@@ -5,7 +5,7 @@ use crate::bootstrap::AATerminal;
 #[cfg(not(feature = "bootstrap"))]
 use crate::parser::AATerminal;
 
-use crate::production::{GrammarItemKey, GrammarItemSet, Production, ProductionTail};
+use crate::production::{GrammarItemKey, GrammarItemSet, Production, ProductionTail, Productions};
 use crate::state::ParserStates;
 use crate::symbol::non_terminal::NonTerminal;
 use crate::symbol::terminal::{Token, TokenSet};
@@ -30,7 +30,7 @@ pub fn report_warning(location: &lexan::Location, what: &str) {
 #[derive(Debug, Default)]
 pub struct Specification {
     pub symbol_table: SymbolTable,
-    productions: Vec<Production>,
+    productions: Productions,
     preamble: String,
     pub attribute_type: String,
     pub target_type: String,
@@ -59,9 +59,7 @@ impl Specification {
             .error_non_terminal()
             .set_firsts_data(&spec.productions);
         for non_terminal in spec.symbol_table.non_terminals() {
-            //if non_terminal.firsts_data_is_none() {
             non_terminal.set_firsts_data(&spec.productions)
-            //}
         }
         Ok(spec)
     }
@@ -263,7 +261,7 @@ impl TryFrom<(Specification, bool, bool)> for Grammar {
         } else if specification.error_count > 0 {
             Err(Error::TooManyErrors(specification.error_count))
         } else {
-            let start_item_key = GrammarItemKey::from(&specification.productions[0]);
+            let start_item_key = GrammarItemKey::from(specification.productions.base());
             let mut start_look_ahead_set = TokenSet::new();
             start_look_ahead_set.insert(&Token::End);
             #[allow(clippy::mutable_key_type)]
