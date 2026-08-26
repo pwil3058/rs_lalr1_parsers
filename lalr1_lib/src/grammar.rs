@@ -6,7 +6,7 @@ use crate::bootstrap::AATerminal;
 use crate::parser::AATerminal;
 
 use crate::production::{GrammarItemKey, GrammarItemSet, Production, ProductionTail};
-use crate::state::ParserState;
+use crate::state::ParserStates;
 use crate::symbol::non_terminal::NonTerminal;
 use crate::symbol::terminal::{Token, TokenSet};
 use crate::symbol::{Symbol, SymbolTable};
@@ -200,7 +200,7 @@ impl Specification {
 
 pub struct Grammar {
     specification: Specification,
-    parser_states: Vec<ParserState>,
+    parser_states: ParserStates,
 }
 
 use thiserror::Error;
@@ -272,10 +272,10 @@ impl TryFrom<(Specification, bool, bool)> for Grammar {
             let start_kernel = specification.closure(GrammarItemSet::from(map));
             let mut grammar = Self {
                 specification,
-                parser_states: vec![],
+                parser_states: ParserStates::default(),
             };
-            grammar.new_parser_state(start_kernel);
-            while let Some(unprocessed_state) = grammar.first_unprocessed_state() {
+            grammar.parser_states.new_parser_state(start_kernel);
+            while let Some(unprocessed_state) = grammar.parser_states.first_unprocessed_state() {
                 let first_time = !unprocessed_state.needs_reprocessing();
                 unprocessed_state.mark_as_processed();
                 let mut already_done = OrderedSet::<Symbol>::new();
@@ -286,13 +286,14 @@ impl TryFrom<(Specification, bool, bool)> for Grammar {
                     };
                     let kernel_x = unprocessed_state.generate_goto_kernel(symbol_x);
                     let item_set_x = grammar.specification.closure(kernel_x);
-                    let goto_state =
-                        if let Some(equivalent_state) = grammar.equivalent_state(&item_set_x) {
-                            equivalent_state.merge_lookahead_sets(&item_set_x);
-                            equivalent_state.clone()
-                        } else {
-                            grammar.new_parser_state(item_set_x)
-                        };
+                    let goto_state = if let Some(equivalent_state) =
+                        grammar.parser_states.equivalent_state(&item_set_x)
+                    {
+                        equivalent_state.merge_lookahead_sets(&item_set_x);
+                        equivalent_state.clone()
+                    } else {
+                        grammar.parser_states.new_parser_state(item_set_x)
+                    };
                     if first_time {
                         match symbol_x {
                             Symbol::Terminal(token) => {
@@ -308,12 +309,12 @@ impl TryFrom<(Specification, bool, bool)> for Grammar {
                     }
                 }
             }
-            let (sr_conflicts, rr_conflicts) = grammar.resolve_conflicts();
+            let (sr_conflicts, rr_conflicts) = grammar.parser_states.resolve_conflicts();
             if !ignore_sr_conflicts && sr_conflicts != grammar.specification.expected_sr_conflicts {
                 Err(Error::UnexpectedSRConflicts(
                     sr_conflicts,
                     grammar.specification.expected_sr_conflicts,
-                    grammar.describe_sr_conflict_states(),
+                    grammar.parser_states.describe_sr_conflict_states(),
                 ))
             } else if !ignore_rr_conflicts
                 && rr_conflicts != grammar.specification.expected_rr_conflicts
@@ -321,52 +322,12 @@ impl TryFrom<(Specification, bool, bool)> for Grammar {
                 Err(Error::UnexpectedRRConflicts(
                     rr_conflicts,
                     grammar.specification.expected_rr_conflicts,
-                    grammar.describe_rr_conflict_states(),
+                    grammar.parser_states.describe_rr_conflict_states(),
                 ))
             } else {
                 Ok(grammar)
             }
         }
-    }
-}
-
-impl Grammar {
-    fn resolve_conflicts(&mut self) -> (u32, u32) {
-        let mut sr_conflicts = 0_u32;
-        let mut rr_conflicts = 0_u32;
-        for parser_state in self.parser_states.iter_mut() {
-            sr_conflicts += parser_state.resolve_shift_reduce_conflicts() as u32;
-            rr_conflicts += parser_state.resolve_reduce_reduce_conflicts() as u32;
-        }
-        (sr_conflicts, rr_conflicts)
-    }
-
-    fn first_unprocessed_state(&self) -> Option<ParserState> {
-        Some(
-            self.parser_states
-                .iter()
-                .find(|x| !x.is_processed())?
-                .clone(),
-        )
-    }
-
-    fn new_parser_state(&mut self, grammar_items: GrammarItemSet) -> ParserState {
-        let ident = self.parser_states.len() as u32;
-        let parser_state = ParserState::new(ident, grammar_items);
-        self.parser_states.push(parser_state.clone());
-        parser_state
-    }
-
-    fn equivalent_state(&self, item_set: &GrammarItemSet) -> Option<&ParserState> {
-        let target_key_set = item_set.kernel_key_set();
-        if !target_key_set.is_empty() {
-            for parser_state in self.parser_states.iter() {
-                if target_key_set == parser_state.kernel_key_set() {
-                    return Some(parser_state);
-                }
-            }
-        };
-        None
     }
 }
 
@@ -522,143 +483,15 @@ impl Grammar {
         )?;
         wtr.write_all(b"        &AALEXAN\n")?;
         wtr.write_all(b"    }\n\n")?;
-        self.write_error_recovery_code(wtr)?;
-        self.write_look_ahead_set_code(wtr)?;
-        self.write_next_action_code(wtr)?;
+        self.parser_states
+            .write_error_recovery_code(wtr, &self.specification.symbol_table)?;
+        self.parser_states.write_look_ahead_set_code(wtr)?;
+        self.parser_states
+            .write_next_action_code(wtr, &self.specification.attribute_type)?;
         self.specification.write_production_data_code(wtr)?;
-        self.write_goto_table_code(wtr)?;
+        self.parser_states.write_goto_table_code(wtr)?;
         self.specification.write_semantic_action_code(wtr)?;
         wtr.write_all(b"}\n")?;
-        Ok(())
-    }
-
-    fn error_recovery_state_set_for_token(&self, token: &Token) -> OrderedSet<u32> {
-        self.parser_states
-            .iter()
-            .filter(|x| x.is_recovery_state_for_token(token))
-            .map(|x| x.ident())
-            .collect()
-    }
-
-    fn format_u32_set(set: &OrderedSet<u32>) -> String {
-        let mut string = "ordered_set![".to_string();
-        for (index, number) in set.iter().enumerate() {
-            if index == 0 {
-                string += &format!("{number}");
-            } else {
-                string += &format!(", {number}");
-            }
-        }
-        string += "]";
-        string
-    }
-
-    fn write_error_recovery_code<W: Write>(&self, wtr: &mut W) -> io::Result<()> {
-        let mut default_required = false;
-        let mut recovery_states = Vec::<(&str, OrderedSet<u32>)>::new();
-        for token in [Token::End]
-            .iter()
-            .chain(self.specification.symbol_table.tokens())
-        {
-            let set = self.error_recovery_state_set_for_token(token);
-            if !set.is_empty() {
-                recovery_states.push((token.name(), set));
-            } else {
-                default_required = true;
-            }
-        }
-        if recovery_states.is_empty() {
-            wtr.write_all(
-                b"    fn viable_error_recovery_states(_token: &AATerminal) -> OrderedSet<u32> {\n",
-            )?;
-            wtr.write_all(b"        ordered_set![]\n")?;
-            wtr.write_all(b"    }\n\n")?;
-        } else {
-            wtr.write_all(
-                b"    fn viable_error_recovery_states(token: &AATerminal) -> OrderedSet<u32> {\n",
-            )?;
-            wtr.write_all(b"        match token {\n")?;
-            for (name, set) in recovery_states {
-                wtr.write_fmt(format_args!(
-                    "            AATerminal::{} => {},\n",
-                    name,
-                    Self::format_u32_set(&set)
-                ))?;
-            }
-            if default_required {
-                wtr.write_all(b"            _ => ordered_set![],\n")?;
-            }
-            wtr.write_all(b"        }\n")?;
-            wtr.write_all(b"    }\n\n")?;
-            wtr.write_all(b"    fn error_goto_state(state: u32) -> u32 {\n")?;
-            wtr.write_all(b"        match state {\n")?;
-            for parser_state in self.parser_states.iter() {
-                if let Some(goto_state_id) = parser_state.error_goto_state_ident() {
-                    wtr.write_fmt(format_args!(
-                        "            {:1} => {:1},\n",
-                        parser_state.ident(),
-                        goto_state_id
-                    ))?;
-                }
-            }
-            wtr.write_all(b"            _ => panic!(\"No error go to state for {}\", state),\n")?;
-            wtr.write_all(b"        }\n")?;
-            wtr.write_all(b"    }\n\n")?;
-        }
-        Ok(())
-    }
-
-    fn write_look_ahead_set_code<W: Write>(&self, wtr: &mut W) -> io::Result<()> {
-        wtr.write_all(b"    fn look_ahead_set(state: u32) -> OrderedSet<AATerminal> {\n")?;
-        wtr.write_all(b"        use AATerminal::*;\n")?;
-        wtr.write_all(b"        match state {\n")?;
-        for parser_state in self.parser_states.iter() {
-            wtr.write_fmt(format_args!(
-                "            {} => {},\n",
-                parser_state.ident(),
-                parser_state.look_ahead_set().formated_as_macro_call()
-            ))?;
-        }
-        wtr.write_all(b"            _ => panic!(\"illegal state: {state}\"),\n")?;
-        wtr.write_all(b"        }\n")?;
-        wtr.write_all(b"    }\n\n")?;
-        Ok(())
-    }
-
-    fn write_next_action_code<W: Write>(&self, wtr: &mut W) -> io::Result<()> {
-        wtr.write_all(b"    fn next_action(\n")?;
-        wtr.write_all(b"        &self,\n")?;
-        wtr.write_fmt(format_args!(
-            "        aa_parse_stack: &lalr1::ParseStack<AATerminal, AANonTerminal, {}>,\n",
-            self.specification.attribute_type
-        ))?;
-        wtr.write_all(b"        aa_token: &lexan::Token<AATerminal>,\n")?;
-        wtr.write_all(b"    ) -> lalr1::Action {\n")?;
-        wtr.write_all(b"        use lalr1::Action;\n")?;
-        wtr.write_all(b"        use AATerminal::*;\n")?;
-        wtr.write_all(b"        let aa_tag = *aa_token.tag();\n")?;
-        wtr.write_all(b"        let aa_state = aa_parse_stack.current_state();\n")?;
-        wtr.write_all(b"        match aa_state {\n")?;
-        for parser_state in self.parser_states.iter() {
-            parser_state.write_next_action_code(wtr, "            ")?;
-        }
-        wtr.write_all(b"            _ => panic!(\"illegal state: {aa_state}\"),\n")?;
-        wtr.write_all(b"        }\n")?;
-        wtr.write_all(b"    }\n\n")?;
-        Ok(())
-    }
-
-    fn write_goto_table_code<W: Write>(&self, wtr: &mut W) -> io::Result<()> {
-        wtr.write_all(b"    fn goto_state(lhs: &AANonTerminal, current_state: u32) -> u32 {\n")?;
-        wtr.write_all(b"        match current_state {\n")?;
-        for parser_state in self.parser_states.iter() {
-            parser_state.write_goto_table_code(wtr, "            ")?;
-        }
-        wtr.write_all(
-            b"            _ => panic!(\"Malformed goto table: ({lhs}, {current_state})\"),\n",
-        )?;
-        wtr.write_all(b"        }\n")?;
-        wtr.write_all(b"    }\n\n")?;
         Ok(())
     }
 
@@ -669,29 +502,7 @@ impl Grammar {
         for production in self.specification.productions.iter() {
             file.write_fmt(format_args!("  {production}\n"))?;
         }
-        for parser_state in self.parser_states.iter() {
-            file.write_all(parser_state.description().as_bytes())?;
-        }
+        self.parser_states.write_description(&mut file)?;
         Ok(())
-    }
-
-    pub fn describe_sr_conflict_states(&self) -> String {
-        let mut string = String::new();
-        for parser_state in self.parser_states.iter() {
-            if parser_state.shift_reduce_conflict_count() > 0 {
-                string += parser_state.description().as_str();
-            }
-        }
-        string
-    }
-
-    pub fn describe_rr_conflict_states(&self) -> String {
-        let mut string = String::new();
-        for parser_state in self.parser_states.iter() {
-            if parser_state.reduce_reduce_conflict_count() > 0 {
-                string += parser_state.description().as_str();
-            }
-        }
-        string
     }
 }
