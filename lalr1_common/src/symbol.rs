@@ -1,9 +1,10 @@
 // Copyright (c) 2026 Peter Williams <pwil3058@bigpond.net.au> <pwil3058@gmail.com>.
-use std::{collections::BTreeMap, fmt};
-
 use crate::symbol::non_terminal::NonTerminal;
 use crate::symbol::tag::{Tag, TagOrToken};
 use crate::symbol::terminal::Token;
+
+use std::io::Write;
+use std::{collections::BTreeMap, fmt, io};
 
 pub mod non_terminal;
 pub mod tag;
@@ -363,5 +364,120 @@ impl SymbolTable {
             );
         }
         string
+    }
+}
+
+impl SymbolTable {
+    pub fn write_symbol_enum_code<W: Write>(&self, wtr: &mut W) -> io::Result<()> {
+        let special_tokens = [Token::End];
+        let special_non_terminals = self.used_non_terminal_specials();
+
+        wtr.write_all(b"use lalr1::OrderedSet;\n\n")?;
+        wtr.write_all(b"macro_rules! ordered_set {\n")?;
+        wtr.write_all(b"    () => { OrderedSet::new() };\n")?;
+        wtr.write_all(b"    ( $( $x:expr ),* ) => {\n")?;
+        wtr.write_all(b"        {\n")?;
+        wtr.write_all(b"            let mut set = OrderedSet::new();\n")?;
+        wtr.write_all(b"            $( set.insert($x); )*\n")?;
+        wtr.write_all(b"            set\n")?;
+        wtr.write_all(b"        }\n")?;
+        wtr.write_all(b"    };\n")?;
+        wtr.write_all(b"    ( $( $x:expr ),+ , ) => {\n")?;
+        wtr.write_all(b"        ordered_set![ $( $x ), * ]\n")?;
+        wtr.write_all(b"    };\n")?;
+        wtr.write_all(b"}\n\n")?;
+        wtr.write_all(b"#[derive(Debug, Clone, Copy, PartialOrd, Ord, PartialEq, Eq)]\n")?;
+        wtr.write_all(b"pub enum AATerminal {\n")?;
+        for token in special_tokens.iter().chain(self.tokens()) {
+            wtr.write_fmt(format_args!("    {},\n", token.name()))?;
+        }
+        wtr.write_all(b"}\n\n")?;
+        wtr.write_all(b"impl std::fmt::Display for AATerminal {\n")?;
+        wtr.write_all(b"    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {\n")?;
+        wtr.write_all(b"        match self {\n")?;
+        for token in special_tokens.iter().chain(self.tokens()) {
+            wtr.write_all(b"            AATerminal::")?;
+            match token {
+                Token::Literal(token_data) => {
+                    wtr.write_fmt(format_args!(
+                        "{} => write!(f, r###\"{}\"###),\n",
+                        token_data.name, token_data.text
+                    ))?;
+                }
+                Token::Regex(token_data) => {
+                    wtr.write_fmt(format_args!(
+                        "{} => write!(f, r###\"{}\"###),\n",
+                        token_data.name, token_data.name
+                    ))?;
+                }
+                Token::End => {
+                    wtr.write_fmt(format_args!(
+                        "{} => write!(f, r###\"{}\"###),\n",
+                        token.name(),
+                        token.name()
+                    ))?;
+                }
+            }
+        }
+        wtr.write_all(b"        }\n")?;
+        wtr.write_all(b"    }\n")?;
+        wtr.write_all(b"}\n\n")?;
+        self.write_lexical_analyzer_code(wtr)?;
+        wtr.write_all(b"#[derive(Debug, Clone, Copy, PartialOrd, Ord, PartialEq, Eq)]\n")?;
+        wtr.write_all(b"pub enum AANonTerminal {\n")?;
+        for non_terminal in special_non_terminals.iter().chain(self.non_terminals()) {
+            wtr.write_fmt(format_args!("    {},\n", non_terminal.name()))?;
+        }
+        wtr.write_all(b"}\n\n")?;
+        wtr.write_all(b"impl std::fmt::Display for AANonTerminal {\n")?;
+        wtr.write_all(b"    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {\n")?;
+        wtr.write_all(b"        match self {\n")?;
+        for non_terminal in special_non_terminals.iter().chain(self.non_terminals()) {
+            wtr.write_all(b"            AANonTerminal::")?;
+            let name = non_terminal.name();
+            wtr.write_fmt(format_args!("{name} => write!(f, r\"{name}\"),\n"))?;
+        }
+        wtr.write_all(b"        }\n")?;
+        wtr.write_all(b"    }\n")?;
+        wtr.write_all(b"}\n\n")?;
+        Ok(())
+    }
+
+    pub fn write_lexical_analyzer_code<W: Write>(&self, wtr: &mut W) -> io::Result<()> {
+        wtr.write_all(b"lazy_static::lazy_static! {\n")?;
+        wtr.write_all(b"    static ref AALEXAN: lexan::LexicalAnalyzer<AATerminal> = {\n")?;
+        wtr.write_all(b"        use AATerminal::*;\n")?;
+        wtr.write_all(b"        lexan::LexicalAnalyzer::new(\n")?;
+        wtr.write_all(b"            &[\n")?;
+        for token in self.literal_tokens() {
+            wtr.write_all(b"                ")?;
+            wtr.write_fmt(format_args!(
+                "({}, r###{}###),\n",
+                token.name(),
+                token.text()
+            ))?;
+        }
+        wtr.write_all(b"            ],\n")?;
+        wtr.write_all(b"            &[\n")?;
+        for token in self.regex_tokens() {
+            wtr.write_all(b"                ")?;
+            wtr.write_fmt(format_args!(
+                "({}, r###\"{}\"###),\n",
+                token.name(),
+                token.text()
+            ))?;
+        }
+        wtr.write_all(b"            ],\n")?;
+        wtr.write_all(b"            &[\n")?;
+        for skip_rule in self.skip_rules() {
+            wtr.write_all(b"                ")?;
+            wtr.write_fmt(format_args!("r###\"{skip_rule}\"###,\n"))?;
+        }
+        wtr.write_all(b"            ],\n")?;
+        wtr.write_fmt(format_args!("            {},\n", Token::End.name()))?;
+        wtr.write_all(b"        )\n")?;
+        wtr.write_all(b"    };\n")?;
+        wtr.write_all(b"}\n\n")?;
+        Ok(())
     }
 }

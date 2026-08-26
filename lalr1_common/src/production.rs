@@ -1,19 +1,17 @@
 // Copyright (c) 2026 Peter Williams <pwil3058@bigpond.net.au> <pwil3058@gmail.com>.
 
-use crate::symbol::{
-    Associativity, Symbol,
-    non_terminal::NonTerminal,
-    terminal::{Token, TokenSet},
-};
+use crate::symbol::terminal::Token;
+use crate::symbol::{Associativity, Symbol, non_terminal::NonTerminal, terminal::TokenSet};
 
 use lalr1::OrderedSet;
 
 use lazy_static::lazy_static;
-use regex;
 
 use std::cmp::Ordering;
 use std::collections::BTreeMap;
 use std::fmt::Display;
+use std::io;
+use std::io::Write;
 use std::iter::FromIterator;
 use std::ops::Index;
 use std::rc::Rc;
@@ -243,6 +241,131 @@ impl Display for Production {
             string += &format!(" ?({predicate}?)");
         };
         write!(f, "{string}")
+    }
+}
+
+#[derive(Debug, Default)]
+pub struct Productions(Vec<Production>);
+
+impl Productions {
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.0.len() == 0
+    }
+
+    pub fn iter(&self) -> impl Iterator<Item = &Production> {
+        self.0.iter()
+    }
+
+    pub fn push(&mut self, production: Production) {
+        self.0.push(production);
+    }
+
+    pub fn base(&self) -> &Production {
+        self.0.first().expect("Productions is empty")
+    }
+
+    pub fn closure(&self, mut closure_set: GrammarItemSet) -> GrammarItemSet {
+        let mut additions_made = true;
+        while additions_made {
+            additions_made = false;
+            // Closables extraction as a new separate map necessary to avoid borrow conflict
+            for (item_key, look_ahead_set) in closure_set.closable_set() {
+                if let Some(symbol) = item_key.next_symbol() {
+                    match symbol {
+                        Symbol::Terminal(_) => debug_assert!(!item_key.is_closable()),
+                        Symbol::NonTerminal(prospective_lhs) => {
+                            debug_assert!(item_key.is_closable());
+                            for look_ahead_symbol in look_ahead_set.iter() {
+                                let firsts = TokenSet::first_all_caps(
+                                    item_key.rhs_tail(),
+                                    look_ahead_symbol,
+                                );
+                                for production in self
+                                    .0
+                                    .iter()
+                                    .filter(|x| x.left_hand_side() == prospective_lhs)
+                                {
+                                    let prospective_key = GrammarItemKey::from(production);
+                                    if let Some(set) = closure_set.get_mut(&prospective_key) {
+                                        let len = set.len();
+                                        *set |= &firsts;
+                                        additions_made = additions_made || set.len() > len;
+                                    } else {
+                                        closure_set.insert(prospective_key, firsts.clone());
+                                        additions_made = true;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    debug_assert!(!item_key.is_closable());
+                }
+            }
+        }
+        closure_set
+    }
+}
+
+impl Productions {
+    pub fn write_production_data_code<W: Write>(&self, wtr: &mut W) -> io::Result<()> {
+        wtr.write_all(b"    fn production_data(production_id: u32) -> (AANonTerminal, usize) {\n")?;
+        wtr.write_all(b"        match production_id {\n")?;
+        for production in self.0.iter() {
+            wtr.write_fmt(format_args!(
+                "            {} => (AANonTerminal::{}, {}),\n",
+                production.ident(),
+                production.left_hand_side().name(),
+                production.len(),
+            ))?;
+        }
+        wtr.write_all(b"            _ => panic!(\"malformed production data table\"),\n")?;
+        wtr.write_all(b"        }\n")?;
+        wtr.write_all(b"    }\n\n")?;
+        Ok(())
+    }
+
+    pub fn write_semantic_action_code<W: Write>(
+        &self,
+        wtr: &mut W,
+        attribute_type: &str,
+    ) -> io::Result<()> {
+        wtr.write_all(b"    fn do_semantic_action<F: FnMut(String, String)>(\n")?;
+        wtr.write_all(b"        &mut self,\n")?;
+        wtr.write_all(b"        aa_production_id: u32,\n")?;
+        wtr.write_fmt(format_args!("        aa_rhs: Vec<{}>,\n", attribute_type))?;
+        wtr.write_all(b"        mut aa_inject: F,\n")?;
+        wtr.write_fmt(format_args!("    ) -> {} {{\n", attribute_type))?;
+        wtr.write_all(b"        let mut aa_lhs = if let Some(a) = aa_rhs.first() {\n")?;
+        wtr.write_all(b"            a.clone()\n")?;
+        wtr.write_all(b"        } else {\n")?;
+        wtr.write_fmt(format_args!("           {}::default()\n", attribute_type))?;
+        wtr.write_all(b"        };\n")?;
+        wtr.write_all(b"        match aa_production_id {\n")?;
+        for production in self.0.iter() {
+            if let Some(action_code) = production.expanded_action() {
+                wtr.write_fmt(format_args!("            {} => {{\n", production.ident()))?;
+                wtr.write_fmt(format_args!("                // {production}\n"))?;
+                wtr.write_fmt(format_args!("                {action_code}\n"))?;
+                wtr.write_all(b"            }\n")?;
+            }
+        }
+        wtr.write_all(b"            _ => aa_inject(String::new(), String::new()),\n")?;
+        wtr.write_all(b"        };\n")?;
+        wtr.write_all(b"        aa_lhs\n")?;
+        wtr.write_all(b"    }\n\n")?;
+        Ok(())
+    }
+
+    pub fn write_description<W: Write>(&self, wtr: &mut W) -> io::Result<()> {
+        for production in self.0.iter() {
+            wtr.write_fmt(format_args!("  {production}\n"))?;
+        }
+        Ok(())
     }
 }
 
