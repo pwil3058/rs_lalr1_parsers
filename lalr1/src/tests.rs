@@ -13,7 +13,7 @@ use crate::ParseStack;
 #[derive(Debug, Clone)]
 pub enum AttributeData {
     Token(lexan::Token<AATerminal>),
-    Error(crate::Error<AATerminal>),
+    Error(crate::SpecificationError<AATerminal>),
     Value(f64),
     Id(String),
     Default,
@@ -57,8 +57,8 @@ impl From<lexan::Token<AATerminal>> for AttributeData {
     }
 }
 
-impl From<crate::Error<AATerminal>> for AttributeData {
-    fn from(error: crate::Error<AATerminal>) -> Self {
+impl From<crate::SpecificationError<AATerminal>> for AttributeData {
+    fn from(error: crate::SpecificationError<AATerminal>) -> Self {
         AttributeData::Error(error)
     }
 }

@@ -25,9 +25,9 @@ use crate::parser::AATerminal;
 #[derive(Debug, Error)]
 pub enum Error {
     #[error("Specification error {0}")]
-    SpecificationError(#[from] lalr1::Error<AATerminal>),
+    SpecificationError(#[from] lalr1::SpecificationError<AATerminal>),
     #[error("Grammar error {0}")]
-    GrammarError(#[from] grammar::Error),
+    GrammarError(#[from] lalr1::GrammarError),
     #[error("I/O error {0}")]
     IoError(#[from] io::Error),
 }

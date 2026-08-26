@@ -1,6 +1,6 @@
 // Copyright (c) 2026 Peter Williams <pwil3058@bigpond.net.au> <pwil3058@gmail.com>.
 
-use crate::production::{GrammarItemKey, GrammarItemSet};
+use crate::production::{GrammarItemKey, GrammarItemSet, Productions};
 use crate::symbol::non_terminal::NonTerminal;
 use crate::symbol::terminal::{Token, TokenSet};
 use crate::symbol::{Associativity, Symbol, SymbolTable};
@@ -10,6 +10,7 @@ use lalr1::OrderedSet;
 use std::cell::{Cell, RefCell};
 use std::cmp::Ordering;
 use std::collections::BTreeMap;
+use std::convert::TryFrom;
 use std::io;
 use std::io::Write;
 use std::rc::Rc;
@@ -633,5 +634,77 @@ impl ParserStates {
             }
         }
         string
+    }
+}
+
+impl TryFrom<(&Productions, u32, bool, u32, bool)> for ParserStates {
+    type Error = lalr1::GrammarError;
+
+    fn try_from(arg: (&Productions, u32, bool, u32, bool)) -> Result<Self, Self::Error> {
+        let productions = arg.0;
+        let expected_sr_conflicts = arg.1;
+        let ignore_sr_conflicts = arg.2;
+        let expected_rr_conflicts = arg.3;
+        let ignore_rr_conflicts = arg.4;
+
+        let start_item_key = GrammarItemKey::from(productions.base());
+        let mut start_look_ahead_set = TokenSet::new();
+        start_look_ahead_set.insert(&Token::End);
+        #[allow(clippy::mutable_key_type)]
+        let mut map = BTreeMap::<GrammarItemKey, TokenSet>::new();
+        map.insert(start_item_key, start_look_ahead_set);
+        let start_kernel = productions.closure(GrammarItemSet::from(map));
+
+        let mut parser_states = ParserStates::default();
+        parser_states.new_parser_state(start_kernel);
+        while let Some(unprocessed_state) = parser_states.first_unprocessed_state() {
+            let first_time = !unprocessed_state.needs_reprocessing();
+            unprocessed_state.mark_as_processed();
+            let mut already_done = OrderedSet::<Symbol>::new();
+            for item_key in unprocessed_state.non_kernel_key_set().iter() {
+                let symbol_x = item_key.next_symbol().expect("not reducible");
+                if !already_done.insert(symbol_x.clone()) {
+                    continue;
+                };
+                let kernel_x = unprocessed_state.generate_goto_kernel(symbol_x);
+                let item_set_x = productions.closure(kernel_x);
+                let goto_state =
+                    if let Some(equivalent_state) = parser_states.equivalent_state(&item_set_x) {
+                        equivalent_state.merge_lookahead_sets(&item_set_x);
+                        equivalent_state.clone()
+                    } else {
+                        parser_states.new_parser_state(item_set_x)
+                    };
+                if first_time {
+                    match symbol_x {
+                        Symbol::Terminal(token) => {
+                            unprocessed_state.add_shift_action(token.clone(), goto_state)
+                        }
+                        Symbol::NonTerminal(non_terminal) => {
+                            if non_terminal.is_error() {
+                                unprocessed_state.set_error_recovery_state(&goto_state);
+                            }
+                            unprocessed_state.add_goto(non_terminal.clone(), goto_state);
+                        }
+                    }
+                }
+            }
+        }
+        let (sr_conflicts, rr_conflicts) = parser_states.resolve_conflicts();
+        if !ignore_sr_conflicts && sr_conflicts != expected_sr_conflicts {
+            Err(Self::Error::UnexpectedSRConflicts(
+                sr_conflicts,
+                expected_sr_conflicts,
+                parser_states.describe_sr_conflict_states(),
+            ))
+        } else if !ignore_rr_conflicts && rr_conflicts != expected_rr_conflicts {
+            Err(Self::Error::UnexpectedRRConflicts(
+                rr_conflicts,
+                expected_rr_conflicts,
+                parser_states.describe_rr_conflict_states(),
+            ))
+        } else {
+            Ok(parser_states)
+        }
     }
 }

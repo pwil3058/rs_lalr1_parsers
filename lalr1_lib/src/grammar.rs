@@ -5,15 +5,13 @@ use crate::bootstrap::AATerminal;
 #[cfg(not(feature = "bootstrap"))]
 use crate::parser::AATerminal;
 
-use crate::production::{GrammarItemKey, GrammarItemSet, Production, ProductionTail, Productions};
+use crate::production::{Production, ProductionTail, Productions};
 use crate::state::ParserStates;
+use crate::symbol::SymbolTable;
 use crate::symbol::non_terminal::NonTerminal;
-use crate::symbol::terminal::{Token, TokenSet};
-use crate::symbol::{Symbol, SymbolTable};
 
-use lalr1::{OrderedSet, Parser};
+use lalr1::Parser;
 
-use std::collections::BTreeMap;
 use std::convert::TryFrom;
 use std::io;
 use std::io::{Write, stderr};
@@ -43,7 +41,7 @@ pub struct Specification {
 impl lalr1::ReportError<AATerminal> for Specification {}
 
 impl Specification {
-    pub fn new(text: &str, label: &str) -> Result<Self, lalr1::Error<AATerminal>> {
+    pub fn new(text: &str, label: &str) -> Result<Self, lalr1::SpecificationError<AATerminal>> {
         let mut spec = Specification::default();
         spec.parse_text(text, label)?;
         // Add dummy error production last so that it has lowest precedence during conflict resolution
@@ -108,24 +106,10 @@ pub struct Grammar {
     parser_states: ParserStates,
 }
 
-use thiserror::Error;
-
-#[derive(Debug, Error)]
-pub enum Error {
-    #[error("Too many errors: {0}")]
-    TooManyErrors(u32),
-    #[error("{0} undefined symbols")]
-    UndefinedSymbols(u32),
-    #[error("Unexpected Shift/Reduce conflicts: {0} {1} {2}")]
-    UnexpectedSRConflicts(u32, u32, String),
-    #[error("Unexpected Reduce/Reduce conflicts: {0} {1} {2}")]
-    UnexpectedRRConflicts(u32, u32, String),
-}
-
 impl TryFrom<(Specification, bool, bool)> for Grammar {
-    type Error = Error;
+    type Error = lalr1::GrammarError;
 
-    fn try_from(arg: (Specification, bool, bool)) -> Result<Self, Error> {
+    fn try_from(arg: (Specification, bool, bool)) -> Result<Self, Self::Error> {
         let specification = arg.0;
         let ignore_sr_conflicts = arg.1;
         let ignore_rr_conflicts = arg.2;
@@ -164,74 +148,21 @@ impl TryFrom<(Specification, bool, bool)> for Grammar {
         }
 
         if undefined_symbols > 0 {
-            Err(Error::UndefinedSymbols(undefined_symbols))
+            Err(Self::Error::UndefinedSymbols(undefined_symbols))
         } else if specification.error_count > 0 {
-            Err(Error::TooManyErrors(specification.error_count))
+            Err(Self::Error::TooManyErrors(specification.error_count))
         } else {
-            let start_item_key = GrammarItemKey::from(specification.productions.base());
-            let mut start_look_ahead_set = TokenSet::new();
-            start_look_ahead_set.insert(&Token::End);
-            #[allow(clippy::mutable_key_type)]
-            let mut map = BTreeMap::<GrammarItemKey, TokenSet>::new();
-            map.insert(start_item_key, start_look_ahead_set);
-            let start_kernel = specification.productions.closure(GrammarItemSet::from(map));
-            let mut grammar = Self {
+            let parser_states = ParserStates::try_from((
+                &specification.productions,
+                specification.expected_sr_conflicts,
+                ignore_sr_conflicts,
+                specification.expected_rr_conflicts,
+                ignore_rr_conflicts,
+            ))?;
+            Ok(Grammar {
                 specification,
-                parser_states: ParserStates::default(),
-            };
-            grammar.parser_states.new_parser_state(start_kernel);
-            while let Some(unprocessed_state) = grammar.parser_states.first_unprocessed_state() {
-                let first_time = !unprocessed_state.needs_reprocessing();
-                unprocessed_state.mark_as_processed();
-                let mut already_done = OrderedSet::<Symbol>::new();
-                for item_key in unprocessed_state.non_kernel_key_set().iter() {
-                    let symbol_x = item_key.next_symbol().expect("not reducible");
-                    if !already_done.insert(symbol_x.clone()) {
-                        continue;
-                    };
-                    let kernel_x = unprocessed_state.generate_goto_kernel(symbol_x);
-                    let item_set_x = grammar.specification.productions.closure(kernel_x);
-                    let goto_state = if let Some(equivalent_state) =
-                        grammar.parser_states.equivalent_state(&item_set_x)
-                    {
-                        equivalent_state.merge_lookahead_sets(&item_set_x);
-                        equivalent_state.clone()
-                    } else {
-                        grammar.parser_states.new_parser_state(item_set_x)
-                    };
-                    if first_time {
-                        match symbol_x {
-                            Symbol::Terminal(token) => {
-                                unprocessed_state.add_shift_action(token.clone(), goto_state)
-                            }
-                            Symbol::NonTerminal(non_terminal) => {
-                                if non_terminal.is_error() {
-                                    unprocessed_state.set_error_recovery_state(&goto_state);
-                                }
-                                unprocessed_state.add_goto(non_terminal.clone(), goto_state);
-                            }
-                        }
-                    }
-                }
-            }
-            let (sr_conflicts, rr_conflicts) = grammar.parser_states.resolve_conflicts();
-            if !ignore_sr_conflicts && sr_conflicts != grammar.specification.expected_sr_conflicts {
-                Err(Error::UnexpectedSRConflicts(
-                    sr_conflicts,
-                    grammar.specification.expected_sr_conflicts,
-                    grammar.parser_states.describe_sr_conflict_states(),
-                ))
-            } else if !ignore_rr_conflicts
-                && rr_conflicts != grammar.specification.expected_rr_conflicts
-            {
-                Err(Error::UnexpectedRRConflicts(
-                    rr_conflicts,
-                    grammar.specification.expected_rr_conflicts,
-                    grammar.parser_states.describe_rr_conflict_states(),
-                ))
-            } else {
-                Ok(grammar)
-            }
+                parser_states,
+            })
         }
     }
 }
