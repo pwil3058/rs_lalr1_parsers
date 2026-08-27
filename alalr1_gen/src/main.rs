@@ -90,21 +90,21 @@ fn main() {
     )) {
         Ok(grammar) => grammar,
         Err(err) => match err {
-            grammar::Error::TooManyErrors(count) => {
+            lalr1_common::GrammarError::TooManyErrors(count) => {
                 eprintln!("Too many errors: {count:?}.");
                 std::process::exit(4);
             }
-            grammar::Error::UndefinedSymbols(count) => {
+            lalr1_common::GrammarError::UndefinedSymbols(count) => {
                 eprintln!("Undefined symbols: {count:?}.");
                 std::process::exit(4);
             }
-            grammar::Error::UnexpectedSRConflicts(count, expected, report) => {
+            lalr1_common::GrammarError::UnexpectedSRConflicts(count, expected, report) => {
                 eprintln!(
                     "{report}\nUnexpected shift/reduce conflicts: {count} expected: {expected}."
                 );
                 std::process::exit(4);
             }
-            grammar::Error::UnexpectedRRConflicts(count, expected, report) => {
+            lalr1_common::GrammarError::UnexpectedRRConflicts(count, expected, report) => {
                 eprintln!(
                     "{report}\nUnexpected reduce/reduce conflicts: {count} expected: {expected}."
                 );

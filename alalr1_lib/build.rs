@@ -4,8 +4,6 @@ use std::{path::Path, process::Command};
 fn main() {
     let alalr1_gen_path = "../target/debug/alalr1_gen";
     if Path::new(alalr1_gen_path).exists() {
-        // println!("cargo:rerun-if-changed=src/parser.alaps");
-        // println!("cargo::rerun-if-changed={alalr1_gen_path}");
         match Command::new(alalr1_gen_path)
             .args(["-f", "src/parser.alaps"])
             .status()
@@ -13,11 +11,11 @@ fn main() {
             Ok(status) => {
                 if status.success() {
                     Command::new("rustfmt")
-                        .args(["src/parser"])
+                        .args(["src/parser.rs"])
                         .status()
                         .unwrap();
                 } else {
-                    panic!("failed prebuild: {status}");
+                    panic!("failed prebuild reformat: {status}");
                 };
             }
             Err(err) => panic!("Build error: {err}"),
