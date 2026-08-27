@@ -95,8 +95,8 @@ impl From<lexan::Token<Terminal>> for AttributeData {
     }
 }
 
-impl From<lalr1::SpecificationError<Terminal>> for AttributeData {
-    fn from(_error: lalr1::SpecificationError<Terminal>) -> Self {
+impl From<lalr1::Error<Terminal>> for AttributeData {
+    fn from(_error: lalr1::Error<Terminal>) -> Self {
         AttributeData::default()
     }
 }

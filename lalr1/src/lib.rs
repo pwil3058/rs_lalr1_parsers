@@ -70,7 +70,7 @@ impl<T: Display + Ord + Clone> Display for OrderedSet<T> {
 }
 
 #[derive(Debug, Clone, Error)]
-pub enum SpecificationError<T: Ord + Clone + Copy + Debug + Display + Eq> {
+pub enum Error<T: Ord + Clone + Copy + Debug + Display + Eq> {
     #[error("Lexical error: {0} expected {1}.")]
     LexicalError(lexan::Error<T>, OrderedSet<T>),
     #[error("Syntax error: {0} expected {1}.")]
@@ -78,10 +78,9 @@ pub enum SpecificationError<T: Ord + Clone + Copy + Debug + Display + Eq> {
 }
 
 pub trait ReportError<T: Ord + Copy + Debug + Display + Eq> {
-    fn report_error(&mut self, error: &SpecificationError<T>) {
+    fn report_error(&mut self, error: &Error<T>) {
         let message = error.to_string();
-        if let SpecificationError::LexicalError(lexan::Error::AmbiguousMatches(_, _, _), _) = error
-        {
+        if let Error::LexicalError(lexan::Error::AmbiguousMatches(_, _, _), _) = error {
             panic!("Fatal Error: {message}!!");
         };
         std::io::stderr()
@@ -114,7 +113,7 @@ pub enum Symbol<T, N> {
 pub struct ParseStack<T, N, A>
 where
     T: Copy + Ord + Debug + Display,
-    A: From<lexan::Token<T>> + From<SpecificationError<T>>,
+    A: From<lexan::Token<T>> + From<Error<T>>,
 {
     states: Vec<(Symbol<T, N>, u32)>,
     attributes: Vec<A>,
@@ -124,7 +123,7 @@ where
 impl<T, N, A> ParseStack<T, N, A>
 where
     T: Copy + Ord + Debug + Display,
-    A: From<lexan::Token<T>> + From<SpecificationError<T>>,
+    A: From<lexan::Token<T>> + From<Error<T>>,
 {
     fn new() -> Self {
         Self {
@@ -150,7 +149,7 @@ where
         self.attributes.split_off(len - n)
     }
 
-    fn push_error(&mut self, state: u32, error: SpecificationError<T>) {
+    fn push_error(&mut self, state: u32, error: Error<T>) {
         self.states.push((Symbol::Error, state));
         self.attributes.push(A::from(error))
     }
@@ -209,7 +208,7 @@ pub trait Parser<T: Ord + Copy + Debug, N, A>
 where
     T: Ord + Copy + Debug + Display,
     N: Ord + Display + Debug,
-    A: Default + From<lexan::Token<T>> + From<SpecificationError<T>>,
+    A: Default + From<lexan::Token<T>> + From<Error<T>>,
     Self: ReportError<T>,
 {
     fn lexical_analyzer(&self) -> &lexan::LexicalAnalyzer<T>;
@@ -238,7 +237,7 @@ where
     fn look_ahead_set(state: u32) -> OrderedSet<T>;
 
     fn recover_from_error(
-        error: SpecificationError<T>,
+        error: Error<T>,
         parse_stack: &mut ParseStack<T, N, A>,
         tokens: &mut TokenStream<T>,
     ) -> bool {
@@ -254,16 +253,16 @@ where
         }
     }
 
-    fn parse_text(&mut self, text: &str, label: &str) -> Result<(), SpecificationError<T>> {
+    fn parse_text(&mut self, text: &str, label: &str) -> Result<(), Error<T>> {
         let mut tokens = self.lexical_analyzer().token_stream(text, label);
         let mut parse_stack = ParseStack::<T, N, A>::new();
-        let mut result: Result<(), SpecificationError<T>> = Ok(());
+        let mut result: Result<(), Error<T>> = Ok(());
 
         loop {
             match tokens.front() {
                 Err(err) => {
                     let expected_tokens = Self::look_ahead_set(parse_stack.current_state());
-                    let error = SpecificationError::LexicalError(err, expected_tokens);
+                    let error = Error::LexicalError(err, expected_tokens);
                     self.report_error(&error);
                     result = Err(error.clone());
                     if !Self::recover_from_error(error, &mut parse_stack, &mut tokens) {
@@ -286,7 +285,7 @@ where
                     }
                     Action::SyntaxError => {
                         let expected_tokens = Self::look_ahead_set(parse_stack.current_state());
-                        let error = SpecificationError::SyntaxError(token.clone(), expected_tokens);
+                        let error = Error::SyntaxError(token.clone(), expected_tokens);
                         self.report_error(&error);
                         result = Err(error.clone());
                         if !Self::recover_from_error(error, &mut parse_stack, &mut tokens) {

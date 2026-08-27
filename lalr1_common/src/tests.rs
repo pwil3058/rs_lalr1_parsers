@@ -14,7 +14,7 @@ use lalr1::ParseStack;
 #[derive(Debug, Clone)]
 pub enum AttributeData {
     Token(lexan::Token<AATerminal>),
-    Error(lalr1::SpecificationError<AATerminal>),
+    Error(lalr1::Error<AATerminal>),
     Value(f64),
     Id(String),
     Default,
@@ -58,8 +58,8 @@ impl From<lexan::Token<AATerminal>> for AttributeData {
     }
 }
 
-impl From<lalr1::SpecificationError<AATerminal>> for AttributeData {
-    fn from(error: lalr1::SpecificationError<AATerminal>) -> Self {
+impl From<lalr1::Error<AATerminal>> for AttributeData {
+    fn from(error: lalr1::Error<AATerminal>) -> Self {
         AttributeData::Error(error)
     }
 }
