@@ -10,6 +10,9 @@ use std::{fs::File, io::Read, str::FromStr};
 use crate::{
     attributes::*,
     grammar::Specification,
+};
+
+use lalr1_common::{
     production::ProductionTail,
     symbol::Associativity,
     symbol::tag::TagOrToken,

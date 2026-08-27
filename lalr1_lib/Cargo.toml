@@ -14,3 +14,4 @@ thiserror = "2.0.20"
 
 lexan = { path = "../lexan" }
 lalr1 = { path = "../lalr1" }
+lalr1_common = { path = "../lalr1_common" }

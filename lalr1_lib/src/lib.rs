@@ -8,9 +8,6 @@ mod bootstrap;
 mod parser;
 
 mod attributes;
-mod production;
-mod state;
-mod symbol;
 
 use std::io;
 use std::path::Path;
@@ -27,7 +24,7 @@ pub enum Error {
     #[error("Specification error {0}")]
     SpecificationError(#[from] lalr1::SpecificationError<AATerminal>),
     #[error("Grammar error {0}")]
-    GrammarError(#[from] lalr1::GrammarError),
+    GrammarError(#[from] lalr1_common::GrammarError),
     #[error("I/O error {0}")]
     IoError(#[from] io::Error),
 }

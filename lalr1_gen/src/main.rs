@@ -10,6 +10,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
+use lalr1_common::GrammarError;
 use lalr1_lib::grammar;
 
 fn with_changed_extension(path: &Path, new_extension: &str) -> PathBuf {
@@ -91,21 +92,21 @@ fn main() {
     )) {
         Ok(grammar) => grammar,
         Err(err) => match err {
-            lalr1::GrammarError::TooManyErrors(count) => {
+            GrammarError::TooManyErrors(count) => {
                 eprintln!("Too many errors: {count:?}.");
                 std::process::exit(4);
             }
-            lalr1::GrammarError::UndefinedSymbols(count) => {
+            GrammarError::UndefinedSymbols(count) => {
                 eprintln!("Undefined symbols: {count:?}.");
                 std::process::exit(4);
             }
-            lalr1::GrammarError::UnexpectedSRConflicts(count, expected, report) => {
+            GrammarError::UnexpectedSRConflicts(count, expected, report) => {
                 eprintln!(
                     "{report}\nUnexpected shift/reduce conflicts: {count} expected: {expected}."
                 );
                 std::process::exit(4);
             }
-            lalr1::GrammarError::UnexpectedRRConflicts(count, expected, report) => {
+            GrammarError::UnexpectedRRConflicts(count, expected, report) => {
                 eprintln!(
                     "{report}\nUnexpected reduce/reduce conflicts: {count} expected: {expected}."
                 );

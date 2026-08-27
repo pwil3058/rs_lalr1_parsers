@@ -5,10 +5,10 @@ use crate::bootstrap::AATerminal;
 #[cfg(not(feature = "bootstrap"))]
 use crate::parser::AATerminal;
 
-use crate::production::ProductionTail;
-use crate::symbol::non_terminal::NonTerminal;
-use crate::symbol::tag::TagOrToken;
-use crate::symbol::{Associativity, Symbol};
+use lalr1_common::production::ProductionTail;
+use lalr1_common::symbol::non_terminal::NonTerminal;
+use lalr1_common::symbol::tag::TagOrToken;
+use lalr1_common::symbol::{Associativity, Symbol};
 
 use lalr1::OrderedSet;
 

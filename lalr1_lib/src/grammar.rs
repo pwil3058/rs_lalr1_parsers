@@ -5,10 +5,9 @@ use crate::bootstrap::AATerminal;
 #[cfg(not(feature = "bootstrap"))]
 use crate::parser::AATerminal;
 
-use crate::production::{Production, ProductionTail, Productions};
-use crate::state::ParserStates;
-use crate::symbol::SymbolTable;
-use crate::symbol::non_terminal::NonTerminal;
+use lalr1_common::production::{Production, ProductionTail, Productions};
+use lalr1_common::state::ParserStates;
+use lalr1_common::symbol::{SymbolTable, non_terminal::NonTerminal};
 
 use lalr1::Parser;
 
@@ -107,7 +106,7 @@ pub struct Grammar {
 }
 
 impl TryFrom<(Specification, bool, bool)> for Grammar {
-    type Error = lalr1::GrammarError;
+    type Error = lalr1_common::GrammarError;
 
     fn try_from(arg: (Specification, bool, bool)) -> Result<Self, Self::Error> {
         let specification = arg.0;
