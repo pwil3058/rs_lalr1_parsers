@@ -7,8 +7,6 @@ mod bootstrap;
 #[cfg(not(feature = "bootstrap"))]
 mod parser;
 
-mod attributes;
-
 use std::io;
 use std::path::Path;
 
