@@ -125,3 +125,50 @@ Symbol: Ident
         !}
     .
 ```
+### Preamble
+The preamble consists of arbitrary **Rust** code between a **%{**  **%}** pair which is copied verbatim
+into the start of the generated file.
+### Attribute Type (%attr)
+The attribute type statement
+```
+%attr Ident
+```
+specifies the **Rust** type that is to be used within **action code** to represent the attributes held the
+components of the **production** with which the **action code** is associated.
+### Target Type (%target)
+The target type statement
+```
+%target Ident
+```
+specifies the **Rust** type for which the `Parser` trait is to be implemented.
+The complexity of this type can vary greatly depending on the needs of the parser being generated.
+For example, the target type used to build the parser in this package
+```
+#[derive(Debug, Default)]
+pub struct Specification {
+    pub symbol_table: SymbolTable,
+    productions: Productions,
+    preamble: String,
+    pub attribute_type: String,
+    pub target_type: String,
+    pub error_count: u32,
+    pub warning_count: u32,
+    pub expected_rr_conflicts: u32,
+    pub expected_sr_conflicts: u32,
+}
+
+```
+is of medium complexity and one for use building a parser for a programming language compiler would
+need to be more complex.
+On the other hand, one for a simple arithmetical expression parser
+```
+pub struct Calc {
+    errors: u32,
+    variables: HashMap<String, f64>,
+}
+
+```
+could be vary simple.
+The purpose of this type is to hold the data extracted from the input text in a form amenable to further
+processing.
+As an aside, it takes 2574 lines of **Rust** code to implement the `Parser` trait from the data held in a `Specification`.
