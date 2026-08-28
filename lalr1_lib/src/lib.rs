@@ -8,6 +8,7 @@ mod bootstrap;
 mod parser;
 
 use std::io;
+use std::io::Write;
 use std::path::Path;
 
 use thiserror::Error;
@@ -37,6 +38,10 @@ impl ParserGenerator {
         let specification = grammar::Specification::new(&text, &path.to_string_lossy())?;
         let grammar = grammar::Grammar::try_from((specification, false, false))?;
         Ok(Self(grammar))
+    }
+
+    pub fn write_parser_code<W: Write>(&self, wtr: &mut W) -> io::Result<()> {
+        self.0.write_parser_code(wtr)
     }
 
     pub fn write_parser_code_to_file(&self, output_path: impl AsRef<Path>) -> io::Result<()> {
