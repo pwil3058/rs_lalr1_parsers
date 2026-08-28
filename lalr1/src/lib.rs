@@ -89,18 +89,6 @@ pub trait ReportError<T: Ord + Copy + Debug + Display + Eq> {
     }
 }
 
-#[derive(Debug, Error)]
-pub enum GrammarError {
-    #[error("Too many errors: {0}")]
-    TooManyErrors(u32),
-    #[error("{0} undefined symbols")]
-    UndefinedSymbols(u32),
-    #[error("Unexpected Shift/Reduce conflicts: {0} {1} {2}")]
-    UnexpectedSRConflicts(u32, u32, String),
-    #[error("Unexpected Reduce/Reduce conflicts: {0} {1} {2}")]
-    UnexpectedRRConflicts(u32, u32, String),
-}
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Symbol<T, N> {
     Terminal(T),
