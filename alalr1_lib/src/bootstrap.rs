@@ -305,7 +305,7 @@ lazy_static::lazy_static! {
                 r###"(\s+)"###,
             ],
             AAEnd,
-        )
+        ).expect("Failed initialize lexical analyzer")
     };
 }
 

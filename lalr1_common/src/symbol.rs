@@ -475,7 +475,7 @@ impl SymbolTable {
         }
         wtr.write_all(b"            ],\n")?;
         wtr.write_fmt(format_args!("            {},\n", Token::End.name()))?;
-        wtr.write_all(b"        )\n")?;
+        wtr.write_all(b"        ).expect(\"Failed to initialize lexical analyser\")\n")?;
         wtr.write_all(b"    };\n")?;
         wtr.write_all(b"}\n\n")?;
         Ok(())

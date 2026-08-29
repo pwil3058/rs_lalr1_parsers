@@ -294,7 +294,7 @@ lazy_static::lazy_static! {
                 r###"(\s+)"###,
             ],
             AAEnd,
-        )
+        ).expect("Failed to build AALexan")
     };
 }
 
@@ -576,8 +576,8 @@ impl lalr1::Parser<AATerminal, AANonTerminal, AttributeData> for Specification {
         aa_parse_stack: &lalr1::ParseStack<AATerminal, AANonTerminal, AttributeData>,
         aa_token: &lexan::Token<AATerminal>,
     ) -> lalr1::Action {
-        use lalr1::Action;
         use AATerminal::*;
+        use lalr1::Action;
         let aa_tag = *aa_token.tag();
         let aa_state = aa_parse_stack.current_state();
         match aa_state {

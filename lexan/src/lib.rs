@@ -27,15 +27,17 @@ where
     pub fn new<'a>(
         literal_lexemes: &[(T, &'a str)],
         regex_lexemes: &[(T, &'a str)],
-        skip_regex_strs: &[&'a str],
+        skip_regexes: &[&'a str],
         end_marker: T,
-    ) -> Self {
-        let lexicon =
-            match Lexicon::new(literal_lexemes, regex_lexemes, skip_regex_strs, end_marker) {
-                Ok(lexicon) => Arc::new(lexicon),
-                Err(err) => panic!("Fatal Error: {err:?}"),
-            };
-        Self { lexicon }
+    ) -> Result<Self, error::LexanError<'a, T>> {
+        Ok(Self {
+            lexicon: Arc::new(Lexicon::new(
+                literal_lexemes,
+                regex_lexemes,
+                skip_regexes,
+                end_marker,
+            )?),
+        })
     }
 
     pub fn token_stream(&self, text: &str, label: &str) -> TokenStream<T> {
@@ -96,7 +98,8 @@ mod tests {
             ],
             &[r"(/\*(.|[\n\r])*?\*/)", r"(//[^\n\r]*)", r"(\s+)"],
             End,
-        );
+        )
+        .unwrap();
 
         let mut token_stream = lexan.token_stream(
             "if iffy\n \"quoted\" \"if\" \n9 $ \tname &{ one \n two &} and so ?{on?}",

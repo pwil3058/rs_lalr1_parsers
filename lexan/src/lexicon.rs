@@ -1,3 +1,5 @@
+// Copyright (c) 2026 Peter Williams <pwil3058@bigpond.net.au> <pwil3058@gmail.com>.
+
 pub use std::fmt::{Debug, Display};
 
 use crate::error::LexanError;
@@ -21,7 +23,7 @@ where
     pub fn new<'a>(
         literal_lexemes: &[(T, &'a str)],
         regex_lexemes: &[(T, &'a str)],
-        skip_regex_strs: &[&'a str],
+        skip_regexes: &[&'a str],
         end_marker: T,
     ) -> Result<Self, LexanError<'a, T>> {
         let mut tags = vec![end_marker];
@@ -36,7 +38,7 @@ where
                 Err(index) => patterns.insert(index, pattern),
             }
         }
-        for regex in skip_regex_strs.iter() {
+        for regex in skip_regexes.iter() {
             match patterns.binary_search(regex) {
                 Ok(_) => return Err(LexanError::DuplicatePattern(regex)),
                 Err(index) => patterns.insert(index, regex),
@@ -44,7 +46,7 @@ where
         }
         let literal_matcher = LiteralMatcher::new(literal_lexemes)?;
         let regex_matcher = RegexMatcher::new(regex_lexemes)?;
-        let skip_matcher = SkipMatcher::new(skip_regex_strs)?;
+        let skip_matcher = SkipMatcher::new(skip_regexes)?;
         Ok(Self {
             literal_matcher,
             regex_matcher,
