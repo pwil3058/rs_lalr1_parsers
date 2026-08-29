@@ -2,8 +2,7 @@
 
 pub use std::fmt::{Debug, Display};
 
-use crate::error::LexanError;
-use crate::matcher::{LiteralMatcher, RegexMatcher, SkipMatcher};
+use crate::matcher::{Error, LiteralMatcher, RegexMatcher, SkipMatcher};
 
 #[derive(Default)]
 pub struct Lexicon<T>
@@ -25,22 +24,22 @@ where
         regex_lexemes: &[(T, &'a str)],
         skip_regexes: &[&'a str],
         end_marker: T,
-    ) -> Result<Self, LexanError<'a, T>> {
+    ) -> Result<Self, Error<T>> {
         let mut tags = vec![end_marker];
         let mut patterns = vec![];
         for (tag, pattern) in literal_lexemes.iter().chain(regex_lexemes.iter()) {
             match tags.binary_search(tag) {
-                Ok(_) => return Err(LexanError::DuplicateHandle(*tag)),
+                Ok(_) => return Err(Error::DuplicateHandle(*tag)),
                 Err(index) => tags.insert(index, *tag),
             }
             match patterns.binary_search(pattern) {
-                Ok(_) => return Err(LexanError::DuplicatePattern(pattern)),
+                Ok(_) => return Err(Error::DuplicatePattern(pattern.to_string())),
                 Err(index) => patterns.insert(index, pattern),
             }
         }
         for regex in skip_regexes.iter() {
             match patterns.binary_search(regex) {
-                Ok(_) => return Err(LexanError::DuplicatePattern(regex)),
+                Ok(_) => return Err(Error::DuplicatePattern(regex.to_string())),
                 Err(index) => patterns.insert(index, regex),
             }
         }
@@ -166,7 +165,7 @@ mod tests {
             End,
         );
         if let Err(err) = lexicon {
-            assert_eq!(err, LexanError::DuplicateHandle(If));
+            assert_eq!(err, Error::DuplicateHandle(If));
         } else {
             assert!(false)
         }
@@ -186,7 +185,7 @@ mod tests {
             End,
         );
         if let Err(err) = lexicon {
-            assert_eq!(err, LexanError::DuplicateHandle(Action));
+            assert_eq!(err, Error::DuplicateHandle(Action));
         } else {
             assert!(false)
         }
@@ -206,7 +205,7 @@ mod tests {
             End,
         );
         if let Err(err) = lexicon {
-            assert_eq!(err, LexanError::DuplicateHandle(When));
+            assert_eq!(err, Error::DuplicateHandle(When));
         } else {
             assert!(false)
         }
@@ -226,7 +225,7 @@ mod tests {
             Action,
         );
         if let Err(err) = lexicon {
-            assert_eq!(err, LexanError::DuplicateHandle(Action));
+            assert_eq!(err, Error::DuplicateHandle(Action));
         } else {
             assert!(false)
         }
@@ -246,7 +245,7 @@ mod tests {
             End,
         );
         if let Err(err) = lexicon {
-            assert_eq!(err, LexanError::DuplicatePattern("if"));
+            assert_eq!(err, Error::DuplicatePattern("if".to_string()));
         } else {
             assert!(false)
         }
@@ -266,7 +265,7 @@ mod tests {
             End,
         );
         if let Err(err) = lexicon {
-            assert_eq!(err, LexanError::DuplicatePattern("when"));
+            assert_eq!(err, Error::DuplicatePattern("when".to_string()));
         } else {
             assert!(false)
         }
@@ -286,7 +285,7 @@ mod tests {
             End,
         );
         if let Err(err) = lexicon {
-            assert_eq!(err, LexanError::DuplicatePattern("(\"\\S+\")"));
+            assert_eq!(err, Error::DuplicatePattern("(\"\\S+\")".to_string()));
         } else {
             assert!(false)
         }
@@ -306,7 +305,7 @@ mod tests {
             End,
         );
         if let Err(err) = lexicon {
-            assert_eq!(err, LexanError::DuplicatePattern("(\"\\S+\")"));
+            assert_eq!(err, Error::DuplicatePattern("(\"\\S+\")".to_string()));
         } else {
             assert!(false)
         }

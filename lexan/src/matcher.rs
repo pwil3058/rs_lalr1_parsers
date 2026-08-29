@@ -5,7 +5,19 @@ use std::cmp::Ordering;
 use std::fmt::Display;
 use std::{cmp::Eq, collections::HashMap, fmt::Debug};
 
-use crate::error::LexanError;
+use thiserror::Error;
+
+#[derive(Debug, PartialEq, Error)]
+pub enum Error<T: Display + Copy + Debug + Eq> {
+    #[error("{0}: duplicate handle.")]
+    DuplicateHandle(T),
+    #[error("{0}: duplicate regex pattern")]
+    DuplicatePattern(String),
+    #[error("{0}: empty regex pattern")]
+    EmptyPattern(Option<T>),
+    #[error("{0}: illegal token")]
+    RegexError(#[from] regex::Error),
+}
 
 #[derive(Debug, Default)]
 struct LiteralMatcherNode<T: PartialEq + Debug + Copy> {
@@ -14,7 +26,7 @@ struct LiteralMatcherNode<T: PartialEq + Debug + Copy> {
     tails: HashMap<u8, LiteralMatcherNode<T>>,
 }
 
-impl<T: PartialEq + Debug + Copy + Display> LiteralMatcherNode<T> {
+impl<T: PartialEq + Debug + Copy + Display + Eq> LiteralMatcherNode<T> {
     fn new(tag: T, string: &str, s_index: usize) -> LiteralMatcherNode<T> {
         debug_assert!(!string.is_empty());
         let mut t = HashMap::<u8, LiteralMatcherNode<T>>::new();
@@ -35,16 +47,11 @@ impl<T: PartialEq + Debug + Copy + Display> LiteralMatcherNode<T> {
         }
     }
 
-    fn add<'a>(
-        &mut self,
-        tag: T,
-        string: &'a str,
-        s_index: usize,
-    ) -> Result<(), LexanError<'a, T>> {
+    fn add(&mut self, tag: T, string: &str, s_index: usize) -> Result<(), Error<T>> {
         debug_assert!(!string.is_empty());
         if string.len() == s_index {
             if self.tag.is_some() {
-                return Err(LexanError::DuplicatePattern(string));
+                return Err(Error::DuplicatePattern(string.to_string()));
             }
             self.tag = Some(tag);
             self.length = string.len();
@@ -69,12 +76,12 @@ pub(crate) struct LiteralMatcher<T: PartialEq + Debug + Copy> {
 }
 
 impl<T: Eq + Debug + Copy + Ord + Display> LiteralMatcher<T> {
-    pub fn new<'a>(lexemes: &[(T, &'a str)]) -> Result<LiteralMatcher<T>, LexanError<'a, T>> {
+    pub fn new(lexemes: &[(T, &str)]) -> Result<LiteralMatcher<T>, Error<T>> {
         let mut lexes = HashMap::<u8, LiteralMatcherNode<T>>::new();
         for &(tag, pattern) in lexemes.iter() {
             // make sure that tags are unique and strings are not empty
             if pattern.is_empty() {
-                return Err(LexanError::EmptyPattern(Some(tag)));
+                return Err(Error::EmptyPattern(Some(tag)));
             }
 
             let key = pattern.as_bytes()[0];
@@ -127,11 +134,11 @@ pub(crate) struct RegexMatcher<T: Copy + Debug> {
 }
 
 impl<T: Copy + Ord + Debug + Display> RegexMatcher<T> {
-    pub fn new<'a>(lexeme_patterns: &[(T, &'a str)]) -> Result<RegexMatcher<T>, LexanError<'a, T>> {
+    pub fn new(lexeme_patterns: &[(T, &str)]) -> Result<RegexMatcher<T>, Error<T>> {
         let mut lexemes = vec![];
         for (tag, pattern) in lexeme_patterns.iter() {
             if pattern.is_empty() {
-                return Err(LexanError::EmptyPattern(Some(*tag)));
+                return Err(Error::EmptyPattern(Some(*tag)));
             };
             let mut anchored_pattern = "\\A".to_string();
             anchored_pattern.push_str(pattern);
@@ -176,11 +183,11 @@ pub(crate) struct SkipMatcher {
 }
 
 impl SkipMatcher {
-    pub fn new<'a, T: Display>(regex_strs: &[&'a str]) -> Result<Self, LexanError<'a, T>> {
+    pub fn new<T: Display + Copy + Eq + Debug>(regex_strs: &[&str]) -> Result<Self, Error<T>> {
         let mut regexes = vec![];
         for regex_str in regex_strs.iter() {
             if regex_str.is_empty() {
-                return Err(LexanError::EmptyPattern(None));
+                return Err(Error::EmptyPattern(None));
             };
             let mut anchored_pattern = "\\A".to_string();
             anchored_pattern.push_str(regex_str);

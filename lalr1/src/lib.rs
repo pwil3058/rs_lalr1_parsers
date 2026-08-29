@@ -69,7 +69,7 @@ impl<T: Display + Ord + Clone> Display for OrderedSet<T> {
     }
 }
 
-#[derive(Debug, Clone, Error)]
+#[derive(Debug, Error)]
 pub enum Error<T: Ord + Clone + Copy + Debug + Display + Eq> {
     #[error("Lexical error: {0} expected {1}.")]
     LexicalError(lexan::Error<T>, OrderedSet<T>),
@@ -80,7 +80,8 @@ pub enum Error<T: Ord + Clone + Copy + Debug + Display + Eq> {
 pub trait ReportError<T: Ord + Copy + Debug + Display + Eq> {
     fn report_error(&mut self, error: &Error<T>) {
         let message = error.to_string();
-        if let Error::LexicalError(lexan::Error::AmbiguousMatches(_, _, _), _) = error {
+        if let Error::LexicalError(lexan::Error::MatcherError(AmbiguousMatches(_, _, _), _)) = error
+        {
             panic!("Fatal Error: {message}!!");
         };
         std::io::stderr()

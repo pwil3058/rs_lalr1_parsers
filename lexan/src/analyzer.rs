@@ -78,7 +78,7 @@ impl<T: Display + Copy> Display for List<T> {
 }
 
 #[derive(Clone, Debug, PartialEq, Error)]
-pub enum Error<T: Display + Copy> {
+pub enum Error<T: Display + Copy + Debug + Eq> {
     #[error("Unexpected text {0} at  {1}")]
     UnexpectedText(String, Location),
     #[error("Unexpected text [{0}] {1} at  {2}")]
@@ -87,7 +87,7 @@ pub enum Error<T: Display + Copy> {
     AdvancedWhenEmpty(Location),
 }
 
-impl<T: Display + Copy> Error<T> {
+impl<T: Display + Copy + Eq + Debug> Error<T> {
     pub fn is_unexpected_text(&self) -> bool {
         matches!(self, Error::UnexpectedText(_, _))
     }
