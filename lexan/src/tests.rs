@@ -1,5 +1,5 @@
 // Copyright (c) 2026 Peter Williams <pwil3058@bigpond.net.au> <pwil3058@gmail.com>.
-use crate::analyzer::Error;
+use crate::token_stream::Error;
 
 #[derive(PartialEq, Eq, Clone, Copy, Hash, PartialOrd, Ord, Debug)]
 enum Handle {

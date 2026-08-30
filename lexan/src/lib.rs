@@ -3,22 +3,13 @@
 use std::fmt::{Debug, Display};
 use std::sync::Arc;
 
-use thiserror::Error;
-
-mod analyzer;
-mod lexicon;
 mod matcher;
 
-pub use analyzer::{Location, Token, TokenStream};
-use lexicon::Lexicon;
+pub mod lexicon;
+pub mod token_stream;
 
-#[derive(Error, Debug, PartialEq)]
-pub enum Error<T: Display + Copy + Debug + Eq> {
-    #[error(transparent)]
-    MatcherError(#[from] matcher::Error<T>),
-    #[error(transparent)]
-    AnalyzerError(#[from] analyzer::Error<T>),
-}
+pub use lexicon::Lexicon;
+pub use token_stream::{Location, Token, TokenStream};
 
 pub struct LexicalAnalyzer<T>
 where
@@ -36,7 +27,7 @@ where
         regex_lexemes: &[(T, &str)],
         skip_regexes: &[&str],
         end_marker: T,
-    ) -> Result<Self, Error<T>> {
+    ) -> Result<Self, lexicon::Error<T>> {
         Ok(Self {
             lexicon: Arc::new(Lexicon::new(
                 literal_lexemes,

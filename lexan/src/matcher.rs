@@ -5,19 +5,7 @@ use std::cmp::Ordering;
 use std::fmt::Display;
 use std::{cmp::Eq, collections::HashMap, fmt::Debug};
 
-use thiserror::Error;
-
-#[derive(Debug, PartialEq, Error)]
-pub enum Error<T: Display + Copy + Debug + Eq> {
-    #[error("{0}: duplicate handle.")]
-    DuplicateHandle(T),
-    #[error("{0}: duplicate regex pattern")]
-    DuplicatePattern(String),
-    #[error("{0}: empty regex pattern")]
-    EmptyPattern(Option<T>),
-    #[error("{0}: illegal token")]
-    RegexError(#[from] regex::Error),
-}
+use crate::lexicon::Error;
 
 #[derive(Debug, Default)]
 struct LiteralMatcherNode<T: PartialEq + Debug + Copy> {

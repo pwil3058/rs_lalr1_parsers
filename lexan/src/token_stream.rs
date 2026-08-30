@@ -370,7 +370,6 @@ mod tests {
             front: None,
         };
         token_stream.incr_index_and_location(11);
-        println!("{:?}", token_stream.location);
         assert_eq!(token_stream.index, 11);
         assert_eq!(token_stream.location.line_number, 2);
         assert_eq!(token_stream.location.offset, 5);

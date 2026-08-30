@@ -172,6 +172,7 @@ lazy_static! {
             &[r###"([\t\r ]+)"###],
             AAEnd,
         )
+        .expect("AALexan: lexical error")
     };
 }
 

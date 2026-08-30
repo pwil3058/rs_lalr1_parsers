@@ -2,7 +2,21 @@
 
 pub use std::fmt::{Debug, Display};
 
-use crate::matcher::{Error, LiteralMatcher, RegexMatcher, SkipMatcher};
+use crate::matcher::{LiteralMatcher, RegexMatcher, SkipMatcher};
+
+use thiserror::Error;
+
+#[derive(Debug, PartialEq, Error, Clone)]
+pub enum Error<T: Display + Copy + Debug + Eq> {
+    #[error("{0}: duplicate handle.")]
+    DuplicateHandle(T),
+    #[error("{0}: duplicate literal or regex pattern")]
+    DuplicatePattern(String),
+    #[error("{0:?}: empty literal or regex pattern")]
+    EmptyPattern(Option<T>),
+    #[error("{0}: invalid regex pattern")]
+    RegexError(#[from] regex::Error),
+}
 
 #[derive(Default)]
 pub struct Lexicon<T>
@@ -19,10 +33,10 @@ impl<T> Lexicon<T>
 where
     T: Copy + Eq + Debug + Display + Ord,
 {
-    pub fn new<'a>(
-        literal_lexemes: &[(T, &'a str)],
-        regex_lexemes: &[(T, &'a str)],
-        skip_regexes: &[&'a str],
+    pub fn new(
+        literal_lexemes: &[(T, &str)],
+        regex_lexemes: &[(T, &str)],
+        skip_regexes: &[&str],
         end_marker: T,
     ) -> Result<Self, Error<T>> {
         let mut tags = vec![end_marker];
