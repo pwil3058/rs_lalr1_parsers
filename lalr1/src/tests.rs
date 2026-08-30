@@ -171,6 +171,7 @@ lazy_static! {
             &[r###"([\t\r ]+)"###],
             AAEnd,
         )
+        .expect("failed to create LexicalAnalyzer")
     };
 }
 
