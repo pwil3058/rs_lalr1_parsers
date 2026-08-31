@@ -190,11 +190,6 @@ impl Grammar {
         let text =
             format!("impl lalr1::Parser<AATerminal, AANonTerminal, {attr}> for {parser} {{\n");
         wtr.write_all(text.as_bytes())?;
-        wtr.write_all(
-            b"    fn lexical_analyzer(&self) -> &lexan::LexicalAnalyzer<AATerminal> {\n",
-        )?;
-        wtr.write_all(b"        &AALEXAN\n")?;
-        wtr.write_all(b"    }\n\n")?;
         self.specification
             .symbol_table
             .write_token_stream_code(wtr)?;

@@ -423,7 +423,6 @@ impl SymbolTable {
         wtr.write_all(b"        }\n")?;
         wtr.write_all(b"    }\n")?;
         wtr.write_all(b"}\n\n")?;
-        self.write_lexical_analyzer_code(wtr)?;
         wtr.write_all(b"#[derive(Debug, Clone, Copy, PartialOrd, Ord, PartialEq, Eq)]\n")?;
         wtr.write_all(b"pub enum AANonTerminal {\n")?;
         for non_terminal in special_non_terminals.iter().chain(self.non_terminals()) {
@@ -440,44 +439,6 @@ impl SymbolTable {
         }
         wtr.write_all(b"        }\n")?;
         wtr.write_all(b"    }\n")?;
-        wtr.write_all(b"}\n\n")?;
-        Ok(())
-    }
-
-    pub fn write_lexical_analyzer_code<W: Write>(&self, wtr: &mut W) -> io::Result<()> {
-        wtr.write_all(b"lazy_static::lazy_static! {\n")?;
-        wtr.write_all(b"    static ref AALEXAN: lexan::LexicalAnalyzer<AATerminal> = {\n")?;
-        wtr.write_all(b"        use AATerminal::*;\n")?;
-        wtr.write_all(b"        lexan::LexicalAnalyzer::new(\n")?;
-        wtr.write_all(b"            &[\n")?;
-        for token in self.literal_tokens() {
-            wtr.write_all(b"                ")?;
-            wtr.write_fmt(format_args!(
-                "({}, r###{}###),\n",
-                token.name(),
-                token.text()
-            ))?;
-        }
-        wtr.write_all(b"            ],\n")?;
-        wtr.write_all(b"            &[\n")?;
-        for token in self.regex_tokens() {
-            wtr.write_all(b"                ")?;
-            wtr.write_fmt(format_args!(
-                "({}, r###\"{}\"###),\n",
-                token.name(),
-                token.text()
-            ))?;
-        }
-        wtr.write_all(b"            ],\n")?;
-        wtr.write_all(b"            &[\n")?;
-        for skip_rule in self.skip_rules() {
-            wtr.write_all(b"                ")?;
-            wtr.write_fmt(format_args!("r###\"{skip_rule}\"###,\n"))?;
-        }
-        wtr.write_all(b"            ],\n")?;
-        wtr.write_fmt(format_args!("            {},\n", Token::End.name()))?;
-        wtr.write_all(b"        ).expect(\"Failed to initialize lexical analyser\")\n")?;
-        wtr.write_all(b"    };\n")?;
         wtr.write_all(b"}\n\n")?;
         Ok(())
     }

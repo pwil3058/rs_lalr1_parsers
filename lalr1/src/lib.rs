@@ -202,10 +202,7 @@ where
     A: Default + From<lexan::Token<T>> + From<Error<T>>,
     Self: ReportError<T>,
 {
-    fn lexical_analyzer(&self) -> &lexan::LexicalAnalyzer<T>;
-    fn token_stream(&self, text: &str, label: &str) -> Result<TokenStream<T>, Error<T>> {
-        Ok(self.lexical_analyzer().token_stream(text, label))
-    }
+    fn token_stream(&self, text: &str, label: &str) -> Result<TokenStream<T>, Error<T>>;
     fn next_action(&self, parse_stack: &ParseStack<T, N, A>, o_token: &lexan::Token<T>) -> Action;
     fn production_data(production_id: u32) -> (N, usize);
     fn goto_state(lhs: &N, current_state: u32) -> u32;

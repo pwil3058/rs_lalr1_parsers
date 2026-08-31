@@ -269,46 +269,6 @@ impl std::fmt::Display for AATerminal {
     }
 }
 
-lazy_static::lazy_static! {
-    static ref AALEXAN: lexan::LexicalAnalyzer<AATerminal> = {
-        use AATerminal::*;
-        lexan::LexicalAnalyzer::new(
-            &[
-                (NewSection, r###"%%"###),
-                (Attr, r###"%attr"###),
-                (Error, r###"%error"###),
-                (Inject, r###"%inject"###),
-                (Left, r###"%left"###),
-                (NonAssoc, r###"%nonassoc"###),
-                (Precedence, r###"%prec"###),
-                (ReduceReduce, r###"%reduce_reduce"###),
-                (Right, r###"%right"###),
-                (ShiftReduce, r###"%shift_reduce"###),
-                (Skip, r###"%skip"###),
-                (Target, r###"%target"###),
-                (Token, r###"%token"###),
-                (Dot, r###"."###),
-                (Colon, r###":"###),
-                (VerticalBar, r###"|"###),
-            ],
-            &[
-                (ActionCode, r###"(!\{(.|[\n\r])*?!\})"###),
-                (Literal, r###"("(\\"|[^"\t\r\n\v\f])*")"###),
-                (RustCode, r###"(%\{(.|[\n\r])*?%\})"###),
-                (NumberExpr, r###"([0-9]+)"###),
-                (Ident, r###"([a-zA-Z]+[a-zA-Z0-9_]*)"###),
-                (RegEx, r###"(\(.+\))"###),
-            ],
-            &[
-                r###"(/\*(.|[\n\r])*?\*/)"###,
-                r###"(//[^\n\r]*)"###,
-                r###"(\s+)"###,
-            ],
-            AAEnd,
-        ).expect("Failed to initialize lexical analyser")
-    };
-}
-
 #[derive(Debug, Clone, Copy, PartialOrd, Ord, PartialEq, Eq)]
 pub enum AANonTerminal {
     AAStart,
@@ -387,10 +347,6 @@ impl std::fmt::Display for AANonTerminal {
 }
 
 impl lalr1::Parser<AATerminal, AANonTerminal, AttributeData> for Specification {
-    fn lexical_analyzer(&self) -> &lexan::LexicalAnalyzer<AATerminal> {
-        &AALEXAN
-    }
-
     fn token_stream(
         &self,
         text: &str,

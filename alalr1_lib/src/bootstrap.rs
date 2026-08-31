@@ -400,10 +400,6 @@ impl std::fmt::Display for AANonTerminal {
 }
 
 impl lalr1::Parser<AATerminal, AANonTerminal, AttributeData> for Specification {
-    fn lexical_analyzer(&self) -> &lexan::LexicalAnalyzer<AATerminal> {
-        &AALEXAN
-    }
-
     fn token_stream(
         &self,
         text: &str,
