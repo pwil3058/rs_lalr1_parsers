@@ -199,7 +199,10 @@ impl From<lalr1::Error<AATerminal>> for AttributeData {
         }
     }
 }
-use lalr1::OrderedSet;
+
+use lexan::TokenStream;
+
+use lalr1::{Error, OrderedSet};
 
 macro_rules! ordered_set {
     () => { OrderedSet::new() };
