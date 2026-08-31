@@ -195,6 +195,9 @@ impl Grammar {
         )?;
         wtr.write_all(b"        &AALEXAN\n")?;
         wtr.write_all(b"    }\n\n")?;
+        self.specification
+            .symbol_table
+            .write_token_stream_code(wtr)?;
         self.parser_states
             .write_error_recovery_code(wtr, &self.specification.symbol_table)?;
         self.parser_states.write_look_ahead_set_code(wtr)?;

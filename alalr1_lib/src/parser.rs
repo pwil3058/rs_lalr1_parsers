@@ -402,6 +402,50 @@ impl lalr1::Parser<AATerminal, AANonTerminal, AttributeData> for Specification {
         &AALEXAN
     }
 
+    fn token_stream(
+        &self,
+        text: &str,
+        label: &str,
+    ) -> Result<TokenStream<AATerminal>, Error<AATerminal>> {
+        use AATerminal::*;
+        let lexical_analyser = lexan::LexicalAnalyzer::new(
+            &[
+                (NewSection, r###"%%"###),
+                (Attr, r###"%attr"###),
+                (Error, r###"%error"###),
+                (Inject, r###"%inject"###),
+                (Left, r###"%left"###),
+                (NonAssoc, r###"%nonassoc"###),
+                (Precedence, r###"%prec"###),
+                (ReduceReduce, r###"%reduce_reduce"###),
+                (Right, r###"%right"###),
+                (ShiftReduce, r###"%shift_reduce"###),
+                (Skip, r###"%skip"###),
+                (Target, r###"%target"###),
+                (Token, r###"%token"###),
+                (Dot, r###"."###),
+                (Colon, r###":"###),
+                (VerticalBar, r###"|"###),
+            ],
+            &[
+                (ActionCode, r###"(!\{(.|[\n\r])*?!\})"###),
+                (Literal, r###"("(\\"|[^"\t\r\n\v\f])*")"###),
+                (RustCode, r###"(%\{(.|[\n\r])*?%\})"###),
+                (NumberExpr, r###"([0-9]+)"###),
+                (Ident, r###"([a-zA-Z]+[a-zA-Z0-9_]*)"###),
+                (RegEx, r###"(\(.+\))"###),
+                (PredicateExpr, r###"(\?\((.|[\n\r])*?\?\))"###),
+            ],
+            &[
+                r###"(/\*(.|[\n\r])*?\*/)"###,
+                r###"(//[^\n\r]*)"###,
+                r###"(\s+)"###,
+            ],
+            AAEnd,
+        )?;
+        Ok(lexical_analyser.token_stream(text, label))
+    }
+
     fn viable_error_recovery_states(_token: &AATerminal) -> OrderedSet<u32> {
         ordered_set![]
     }
