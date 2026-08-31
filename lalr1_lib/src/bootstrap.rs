@@ -193,7 +193,10 @@ impl From<lalr1::Error<AATerminal>> for AttributeData {
         }
     }
 }
-use lalr1::OrderedSet;
+
+use lexan::TokenStream;
+
+use lalr1::{Error, OrderedSet};
 
 macro_rules! ordered_set {
     () => { OrderedSet::new() };
@@ -302,7 +305,7 @@ lazy_static::lazy_static! {
                 r###"(\s+)"###,
             ],
             AAEnd,
-        ).expect("Failed to build AALexan")
+        ).expect("Failed to initialize lexical analyser")
     };
 }
 
@@ -386,6 +389,49 @@ impl std::fmt::Display for AANonTerminal {
 impl lalr1::Parser<AATerminal, AANonTerminal, AttributeData> for Specification {
     fn lexical_analyzer(&self) -> &lexan::LexicalAnalyzer<AATerminal> {
         &AALEXAN
+    }
+
+    fn token_stream(
+        &self,
+        text: &str,
+        label: &str,
+    ) -> Result<TokenStream<AATerminal>, Error<AATerminal>> {
+        use AATerminal::*;
+        let lexical_analyser = lexan::LexicalAnalyzer::new(
+            &[
+                (NewSection, r###"%%"###),
+                (Attr, r###"%attr"###),
+                (Error, r###"%error"###),
+                (Inject, r###"%inject"###),
+                (Left, r###"%left"###),
+                (NonAssoc, r###"%nonassoc"###),
+                (Precedence, r###"%prec"###),
+                (ReduceReduce, r###"%reduce_reduce"###),
+                (Right, r###"%right"###),
+                (ShiftReduce, r###"%shift_reduce"###),
+                (Skip, r###"%skip"###),
+                (Target, r###"%target"###),
+                (Token, r###"%token"###),
+                (Dot, r###"."###),
+                (Colon, r###":"###),
+                (VerticalBar, r###"|"###),
+            ],
+            &[
+                (ActionCode, r###"(!\{(.|[\n\r])*?!\})"###),
+                (Literal, r###"("(\\"|[^"\t\r\n\v\f])*")"###),
+                (RustCode, r###"(%\{(.|[\n\r])*?%\})"###),
+                (NumberExpr, r###"([0-9]+)"###),
+                (Ident, r###"([a-zA-Z]+[a-zA-Z0-9_]*)"###),
+                (RegEx, r###"(\(.+\))"###),
+            ],
+            &[
+                r###"(/\*(.|[\n\r])*?\*/)"###,
+                r###"(//[^\n\r]*)"###,
+                r###"(\s+)"###,
+            ],
+            AAEnd,
+        )?;
+        Ok(lexical_analyser.token_stream(text, label))
     }
 
     fn viable_error_recovery_states(_token: &AATerminal) -> OrderedSet<u32> {
