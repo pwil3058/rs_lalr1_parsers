@@ -45,8 +45,15 @@ impl ParserGenerator {
     }
 
     pub fn write_parser_code_to_file(&self, output_path: impl AsRef<Path>) -> io::Result<()> {
-        let output_path = output_path.as_ref();
-        self.0.write_parser_code_to_file(output_path)
+        self.0.write_parser_code_to_file(output_path.as_ref())
+    }
+
+    pub fn write_description<W: Write>(&self, wtr: &mut W) -> io::Result<()> {
+        self.0.write_description(wtr)
+    }
+
+    pub fn write_description_to_file(&self, path: impl AsRef<Path>) -> io::Result<()> {
+        self.0.write_description_to_file(path.as_ref())
     }
 }
 

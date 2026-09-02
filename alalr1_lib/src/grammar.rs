@@ -209,14 +209,16 @@ impl Grammar {
         Ok(())
     }
 
-    pub fn write_description(&self, file_path: &Path) -> io::Result<()> {
-        let mut file = std::fs::File::create(file_path)?;
-        file.write_all(self.specification.symbol_table.description().as_bytes())?;
-        file.write_all(b"\nProductions:\n")?;
-        self.specification
-            .productions
-            .write_description(&mut file)?;
-        self.parser_states.write_description(&mut file)?;
+    pub fn write_description<W: Write>(&self, wtr: &mut W) -> io::Result<()> {
+        wtr.write_all(self.specification.symbol_table.description().as_bytes())?;
+        wtr.write_all(b"\nProductions:\n")?;
+        self.specification.productions.write_description(wtr)?;
+        self.parser_states.write_description(wtr)?;
         Ok(())
+    }
+
+    pub fn write_description_to_file(&self, file_path: &Path) -> io::Result<()> {
+        let mut file = std::fs::File::create(file_path)?;
+        self.write_description(&mut file)
     }
 }

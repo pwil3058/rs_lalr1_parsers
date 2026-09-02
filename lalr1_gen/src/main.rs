@@ -125,7 +125,7 @@ fn main() {
     }
 
     let description_file = with_changed_extension(&output_path, "states");
-    if let Err(err) = grammar.write_description(&description_file) {
+    if let Err(err) = grammar.write_description_to_file(&description_file) {
         eprintln!(
             "{}: problems writing file: {:?}.",
             output_path.to_string_lossy(),
