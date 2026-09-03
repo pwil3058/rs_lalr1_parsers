@@ -1,6 +1,7 @@
 // Copyright (c) 2026 Peter Williams <pwil3058@bigpond.net.au> <pwil3058@gmail.com>.
 
 use std::io::Write;
+use std::path::Path;
 use std::{
     default::Default,
     fmt::{self, Debug, Display},
@@ -77,6 +78,14 @@ pub enum Error<T: Ord + Clone + Copy + Debug + Display + Eq> {
     LexicalError(lexan::token_stream::Error<T>, OrderedSet<T>),
     #[error("Syntax error: {0} expected {1}.")]
     SyntaxError(lexan::Token<T>, OrderedSet<T>),
+    #[error("I/O error: {0}.")]
+    IoError(std::io::ErrorKind),
+}
+
+impl<T: Ord + Clone + Copy + Debug + Display + Eq> From<std::io::Error> for Error<T> {
+    fn from(error: std::io::Error) -> Self {
+        Error::IoError(error.kind())
+    }
 }
 
 pub trait ReportError<T: Ord + Copy + Debug + Display + Eq> {
@@ -286,6 +295,13 @@ where
                 },
             };
         }
+    }
+
+    fn parse_text_from_file(&mut self, path: impl AsRef<Path>) -> Result<(), Error<T>> {
+        let path = path.as_ref();
+        let label = path.to_string_lossy();
+        let text = std::fs::read_to_string(path)?;
+        self.parse_text(&text, &label)
     }
 }
 
