@@ -1,6 +1,6 @@
 // Copyright (c) 2026 Peter Williams <pwil3058@bigpond.net.au> <pwil3058@gmail.com>.
 
-pub use std::fmt::{Debug, Display};
+use std::fmt::{Debug, Display};
 
 use crate::matcher::{LiteralMatcher, RegexMatcher, SkipMatcher};
 
@@ -19,7 +19,7 @@ pub enum Error<T: Display + Copy + Debug + Eq> {
 }
 
 #[derive(Default)]
-pub struct Lexicon<T>
+pub(crate) struct Lexicon<T>
 where
     T: Copy + PartialEq + Debug + Display,
 {

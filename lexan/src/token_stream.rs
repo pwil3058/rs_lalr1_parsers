@@ -1,6 +1,6 @@
 // Copyright (c) 2026 Peter Williams <pwil3058@bigpond.net.au> <pwil3058@gmail.com>.
 
-pub use std::{
+use std::{
     fmt::{self, Debug, Display},
     sync::Arc,
 };
@@ -61,7 +61,7 @@ impl Display for Location {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub struct List<T: Display + Copy>(pub Vec<T>);
+pub struct List<T: Display + Copy>(pub(crate) Vec<T>);
 
 impl<T: Display + Copy> Display for List<T> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -268,7 +268,7 @@ impl<T> TokenStream<T>
 where
     T: Debug + Display + Copy + Eq + Ord,
 {
-    pub fn new(lexicon: &Arc<Lexicon<T>>, text: &str, label: &str) -> Self {
+    pub(crate) fn new(lexicon: &Arc<Lexicon<T>>, text: &str, label: &str) -> Self {
         let mut stream = Self {
             lexicon: Arc::clone(lexicon),
             token_stream_stack: vec![],

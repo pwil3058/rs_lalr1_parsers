@@ -79,12 +79,12 @@ pub enum Error<T: Ord + Clone + Copy + Debug + Display + Eq> {
     #[error("Syntax error: {0} expected {1}.")]
     SyntaxError(lexan::Token<T>, OrderedSet<T>),
     #[error("I/O error: {0}.")]
-    IoError(std::io::ErrorKind),
+    IOError(std::io::ErrorKind),
 }
 
 impl<T: Ord + Clone + Copy + Debug + Display + Eq> From<std::io::Error> for Error<T> {
     fn from(error: std::io::Error) -> Self {
-        Error::IoError(error.kind())
+        Error::IOError(error.kind())
     }
 }
 

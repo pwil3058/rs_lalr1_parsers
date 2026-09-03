@@ -8,7 +8,7 @@ mod matcher;
 pub mod lexicon;
 pub mod token_stream;
 
-pub use lexicon::Lexicon;
+use lexicon::Lexicon;
 pub use token_stream::{Location, Token, TokenStream};
 
 pub struct LexicalAnalyzer<T>

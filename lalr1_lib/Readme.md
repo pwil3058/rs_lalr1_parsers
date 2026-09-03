@@ -134,7 +134,7 @@ The attribute type statement
 ```
 %attr Ident
 ```
-specifies the **Rust** type that is to be used within **action code** to represent the attributes held the
+specifies the **Rust** type that is to be used within **action code** to represent the attributes held by the
 components of the **production** with which the **action code** is associated.
 #### Target Type (%target)
 The target type statement
@@ -169,7 +169,7 @@ pub struct Calc {
 }
 
 ```
-could be vary simple.
+could be very simple.
 The purpose of this type is to hold the data extracted from the input text in a form amenable to further
 processing.
 As an aside, it takes 2574 lines of **Rust** code to implement the `Parser` trait from the data held in a `Specification`.
@@ -206,8 +206,8 @@ where a `Regex` regular expression enclosed in `()` brackets is associated with 
 ```
 and in `Production` definitions they may only be referred by their names.
 
-These definitions are used to define a `enum AATerminal`, `lexan::Token<AATerminal>` and an
- `lalr1::Error<AATerminal>` and the type nominated as the attribute type in the `%attr` statement
+These definitions are used to define an `enum AATerminal`, a `lexan::Token<AATerminal>` type and an
+ `lalr1::Error<AATerminal>` type and the type nominated as the attribute type in the `%attr` statement
 must implement `From<lexan::Token<AATerminal>` and `From<lalr1::Error<AATerminal>`.
 
 Tokens have three methods:
@@ -224,8 +224,8 @@ re where the token was found. It has three useful methods:
     pub fn offset(&self) -> usize;
     pub fn label(&self) -> &String;
 ```
-where the `String` pointed to by `label()` is the label associated with the initial input text or
-an injected text. This information is useful for error messages.
+where the `String` pointed to by `label()` is the label associated with the initial input text or an injected text.
+This information is useful for error messages.
 
 ####Skip Definitions
 The `%skip` definitions:
@@ -240,9 +240,10 @@ The `lexan::TokenStream` (in
 addition to its primary task of supplying a stream of tokens) has the ability to have labelled
 texts injected into the stream at any point. This feature can be used via an  
 ```
-%inject Literlal
+%inject Literal
 ```
-in the specification to include text as part of the specification or using an `$INJECT(text, label)` method call within a `Production`'s action code to include text as part of the text being parsed.
+in the specification (where the `Literal` will be interpreted as a file path)
+to include text as part of the specification or using an `$INJECT(text, label)` method call within a `Production`'s action code to include text as part of the text being parsed.
 #### Precedence and Associativity Section
 This section consists of a list of associativity statements
 ```
@@ -254,8 +255,8 @@ or
 %nonassoc TagList
 ```
 allocating associativity to the items in the TagLists which may be literal tokens or tags to be used in
-the precedence/associativity section of `Production` definitions
-and precedence is determined by the (ascending) order of the statements, , e.g.
+the precedence/associativity section of `Production` definitions.
+Precedence is determined by the (ascending) order of the statements, , e.g.
 
 ```
 %left   "+" "-"
