@@ -81,7 +81,7 @@ impl<T: Display + Copy> Display for List<T> {
 pub enum Error<T: Display + Copy + Debug + Eq> {
     #[error("Unexpected text {0} at  {1}")]
     UnexpectedText(String, Location),
-    #[error("Unexpected text [{0}] {1} at  {2}")]
+    #[error("Ambiguous matches {0} {1} at  {2}")]
     AmbiguousMatches(List<T>, String, Location),
     #[error("Advanced when empty at {0}")]
     AdvancedWhenEmpty(Location),

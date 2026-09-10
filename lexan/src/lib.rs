@@ -6,6 +6,7 @@ use std::sync::Arc;
 mod matcher;
 
 pub mod lexicon;
+pub mod token;
 pub mod token_stream;
 
 use lexicon::Lexicon;
