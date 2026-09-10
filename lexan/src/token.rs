@@ -252,7 +252,11 @@ where
 
 #[cfg(test)]
 pub mod tests {
-    use super::{List, Location};
+    use super::{List, Location, Token, Tokens};
+    use crate::lexicon::Lexicon;
+    use std::fmt;
+    use std::fmt::{Display, Formatter};
+    use std::sync::Arc;
 
     #[test]
     fn format_location() {
@@ -291,5 +295,72 @@ pub mod tests {
         let vec = vec!["a", "b", "c", "d"];
         let list = List::from_iter(vec);
         assert_eq!("[a, b, c, d]", format!("{}", list));
+    }
+
+    #[test]
+    fn tokens() {
+        #[derive(PartialEq, Eq, Clone, Copy, Hash, Debug, PartialOrd, Ord)]
+        enum Handle {
+            Equals,
+            If,
+            When,
+            Ident,
+            End,
+        }
+
+        impl Display for Handle {
+            fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+                use Handle::*;
+                match self {
+                    Equals => write!(f, "\"==\""),
+                    If => write!(f, "\"if\""),
+                    When => write!(f, "\"when\""),
+                    Ident => write!(f, "Ident"),
+                    End => write!(f, "End"),
+                }
+            }
+        }
+        use Handle::*;
+        let lexicon = Lexicon::new(
+            &[(If, "if"), (When, "when"), (Equals, "==")],
+            &[(Ident, "[a-zA-Z]+[\\w_]*")],
+            &[r"(/\*(.|[\n\r])*?\*/)", r"(//[^\n\r]*)", r"(\s+)"],
+            End,
+        );
+        let lexicon = Arc::new(lexicon.unwrap());
+        let text = "      ";
+        let label = "label";
+        let mut tokens = Tokens::new(&lexicon, text, label);
+        assert!(tokens.next().is_none());
+        let text = "   if A == B do\n something + ";
+        let mut tokens = Tokens::new(&lexicon, text, label);
+        let token = Token {
+            tag: If,
+            lexeme: "if".to_string(),
+            location: Location {
+                index: 3,
+                line_number: 1,
+                offset: 4,
+                label: "label".to_string(),
+            },
+        };
+        assert_eq!(tokens.next().unwrap(), Ok(token));
+        assert!(tokens.next().is_some());
+        assert!(tokens.next().is_some());
+        assert!(tokens.next().is_some());
+        assert!(tokens.next().is_some());
+        let token = Token {
+            tag: Ident,
+            lexeme: "something".to_string(),
+            location: Location {
+                index: 17,
+                line_number: 2,
+                offset: 2,
+                label: "label".to_string(),
+            },
+        };
+        assert_eq!(tokens.next().unwrap(), Ok(token));
+        assert!(tokens.next().unwrap().is_err());
+        assert!(tokens.next().is_none());
     }
 }
