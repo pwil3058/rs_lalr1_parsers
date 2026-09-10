@@ -84,6 +84,34 @@ impl fmt::Display for Location {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Token<'a, T: fmt::Display + Copy + Eq> {
+    tag: T,
+    lexeme: &'a str,
+    location: Location,
+}
+
+impl<'a, T: fmt::Display + Copy + Eq> fmt::Display for Token<'a, T> {
+    fn fmt(&self, dest: &mut fmt::Formatter) -> fmt::Result {
+        let string = format!("{}({}) at {}", self.tag, self.lexeme, self.location);
+        write!(dest, "{}", string)
+    }
+}
+
+impl<'a, T: fmt::Display + Copy + Eq> Token<'a, T> {
+    pub fn tag(&self) -> &T {
+        &self.tag
+    }
+
+    pub fn lexeme(&self) -> &str {
+        &self.lexeme
+    }
+
+    pub fn location(&self) -> &Location {
+        &self.location
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct List<T: fmt::Display + Copy>(Box<[T]>);
 
