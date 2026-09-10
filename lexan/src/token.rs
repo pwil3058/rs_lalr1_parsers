@@ -84,9 +84,32 @@ impl fmt::Display for Location {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub struct List<T: fmt::Display + Copy>(Box<[T]>);
+
+impl<T: fmt::Display + Copy> FromIterator<T> for List<T> {
+    fn from_iter<I: IntoIterator<Item = T>>(iter: I) -> Self {
+        Self(iter.into_iter().collect::<Vec<T>>().into_boxed_slice())
+    }
+}
+
+impl<T: fmt::Display + Copy> fmt::Display for List<T> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let mut result = "[".to_string();
+        for (i, item) in self.0.iter().enumerate() {
+            if i > 0 {
+                result.push_str(", ")
+            };
+            result.push_str(&item.to_string());
+        }
+        result.push(']');
+        write!(f, "{}", result)
+    }
+}
+
 #[cfg(test)]
 pub mod tests {
-    use super::Location;
+    use super::{List, Location};
 
     #[test]
     fn format_location() {
@@ -118,5 +141,12 @@ pub mod tests {
         assert_eq!(location.index, text.len());
         assert_eq!(location.line_number, 3);
         assert_eq!(location.offset, 7);
+    }
+
+    #[test]
+    fn list() {
+        let vec = vec!["a", "b", "c", "d"];
+        let list = List::from_iter(vec);
+        assert_eq!("[a, b, c, d]", format!("{}", list));
     }
 }
