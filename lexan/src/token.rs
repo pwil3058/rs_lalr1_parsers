@@ -1,6 +1,11 @@
 // Copyright (c) 2026 Peter Williams <pwil3058@bigpond.net.au> <pwil3058@gmail.com>.
 
-use std::fmt;
+use std::fmt::{self, Display, Formatter};
+use std::sync::Arc;
+
+use thiserror::Error;
+
+use crate::lexicon::Lexicon;
 
 /// Data for use in user friendly lexical analysis error messages
 #[derive(Debug, Clone, PartialEq, Eq, Default, PartialOrd, Ord)]
@@ -62,8 +67,8 @@ impl Location {
     }
 }
 
-impl fmt::Display for Location {
-    fn fmt(&self, dest: &mut fmt::Formatter) -> fmt::Result {
+impl Display for Location {
+    fn fmt(&self, dest: &mut Formatter) -> fmt::Result {
         if !self.label.is_empty() {
             if self.label.contains(' ') || self.label.contains('\t') {
                 write!(
@@ -85,20 +90,20 @@ impl fmt::Display for Location {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Token<'a, T: fmt::Display + Copy + Eq> {
+pub struct Token<T: Display + Copy + Eq> {
     tag: T,
-    lexeme: &'a str,
+    lexeme: String,
     location: Location,
 }
 
-impl<'a, T: fmt::Display + Copy + Eq> fmt::Display for Token<'a, T> {
+impl<T: Display + Copy + Eq> Display for Token<T> {
     fn fmt(&self, dest: &mut fmt::Formatter) -> fmt::Result {
         let string = format!("{}({}) at {}", self.tag, self.lexeme, self.location);
         write!(dest, "{}", string)
     }
 }
 
-impl<'a, T: fmt::Display + Copy + Eq> Token<'a, T> {
+impl<T: Display + Copy + Eq> Token<T> {
     pub fn tag(&self) -> &T {
         &self.tag
     }
@@ -113,15 +118,15 @@ impl<'a, T: fmt::Display + Copy + Eq> Token<'a, T> {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub struct List<T: fmt::Display + Copy>(Box<[T]>);
+pub struct List<T: Display + Copy>(Box<[T]>);
 
-impl<T: fmt::Display + Copy> FromIterator<T> for List<T> {
+impl<T: Display + Copy> FromIterator<T> for List<T> {
     fn from_iter<I: IntoIterator<Item = T>>(iter: I) -> Self {
         Self(iter.into_iter().collect::<Vec<T>>().into_boxed_slice())
     }
 }
 
-impl<T: fmt::Display + Copy> fmt::Display for List<T> {
+impl<T: Display + Copy> Display for List<T> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let mut result = "[".to_string();
         for (i, item) in self.0.iter().enumerate() {
@@ -132,6 +137,116 @@ impl<T: fmt::Display + Copy> fmt::Display for List<T> {
         }
         result.push(']');
         write!(f, "{}", result)
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Error)]
+pub enum Error<T: Display + Copy + fmt::Debug + Eq> {
+    #[error("Unexpected text {0} at  {1}")]
+    UnexpectedText(String, Location),
+    #[error("Ambiguous matches {0} {1} at  {2}")]
+    AmbiguousMatches(List<T>, String, Location),
+    #[error("Advanced when empty at {0}")]
+    AdvancedWhenEmpty(Location),
+}
+
+#[derive(Debug)]
+pub struct Tokens<T>
+where
+    T: fmt::Debug + Display + Copy + Eq + Ord,
+{
+    lexicon: Arc<Lexicon<T>>,
+    text: String,
+    location: Location,
+}
+
+impl<T> Tokens<T>
+where
+    T: fmt::Debug + Display + Copy + Eq + Ord,
+{
+    pub(crate) fn new(lexicon: &Arc<Lexicon<T>>, text: &str, label: &str) -> Self {
+        Self {
+            lexicon: Arc::clone(lexicon),
+            text: text.to_string(),
+            location: Location::new(label),
+        }
+    }
+
+    fn incr_location(&mut self, incr: usize) {
+        let slice = &self.text[self.location.index..self.location.index + incr];
+        self.location.step_past(slice);
+    }
+}
+
+impl<T> Iterator for Tokens<T>
+where
+    T: fmt::Debug + Display + Copy + Eq + Ord,
+{
+    type Item = Result<Token<T>, Error<T>>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let skippable_count = self
+            .lexicon
+            .skippable_count(&self.text[self.location.index..]);
+        self.incr_location(skippable_count);
+        if self.location.index >= self.text.len() {
+            return None;
+        }
+        let start = self.location.index;
+        let current_location = self.location.clone();
+        let longest_regex_matches = self
+            .lexicon
+            .longest_regex_matches(&self.text[self.location.index..]);
+        if let Some(longest_literal_match) = self
+            .lexicon
+            .longest_literal_match(&self.text[self.location.index..])
+        {
+            if longest_literal_match.1 >= longest_regex_matches.1 {
+                self.incr_location(longest_literal_match.1);
+                Some(Ok(Token {
+                    tag: longest_literal_match.0,
+                    lexeme: (self.text[start..self.location.index]).to_string(),
+                    location: current_location,
+                }))
+            } else if longest_regex_matches.0.len() == 1 {
+                self.incr_location(longest_regex_matches.1);
+                Some(Ok(Token {
+                    tag: longest_regex_matches.0[0],
+                    lexeme: (self.text[start..self.location.index]).to_string(),
+                    location: current_location,
+                }))
+            } else {
+                self.incr_location(longest_regex_matches.1);
+                Some(Err(Error::AmbiguousMatches(
+                    List::from_iter(longest_regex_matches.0),
+                    (self.text[start..self.location.index]).to_string(),
+                    current_location,
+                )))
+            }
+        } else if longest_regex_matches.0.len() == 1 {
+            self.incr_location(longest_regex_matches.1);
+            Some(Ok(Token {
+                tag: longest_regex_matches.0[0],
+                lexeme: (self.text[start..self.location.index]).to_string(),
+                location: current_location,
+            }))
+        } else if longest_regex_matches.0.len() > 1 {
+            self.incr_location(longest_regex_matches.1);
+            Some(Err(Error::AmbiguousMatches(
+                List::from_iter(longest_regex_matches.0),
+                (self.text[start..self.location.index]).to_string(),
+                current_location,
+            )))
+        } else {
+            let distance = self
+                .lexicon
+                .distance_to_next_valid_byte(&self.text[self.location.index..]);
+            self.incr_location(distance);
+            Some(Err(Error::UnexpectedText(
+                (self.text[start..self.location.index]).to_string(),
+                current_location,
+            )))
+        }
     }
 }
 

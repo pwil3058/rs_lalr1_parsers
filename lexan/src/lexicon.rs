@@ -18,7 +18,7 @@ pub enum Error<T: Display + Copy + Debug + Eq> {
     RegexError(#[from] regex::Error),
 }
 
-#[derive(Default)]
+#[derive(Debug, Default)]
 pub(crate) struct Lexicon<T>
 where
     T: Copy + PartialEq + Debug + Display,
