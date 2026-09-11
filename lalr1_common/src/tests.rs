@@ -9,6 +9,7 @@ use lazy_static::lazy_static;
 use lalr1;
 use lalr1::OrderedSet;
 use lalr1::ParseStack;
+use lexan::TokenStream;
 
 #[allow(unused)]
 #[derive(Debug, Clone)]
@@ -198,8 +199,12 @@ impl std::fmt::Display for AANonTerminal {
 }
 
 impl lalr1::Parser<AATerminal, AANonTerminal, AttributeData> for Calc {
-    fn lexical_analyzer(&self) -> &lexan::LexicalAnalyzer<AATerminal> {
-        &AALEXAN
+    fn token_stream(
+        &self,
+        text: &str,
+        label: &str,
+    ) -> Result<TokenStream<AATerminal>, lalr1::Error<AATerminal>> {
+        Ok(AALEXAN.token_stream(text, label))
     }
 
     fn viable_error_recovery_states(token: &AATerminal) -> OrderedSet<u32> {

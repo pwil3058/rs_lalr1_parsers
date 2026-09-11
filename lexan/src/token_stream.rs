@@ -1,142 +1,18 @@
 // Copyright (c) 2026 Peter Williams <pwil3058@bigpond.net.au> <pwil3058@gmail.com>.
 
 use std::{
-    fmt::{self, Debug, Display},
+    fmt::{Debug, Display},
     sync::Arc,
 };
 
-use thiserror::Error;
-
 use crate::lexicon::Lexicon;
-
-/// Data for use in user friendly lexical analysis error messages
-#[derive(Debug, Clone, PartialEq, Eq, Default, PartialOrd, Ord)]
-pub struct Location {
-    /// A label describing the source of the string in which this location occurs
-    label: String,
-    /// Human friendly line number of this location
-    line_number: usize,
-    /// Human friendly offset of this location within its line
-    offset: usize,
-}
-
-impl Location {
-    fn new(label: &str) -> Self {
-        Self {
-            line_number: 1,
-            offset: 1,
-            label: label.to_string(),
-        }
-    }
-
-    pub fn line_number(&self) -> usize {
-        self.line_number
-    }
-
-    pub fn offset(&self) -> usize {
-        self.offset
-    }
-
-    pub fn label(&self) -> &String {
-        &self.label
-    }
-}
-
-impl Display for Location {
-    fn fmt(&self, dest: &mut fmt::Formatter) -> fmt::Result {
-        if !self.label.is_empty() {
-            if self.label.contains(' ') || self.label.contains('\t') {
-                write!(
-                    dest,
-                    "\"{}\":{}:{}",
-                    self.label, self.line_number, self.offset
-                )
-            } else {
-                write!(dest, "{}:{}:{}", self.label, self.line_number, self.offset)
-            }
-        } else {
-            write!(dest, "{}:{}", self.line_number, self.offset)
-        }
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub struct List<T: Display + Copy>(pub(crate) Vec<T>);
-
-impl<T: Display + Copy> Display for List<T> {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let mut result = "[".to_string();
-        for (i, item) in self.0.iter().enumerate() {
-            if i > 0 {
-                result.push_str(", ")
-            };
-            result.push_str(&item.to_string());
-        }
-        result.push(']');
-        write!(f, "{}", result)
-    }
-}
-
-#[derive(Clone, Debug, PartialEq, Error)]
-pub enum Error<T: Display + Copy + Debug + Eq> {
-    #[error("Unexpected text {0} at  {1}")]
-    UnexpectedText(String, Location),
-    #[error("Ambiguous matches {0} {1} at  {2}")]
-    AmbiguousMatches(List<T>, String, Location),
-    #[error("Advanced when empty at {0}")]
-    AdvancedWhenEmpty(Location),
-}
-
-impl<T: Display + Copy + Eq + Debug> Error<T> {
-    pub fn is_unexpected_text(&self) -> bool {
-        matches!(self, Error::UnexpectedText(_, _))
-    }
-
-    pub fn is_ambiguous_match(&self) -> bool {
-        matches!(self, Error::AmbiguousMatches(_, _, _))
-    }
-
-    pub fn is_advance_when_empty(&self) -> bool {
-        matches!(self, Error::AdvancedWhenEmpty(_))
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Token<T: Display + Copy + Eq> {
-    tag: T,
-    lexeme: String,
-    location: Location,
-}
-
-impl<T: Display + Copy + Eq> Display for Token<T> {
-    fn fmt(&self, dest: &mut fmt::Formatter) -> fmt::Result {
-        let string = format!("{}({}) at {}", self.tag, self.lexeme, self.location);
-        write!(dest, "{}", string)
-    }
-}
-
-impl<T: Display + Copy + Eq> Token<T> {
-    pub fn tag(&self) -> &T {
-        &self.tag
-    }
-
-    pub fn lexeme(&self) -> &String {
-        &self.lexeme
-    }
-
-    pub fn location(&self) -> &Location {
-        &self.location
-    }
-}
+use crate::token::{Error, Location, Token, Tokens};
 
 struct BasicTokenStream<T>
 where
     T: Debug + Display + Copy + Eq + Ord,
 {
-    lexicon: Arc<Lexicon<T>>,
-    text: String,
-    index: usize,
-    location: Location,
+    tokens: Tokens<T>,
     front: Option<Result<Token<T>, Error<T>>>,
 }
 
@@ -145,12 +21,8 @@ where
     T: Debug + Display + Copy + Eq + Ord,
 {
     pub fn new(lexicon: &Arc<Lexicon<T>>, text: &str, label: &str) -> Self {
-        let location = Location::new(label);
         let mut bts = Self {
-            lexicon: Arc::clone(lexicon),
-            text: text.to_string(),
-            location,
-            index: 0,
+            tokens: Tokens::new(lexicon, text, label),
             front: None,
         };
         bts.advance();
@@ -166,92 +38,11 @@ where
     }
 
     fn advance(&mut self) {
-        self.front = self.next();
+        self.front = self.tokens.next();
     }
 
     fn location(&self) -> Location {
-        self.location.clone()
-    }
-
-    fn incr_index_and_location(&mut self, length: usize) {
-        let next_index = self.index + length;
-        let slice = &self.text[self.index..next_index];
-        let mut i = 0;
-        while i < length {
-            if let Some(eol_i) = slice[i..].find("\r\n") {
-                self.location.line_number += 1;
-                self.location.offset = 1;
-                i += eol_i + 2;
-            } else if let Some(eol_i) = slice[i..].find('\n') {
-                self.location.line_number += 1;
-                self.location.offset = 1;
-                i += eol_i + 1;
-            } else {
-                self.location.offset += length - i;
-                i = length;
-            };
-        }
-        self.index = next_index;
-    }
-
-    fn next(&mut self) -> Option<Result<Token<T>, Error<T>>> {
-        self.incr_index_and_location(self.lexicon.skippable_count(&self.text[self.index..]));
-        if self.index >= self.text.len() {
-            return None;
-        }
-
-        let current_location = self.location();
-        let start = self.index;
-        let o_llm = self.lexicon.longest_literal_match(&self.text[self.index..]);
-        let lrems = self.lexicon.longest_regex_matches(&self.text[self.index..]);
-
-        if let Some(llm) = o_llm {
-            if lrems.0.len() > 1 && lrems.1 > llm.1 {
-                self.incr_index_and_location(lrems.1);
-                Some(Err(Error::AmbiguousMatches(
-                    List(lrems.0),
-                    (self.text[start..self.index]).to_string(),
-                    current_location,
-                )))
-            } else if lrems.0.len() == 1 && lrems.1 > llm.1 {
-                self.incr_index_and_location(lrems.1);
-                Some(Ok(Token {
-                    tag: lrems.0[0],
-                    lexeme: (self.text[start..self.index]).to_string(),
-                    location: current_location,
-                }))
-            } else {
-                self.incr_index_and_location(llm.1);
-                Some(Ok(Token {
-                    tag: llm.0,
-                    lexeme: (self.text[start..self.index]).to_string(),
-                    location: current_location,
-                }))
-            }
-        } else if lrems.0.len() == 1 {
-            self.incr_index_and_location(lrems.1);
-            Some(Ok(Token {
-                tag: lrems.0[0],
-                lexeme: (self.text[start..self.index]).to_string(),
-                location: current_location,
-            }))
-        } else if lrems.0.len() > 1 {
-            self.incr_index_and_location(lrems.1);
-            Some(Err(Error::AmbiguousMatches(
-                List(lrems.0),
-                (self.text[start..self.index]).to_string(),
-                current_location,
-            )))
-        } else {
-            let distance = self
-                .lexicon
-                .distance_to_next_valid_byte(&self.text[self.index..]);
-            self.incr_index_and_location(distance);
-            Some(Err(Error::UnexpectedText(
-                (self.text[start..self.index]).to_string(),
-                current_location,
-            )))
-        }
+        self.tokens.location()
     }
 }
 
@@ -342,38 +133,7 @@ where
 mod tests {
     use super::*;
     use crate::lexicon::Lexicon;
-
-    #[test]
-    fn format_location() {
-        let location = Location {
-            line_number: 10,
-            offset: 15,
-            label: "whatever".to_string(),
-        };
-        assert_eq!(format!("{location}"), "whatever:10:15");
-        let location = Location {
-            line_number: 9,
-            offset: 23,
-            label: "".to_string(),
-        };
-        assert_eq!(format!("{location}"), "9:23");
-    }
-
-    #[test]
-    fn incr_index_and_location() {
-        let lexicon = Arc::new(Lexicon::<u32>::new(&[], &[], &[], 0).unwrap());
-        let mut token_stream = BasicTokenStream {
-            lexicon,
-            text: "String\nwith a new line in it".to_string(),
-            location: Location::new("whatever"),
-            index: 0,
-            front: None,
-        };
-        token_stream.incr_index_and_location(11);
-        assert_eq!(token_stream.index, 11);
-        assert_eq!(token_stream.location.line_number, 2);
-        assert_eq!(token_stream.location.offset, 5);
-    }
+    use std::fmt;
 
     #[test]
     fn token_stream_basics() {
@@ -396,6 +156,7 @@ mod tests {
                 }
             }
         }
+
         use Handle::*;
         let lexicon = Lexicon::new(
             &[(If, "if"), (When, "when")],
@@ -417,6 +178,7 @@ mod tests {
             tag: If,
             lexeme: "if".to_string(),
             location: Location {
+                index: 1,
                 line_number: 1,
                 offset: 2,
                 label: "another".to_string(),
@@ -429,6 +191,7 @@ mod tests {
             tag: Ident,
             lexeme: "nothing".to_string(),
             location: Location {
+                index: 4,
                 line_number: 1,
                 offset: 5,
                 label: "another".to_string(),
@@ -442,6 +205,7 @@ mod tests {
             tag: Ident,
             lexeme: "just".to_string(),
             location: Location {
+                index: 0,
                 line_number: 1,
                 offset: 1,
                 label: "more".to_string(),
@@ -453,6 +217,7 @@ mod tests {
             tag: Ident,
             lexeme: "nothing".to_string(),
             location: Location {
+                index: 4,
                 line_number: 1,
                 offset: 5,
                 label: "another".to_string(),
@@ -468,6 +233,7 @@ mod tests {
             tag: End,
             lexeme: "".to_string(),
             location: Location {
+                index: 22,
                 line_number: 1,
                 offset: 23,
                 label: "another".to_string(),

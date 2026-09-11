@@ -10,7 +10,8 @@ pub mod token;
 pub mod token_stream;
 
 use lexicon::Lexicon;
-pub use token_stream::{Location, Token, TokenStream};
+pub use token::{Location, Token};
+pub use token_stream::TokenStream;
 
 pub struct LexicalAnalyzer<T>
 where

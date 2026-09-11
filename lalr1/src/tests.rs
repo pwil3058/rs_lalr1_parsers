@@ -6,8 +6,10 @@ use std::str::FromStr;
 
 use lazy_static::lazy_static;
 
-use crate::OrderedSet;
+use lexan::TokenStream;
+
 use crate::ParseStack;
+use crate::{Error, OrderedSet};
 
 #[allow(unused)]
 #[derive(Debug, Clone)]
@@ -197,8 +199,12 @@ impl std::fmt::Display for AANonTerminal {
 }
 
 impl crate::Parser<AATerminal, AANonTerminal, AttributeData> for Calc {
-    fn lexical_analyzer(&self) -> &lexan::LexicalAnalyzer<AATerminal> {
-        &AALEXAN
+    fn token_stream(
+        &self,
+        text: &str,
+        label: &str,
+    ) -> Result<TokenStream<AATerminal>, Error<AATerminal>> {
+        Ok(AALEXAN.token_stream(text, label))
     }
 
     fn viable_error_recovery_states(token: &AATerminal) -> OrderedSet<u32> {

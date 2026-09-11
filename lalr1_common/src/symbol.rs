@@ -293,11 +293,12 @@ impl SymbolTable {
         self.start_non_terminal.clone()
     }
 
-    pub fn add_skip_rule(&mut self, skip_rule: &String) -> Result<(), Error> {
-        if self.skip_rules.contains(skip_rule) {
-            Err(Error::DuplicateSkipRule(skip_rule.to_string()))
+    pub fn add_skip_rule(&mut self, skip_rule: &str) -> Result<(), Error> {
+        let skip_rule = skip_rule.to_string();
+        if self.skip_rules.contains(&skip_rule) {
+            Err(Error::DuplicateSkipRule(skip_rule))
         } else {
-            self.skip_rules.push(skip_rule.to_string());
+            self.skip_rules.push(skip_rule);
             Ok(())
         }
     }

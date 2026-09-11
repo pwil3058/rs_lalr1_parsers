@@ -75,7 +75,7 @@ pub enum Error<T: Ord + Clone + Copy + Debug + Display + Eq> {
     #[error("Lexicon build error: {0}")]
     LexiconBuildError(#[from] lexan::lexicon::Error<T>),
     #[error("Lexical error: {0} expected {1}.")]
-    LexicalError(lexan::token_stream::Error<T>, OrderedSet<T>),
+    LexicalError(lexan::token::Error<T>, OrderedSet<T>),
     #[error("Syntax error: {0} expected {1}.")]
     SyntaxError(lexan::Token<T>, OrderedSet<T>),
     #[error("I/O error: {0}.")]
@@ -91,8 +91,7 @@ impl<T: Ord + Clone + Copy + Debug + Display + Eq> From<std::io::Error> for Erro
 pub trait ReportError<T: Ord + Copy + Debug + Display + Eq> {
     fn report_error(&mut self, error: &Error<T>) {
         let message = error.to_string();
-        if let Error::LexicalError(lexan::token_stream::Error::AmbiguousMatches(_, _, _), _) = error
-        {
+        if let Error::LexicalError(lexan::token::Error::AmbiguousMatches(_, _, _), _) = error {
             panic!("Fatal Error: {message}!!");
         };
         std::io::stderr()

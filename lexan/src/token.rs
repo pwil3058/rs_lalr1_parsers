@@ -11,13 +11,13 @@ use crate::lexicon::Lexicon;
 #[derive(Debug, Clone, PartialEq, Eq, Default, PartialOrd, Ord)]
 pub struct Location {
     /// A label describing the source of the string in which this location occurs
-    label: String,
+    pub label: String,
     /// Current position in the parsed string
-    index: usize,
+    pub index: usize,
     /// Human friendly line number of this location
-    line_number: usize,
+    pub line_number: usize,
     /// Human friendly offset of this location within its line
-    offset: usize,
+    pub offset: usize,
 }
 
 impl Location {
@@ -91,9 +91,9 @@ impl Display for Location {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Token<T: Display + Copy + Eq> {
-    tag: T,
-    lexeme: String,
-    location: Location,
+    pub tag: T,
+    pub lexeme: String,
+    pub location: Location,
 }
 
 impl<T: Display + Copy + Eq> Display for Token<T> {
@@ -176,6 +176,17 @@ where
         let slice = &self.text[self.location.index..self.location.index + incr];
         self.location.step_past(slice);
     }
+
+    pub fn location(&self) -> Location {
+        self.location.clone()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        let skippable_count = self
+            .lexicon
+            .skippable_count(&self.text[self.location.index..]);
+        self.location.index + skippable_count >= self.text.len()
+    }
 }
 
 impl<T> Iterator for Tokens<T>
@@ -193,7 +204,7 @@ where
             return None;
         }
         let start = self.location.index;
-        let current_location = self.location.clone();
+        let current_location = self.location();
         let longest_regex_matches = self
             .lexicon
             .longest_regex_matches(&self.text[self.location.index..]);

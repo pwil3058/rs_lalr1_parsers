@@ -1,5 +1,5 @@
 // Copyright (c) 2026 Peter Williams <pwil3058@bigpond.net.au> <pwil3058@gmail.com>.
-use crate::token_stream::Error;
+use crate::token::Error;
 
 #[derive(PartialEq, Eq, Clone, Copy, Hash, PartialOrd, Ord, Debug)]
 enum Handle {
@@ -62,7 +62,7 @@ fn lexical_analyser() {
         Ok(token) => {
             assert_eq!(*token.tag(), If);
             assert_eq!(token.lexeme(), "if");
-            assert_eq!(format!("{}", token.location()), "\"raw text\":1:1");
+            assert_eq!(format!("{}", token.location()), "\"raw text\":0:1:1");
         }
         _ => assert!(false),
     };
@@ -70,7 +70,7 @@ fn lexical_analyser() {
         Ok(token) => {
             assert_eq!(*token.tag(), Ident);
             assert_eq!(token.lexeme(), "iffy");
-            assert_eq!(format!("{}", token.location()), "\"raw text\":1:4");
+            assert_eq!(format!("{}", token.location()), "\"raw text\":3:1:4");
         }
         _ => assert!(false),
     };
@@ -78,7 +78,7 @@ fn lexical_analyser() {
         Ok(token) => {
             assert_eq!(*token.tag(), Literal);
             assert_eq!(token.lexeme(), "\"quoted\"");
-            assert_eq!(format!("{}", token.location()), "\"raw text\":2:2");
+            assert_eq!(format!("{}", token.location()), "\"raw text\":9:2:2");
         }
         _ => assert!(false),
     };
@@ -86,7 +86,7 @@ fn lexical_analyser() {
         Ok(token) => {
             assert_eq!(*token.tag(), Literal);
             assert_eq!(token.lexeme(), "\"if\"");
-            assert_eq!(format!("{}", token.location()), "\"raw text\":2:11");
+            assert_eq!(format!("{}", token.location()), "\"raw text\":18:2:11");
         }
         _ => assert!(false),
     };
@@ -94,7 +94,7 @@ fn lexical_analyser() {
         Err(err) => match err {
             Error::UnexpectedText(text, location) => {
                 assert_eq!(text, "9");
-                assert_eq!(format!("{location}"), "\"raw text\":3:1");
+                assert_eq!(format!("{location}"), "\"raw text\":24:3:1");
             }
             _ => assert!(false),
         },
@@ -104,7 +104,7 @@ fn lexical_analyser() {
         Err(err) => match err {
             Error::UnexpectedText(text, location) => {
                 assert_eq!(text, "$");
-                assert_eq!(format!("{location}"), "\"raw text\":3:3");
+                assert_eq!(format!("{location}"), "\"raw text\":26:3:3");
             }
             _ => assert!(false),
         },
@@ -114,7 +114,7 @@ fn lexical_analyser() {
         Ok(token) => {
             assert_eq!(*token.tag(), Ident);
             assert_eq!(token.lexeme(), "name");
-            assert_eq!(format!("{}", token.location()), "\"raw text\":3:6");
+            assert_eq!(format!("{}", token.location()), "\"raw text\":29:3:6");
         }
         _ => assert!(false),
     };
@@ -122,7 +122,7 @@ fn lexical_analyser() {
         Ok(token) => {
             assert_eq!(*token.tag(), Btextl);
             assert_eq!(token.lexeme(), "&{ one \n two &}");
-            assert_eq!(format!("{}", token.location()), "\"raw text\":3:11");
+            assert_eq!(format!("{}", token.location()), "\"raw text\":34:3:11");
         }
         _ => assert!(false),
     };
@@ -130,7 +130,7 @@ fn lexical_analyser() {
         Ok(token) => {
             assert_eq!(*token.tag(), Ident);
             assert_eq!(token.lexeme(), "and");
-            assert_eq!(format!("{}", token.location()), "\"raw text\":4:9");
+            assert_eq!(format!("{}", token.location()), "\"raw text\":50:4:9");
         }
         _ => assert!(false),
     };
@@ -138,7 +138,7 @@ fn lexical_analyser() {
         Ok(token) => {
             assert_eq!(*token.tag(), Ident);
             assert_eq!(token.lexeme(), "so");
-            assert_eq!(format!("{}", token.location()), "\"raw text\":4:13");
+            assert_eq!(format!("{}", token.location()), "\"raw text\":54:4:13");
         }
         _ => assert!(false),
     };
@@ -152,7 +152,7 @@ fn lexical_analyser() {
         Ok(token) => {
             assert_eq!(*token.tag(), If);
             assert_eq!(token.lexeme(), "if");
-            assert_eq!(format!("{}", token.location()), "\"raw text\":1:1");
+            assert_eq!(format!("{}", token.location()), "\"raw text\":0:1:1");
         }
         _ => assert!(false),
     };
@@ -160,7 +160,7 @@ fn lexical_analyser() {
         Ok(token) => {
             assert_eq!(*token.tag(), Ident);
             assert_eq!(token.lexeme(), "iffy");
-            assert_eq!(format!("{}", token.location()), "\"raw text\":1:4");
+            assert_eq!(format!("{}", token.location()), "\"raw text\":3:1:4");
         }
         _ => assert!(false),
     };
@@ -169,7 +169,7 @@ fn lexical_analyser() {
         Ok(token) => {
             assert_eq!(*token.tag(), Pred);
             assert_eq!(token.lexeme(), "?{on?}");
-            assert_eq!(format!("{}", token.location()), "\"raw text\":4:16");
+            assert_eq!(format!("{}", token.location()), "\"raw text\":57:4:16");
         }
         _ => assert!(false),
     };
@@ -178,7 +178,7 @@ fn lexical_analyser() {
         Ok(token) => {
             assert_eq!(*token.tag(), End);
             assert_eq!(token.lexeme(), "");
-            assert_eq!(format!("{}", token.location()), "\"raw text\":4:22");
+            assert_eq!(format!("{}", token.location()), "\"raw text\":63:4:22");
         }
         _ => assert!(false),
     };
@@ -187,7 +187,7 @@ fn lexical_analyser() {
         Ok(token) => {
             assert_eq!(*token.tag(), Literal);
             assert_eq!(token.lexeme(), "\"quoted\"");
-            assert_eq!(format!("{}", token.location()), "\"raw text\":2:2");
+            assert_eq!(format!("{}", token.location()), "\"raw text\":9:2:2");
         }
         _ => assert!(false),
     };
@@ -195,7 +195,7 @@ fn lexical_analyser() {
         Ok(token) => {
             assert_eq!(*token.tag(), Literal);
             assert_eq!(token.lexeme(), "\"if\"");
-            assert_eq!(format!("{}", token.location()), "\"raw text\":2:11");
+            assert_eq!(format!("{}", token.location()), "\"raw text\":18:2:11");
         }
         _ => assert!(false),
     };
@@ -204,7 +204,10 @@ fn lexical_analyser() {
         Ok(token) => {
             assert_eq!(*token.tag(), If);
             assert_eq!(token.lexeme(), "if");
-            assert_eq!(format!("{}", token.location()), "\"\"injected text\"\":1:1");
+            assert_eq!(
+                format!("{}", token.location()),
+                "\"\"injected text\"\":0:1:1"
+            );
         }
         _ => assert!(false),
     };
@@ -212,7 +215,10 @@ fn lexical_analyser() {
         Ok(token) => {
             assert_eq!(*token.tag(), Ident);
             assert_eq!(token.lexeme(), "one");
-            assert_eq!(format!("{}", token.location()), "\"\"injected text\"\":1:4");
+            assert_eq!(
+                format!("{}", token.location()),
+                "\"\"injected text\"\":3:1:4"
+            );
         }
         _ => assert!(false),
     };
@@ -221,7 +227,7 @@ fn lexical_analyser() {
         Ok(token) => {
             assert_eq!(*token.tag(), Ident);
             assert_eq!(token.lexeme(), "two");
-            assert_eq!(format!("{}", token.location()), "\"another text\":1:3");
+            assert_eq!(format!("{}", token.location()), "\"another text\":2:1:3");
         }
         _ => assert!(false),
     };
@@ -229,7 +235,10 @@ fn lexical_analyser() {
         Ok(token) => {
             assert_eq!(*token.tag(), Literal);
             assert_eq!(token.lexeme(), "\"name\"");
-            assert_eq!(format!("{}", token.location()), "\"\"injected text\"\":1:8");
+            assert_eq!(
+                format!("{}", token.location()),
+                "\"\"injected text\"\":7:1:8"
+            );
         }
         _ => assert!(false),
     };
@@ -238,7 +247,10 @@ fn lexical_analyser() {
         Ok(token) => {
             assert_eq!(*token.tag(), Ident);
             assert_eq!(token.lexeme(), "three");
-            assert_eq!(format!("{}", token.location()), "\"yet another text\":1:4");
+            assert_eq!(
+                format!("{}", token.location()),
+                "\"yet another text\":3:1:4"
+            );
         }
         _ => assert!(false),
     };
@@ -246,7 +258,7 @@ fn lexical_analyser() {
         Err(err) => match err {
             Error::UnexpectedText(text, location) => {
                 assert_eq!(text, "9");
-                assert_eq!(format!("{location}"), "\"raw text\":3:1");
+                assert_eq!(format!("{location}"), "\"raw text\":24:3:1");
             }
             _ => assert!(false),
         },
@@ -256,7 +268,7 @@ fn lexical_analyser() {
         Err(err) => match err {
             Error::UnexpectedText(text, location) => {
                 assert_eq!(text, "$");
-                assert_eq!(format!("{location}"), "\"raw text\":3:3");
+                assert_eq!(format!("{location}"), "\"raw text\":26:3:3");
             }
             _ => assert!(false),
         },
@@ -266,7 +278,7 @@ fn lexical_analyser() {
         Ok(token) => {
             assert_eq!(*token.tag(), Ident);
             assert_eq!(token.lexeme(), "name");
-            assert_eq!(format!("{}", token.location()), "\"raw text\":3:6");
+            assert_eq!(format!("{}", token.location()), "\"raw text\":29:3:6");
         }
         _ => assert!(false),
     };
@@ -274,7 +286,7 @@ fn lexical_analyser() {
         Ok(token) => {
             assert_eq!(*token.tag(), Btextl);
             assert_eq!(token.lexeme(), "&{ one \n two &}");
-            assert_eq!(format!("{}", token.location()), "\"raw text\":3:11");
+            assert_eq!(format!("{}", token.location()), "\"raw text\":34:3:11");
         }
         _ => assert!(false),
     };
@@ -282,7 +294,7 @@ fn lexical_analyser() {
         Ok(token) => {
             assert_eq!(*token.tag(), Ident);
             assert_eq!(token.lexeme(), "and");
-            assert_eq!(format!("{}", token.location()), "\"raw text\":4:9");
+            assert_eq!(format!("{}", token.location()), "\"raw text\":50:4:9");
         }
         _ => assert!(false),
     };
@@ -290,7 +302,7 @@ fn lexical_analyser() {
         Ok(token) => {
             assert_eq!(*token.tag(), Ident);
             assert_eq!(token.lexeme(), "so");
-            assert_eq!(format!("{}", token.location()), "\"raw text\":4:13");
+            assert_eq!(format!("{}", token.location()), "\"raw text\":54:4:13");
         }
         _ => assert!(false),
     };
@@ -298,7 +310,7 @@ fn lexical_analyser() {
         Ok(token) => {
             assert_eq!(*token.tag(), Pred);
             assert_eq!(token.lexeme(), "?{on?}");
-            assert_eq!(format!("{}", token.location()), "\"raw text\":4:16");
+            assert_eq!(format!("{}", token.location()), "\"raw text\":57:4:16");
         }
         _ => assert!(false),
     };
@@ -306,7 +318,7 @@ fn lexical_analyser() {
         Ok(token) => {
             assert_eq!(*token.tag(), End);
             assert_eq!(token.lexeme(), "");
-            assert_eq!(format!("{}", token.location()), "\"raw text\":4:22");
+            assert_eq!(format!("{}", token.location()), "\"raw text\":63:4:22");
         }
         _ => assert!(false),
     };
