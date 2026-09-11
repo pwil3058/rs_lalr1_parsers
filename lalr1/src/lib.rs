@@ -253,18 +253,18 @@ where
     }
 
     fn parse_text(&mut self, text: &str, label: &str) -> Result<(), Error<T>> {
-        let mut tokens = self.token_stream(text, label)?;
+        let mut token_stream = self.token_stream(text, label)?;
         let mut parse_stack = ParseStack::<T, N, A>::new();
         let mut result: Result<(), Error<T>> = Ok(());
 
         loop {
-            match tokens.front() {
+            match token_stream.front() {
                 Err(err) => {
                     let expected_tokens = Self::look_ahead_set(parse_stack.current_state());
                     let error = Error::LexicalError(err, expected_tokens);
                     self.report_error(&error);
                     result = Err(error.clone());
-                    if !Self::recover_from_error(error, &mut parse_stack, &mut tokens) {
+                    if !Self::recover_from_error(error, &mut parse_stack, &mut token_stream) {
                         return result;
                     }
                 }
@@ -272,14 +272,15 @@ where
                     Action::Accept => return result,
                     Action::Shift(next_state) => {
                         parse_stack.push_terminal(token, next_state);
-                        tokens.advance();
+                        token_stream.advance();
                     }
                     Action::Reduce(production_id) => {
                         let (lhs, rhs_len) = Self::production_data(production_id);
                         let rhs = parse_stack.pop_n(rhs_len);
                         let next_state = Self::goto_state(&lhs, parse_stack.current_state());
-                        let attribute = self
-                            .do_semantic_action(production_id, rhs, |s, l| tokens.inject(&s, &l));
+                        let attribute = self.do_semantic_action(production_id, rhs, |s, l| {
+                            token_stream.inject(&s, &l)
+                        });
                         parse_stack.push_non_terminal(lhs, attribute, next_state);
                     }
                     Action::SyntaxError => {
@@ -287,7 +288,7 @@ where
                         let error = Error::SyntaxError(token.clone(), expected_tokens);
                         self.report_error(&error);
                         result = Err(error.clone());
-                        if !Self::recover_from_error(error, &mut parse_stack, &mut tokens) {
+                        if !Self::recover_from_error(error, &mut parse_stack, &mut token_stream) {
                             return result;
                         }
                     }
