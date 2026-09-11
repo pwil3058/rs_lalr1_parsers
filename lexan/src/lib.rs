@@ -9,6 +9,7 @@ pub mod lexicon;
 pub mod token;
 pub mod token_stream;
 
+use crate::token::Tokens;
 use lexicon::Lexicon;
 pub use token::{Location, Token};
 pub use token_stream::TokenStream;
@@ -38,6 +39,10 @@ where
                 end_marker,
             )?),
         })
+    }
+
+    pub fn tokens(&self, text: &str, label: &str) -> Tokens<T> {
+        Tokens::new(&self.lexicon, text, label)
     }
 
     pub fn token_stream(&self, text: &str, label: &str) -> TokenStream<T> {
