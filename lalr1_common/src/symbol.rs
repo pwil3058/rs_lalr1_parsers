@@ -373,7 +373,8 @@ impl SymbolTable {
         let special_tokens = [Token::End];
         let special_non_terminals = self.used_non_terminal_specials();
 
-        wtr.write_all(b"\nuse lexan::TokenStream;\n\n")?;
+        wtr.write_all(b"\nuse std::sync::LazyLock;\n\n")?;
+        wtr.write_all(b"\nuse lexan::{lexicon, LexicalAnalyzer, TokenStream};\n\n")?;
         wtr.write_all(b"use lalr1::{Error, OrderedSet};\n\n")?;
         wtr.write_all(b"macro_rules! ordered_set {\n")?;
         wtr.write_all(b"    () => { OrderedSet::new() };\n")?;
@@ -424,6 +425,7 @@ impl SymbolTable {
         wtr.write_all(b"        }\n")?;
         wtr.write_all(b"    }\n")?;
         wtr.write_all(b"}\n\n")?;
+        self.write_lexical_analyzer_code(wtr)?;
         wtr.write_all(b"#[derive(Debug, Clone, Copy, PartialOrd, Ord, PartialEq, Eq)]\n")?;
         wtr.write_all(b"pub enum AANonTerminal {\n")?;
         for non_terminal in special_non_terminals.iter().chain(self.non_terminals()) {
@@ -444,10 +446,13 @@ impl SymbolTable {
         Ok(())
     }
 
-    pub fn write_token_stream_code<W: Write>(&self, wtr: &mut W) -> io::Result<()> {
-        wtr.write_all(b"    fn token_stream(&self, text: &str, label: &str) -> Result<TokenStream<AATerminal>, Error<AATerminal>> {\n")?;
+    pub fn write_lexical_analyzer_code<W: Write>(&self, wtr: &mut W) -> io::Result<()> {
+        wtr.write_all(
+            b"static AALEXAN: LazyLock<Result<LexicalAnalyzer<AATerminal>, lexicon::Error<AATerminal>>> =\n",
+        )?;
+        wtr.write_all(b"    LazyLock::new(|| {\n")?;
         wtr.write_all(b"        use AATerminal::*;\n")?;
-        wtr.write_all(b"        let lexical_analyser = lexan::LexicalAnalyzer::new(\n")?;
+        wtr.write_all(b"        lexan::LexicalAnalyzer::new(\n")?;
         wtr.write_all(b"            &[\n")?;
         for token in self.literal_tokens() {
             wtr.write_all(b"                ")?;
@@ -475,8 +480,45 @@ impl SymbolTable {
         }
         wtr.write_all(b"            ],\n")?;
         wtr.write_fmt(format_args!("            {},\n", Token::End.name()))?;
-        wtr.write_all(b"        )?;\n")?;
-        wtr.write_all(b"        Ok(lexical_analyser.token_stream(text, label))\n")?;
+        wtr.write_all(b"        )\n")?;
+        wtr.write_all(b"    });\n\n")?;
+        Ok(())
+    }
+
+    pub fn write_token_stream_code<W: Write>(&self, wtr: &mut W) -> io::Result<()> {
+        wtr.write_all(b"    fn token_stream(&self, text: &str, label: &str) -> Result<TokenStream<AATerminal>, Error<AATerminal>> {\n")?;
+        // wtr.write_all(b"        use AATerminal::*;\n")?;
+        wtr.write_all(b"        let lexical_analyzer = AALEXAN.as_ref().map_err(|e| e.clone())?;")?;
+        // wtr.write_all(b"        let lexical_analyser = lexan::LexicalAnalyzer::new(\n")?;
+        // wtr.write_all(b"            &[\n")?;
+        // for token in self.literal_tokens() {
+        //     wtr.write_all(b"                ")?;
+        //     wtr.write_fmt(format_args!(
+        //         "({}, r###{}###),\n",
+        //         token.name(),
+        //         token.text()
+        //     ))?;
+        // }
+        // wtr.write_all(b"            ],\n")?;
+        // wtr.write_all(b"            &[\n")?;
+        // for token in self.regex_tokens() {
+        //     wtr.write_all(b"                ")?;
+        //     wtr.write_fmt(format_args!(
+        //         "({}, r###\"{}\"###),\n",
+        //         token.name(),
+        //         token.text()
+        //     ))?;
+        // }
+        // wtr.write_all(b"            ],\n")?;
+        // wtr.write_all(b"            &[\n")?;
+        // for skip_rule in self.skip_rules() {
+        //     wtr.write_all(b"                ")?;
+        //     wtr.write_fmt(format_args!("r###\"{skip_rule}\"###,\n"))?;
+        // }
+        // wtr.write_all(b"            ],\n")?;
+        // wtr.write_fmt(format_args!("            {},\n", Token::End.name()))?;
+        // wtr.write_all(b"        )?;\n")?;
+        wtr.write_all(b"        Ok(lexical_analyzer.token_stream(text, label))\n")?;
         wtr.write_all(b"    }\n\n")?;
         Ok(())
     }
