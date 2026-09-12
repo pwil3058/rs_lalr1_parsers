@@ -220,7 +220,7 @@ where
         _attributes: Vec<A>,
         mut inject: F,
     ) -> A {
-        // NB: required in order to cop with issue #35203
+        // NB: required in order to cope with issue #35203 (trait methods with functions must have a body)
         inject(String::new(), String::new());
         // confirm multiple injects OK.
         inject(String::new(), String::new());
@@ -265,11 +265,11 @@ where
                     self.report_error(&error);
                     result = Err(error.clone());
                     if !Self::recover_from_error(error, &mut parse_stack, &mut token_stream) {
-                        return result;
+                        break;
                     }
                 }
                 Ok(token) => match self.next_action(&parse_stack, &token) {
-                    Action::Accept => return result,
+                    Action::Accept => break,
                     Action::Shift(next_state) => {
                         parse_stack.push_terminal(token, next_state);
                         token_stream.advance();
@@ -289,12 +289,13 @@ where
                         self.report_error(&error);
                         result = Err(error.clone());
                         if !Self::recover_from_error(error, &mut parse_stack, &mut token_stream) {
-                            return result;
+                            break;
                         }
                     }
                 },
             };
         }
+        result
     }
 
     fn parse_text_from_file(&mut self, path: impl AsRef<Path>) -> Result<(), Error<T>> {
