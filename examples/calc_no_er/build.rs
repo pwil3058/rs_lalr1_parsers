@@ -1,10 +1,10 @@
-// Copyright 2021 Peter Williams <pwil3058@gmail.com> <pwil3058@bigpond.net.au>
+// Copyright (c) 2026 Peter Williams <pwil3058@bigpond.net.au> <pwil3058@gmail.com>.
 use std::process::Command;
 
 fn main() {
     println!("cargo:rerun-if-changed=src/calc.alaps");
-    println!("cargo:rerun-if-changed=../../target/debug/alap_gen");
-    match Command::new("../../target/debug/alap_gen")
+    println!("cargo:rerun-if-changed=../../target/debug/alalr1_gen");
+    match Command::new("../../target/debug/alalr1_gen")
         .args(&["-f", "src/calc_no_er.alaps"])
         .status()
     {
