@@ -490,12 +490,12 @@ impl ParserState {
                 string += &format!(
                     "      reduce {} : {}\n",
                     items.0,
-                    &self.0.grammar_items.borrow()[&items.0]
+                    self.0.grammar_items.borrow()[&items.0]
                 );
                 string += &format!(
                     "      reduce {} : {}\n",
                     items.1,
-                    &self.0.grammar_items.borrow()[&items.1]
+                    self.0.grammar_items.borrow()[&items.1]
                 );
             }
         }

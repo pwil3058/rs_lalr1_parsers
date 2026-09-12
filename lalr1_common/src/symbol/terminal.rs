@@ -72,7 +72,7 @@ impl Clone for Token {
 impl fmt::Display for Token {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Token::Literal(token_data) => write!(f, "{}", &token_data.text),
+            Token::Literal(token_data) => write!(f, "{}", token_data.text),
             _ => write!(f, "{}", self.name()),
         }
     }
