@@ -13,7 +13,6 @@ use lalr1_common::{
     symbol::{Associativity, Symbol},
 };
 
-#[allow(unused)]
 #[derive(Debug, Default, Clone)]
 pub enum AttributeData {
     Token(lexan::Token<AATerminal>),
@@ -176,12 +175,8 @@ impl From<lexan::Token<AATerminal>> for AttributeData {
 impl From<lalr1::Error<AATerminal>> for AttributeData {
     fn from(error: lalr1::Error<AATerminal>) -> Self {
         match error {
-            lalr1::Error::LexicalError(error, expected) => {
-                AttributeData::LexicalError(error, expected)
-            }
-            lalr1::Error::SyntaxError(token, expected) => {
-                AttributeData::SyntaxError(token, expected)
-            }
+            Error::LexicalError(error, expected) => AttributeData::LexicalError(error, expected),
+            Error::SyntaxError(token, expected) => AttributeData::SyntaxError(token, expected),
             _ => AttributeData::Default,
         }
     }
