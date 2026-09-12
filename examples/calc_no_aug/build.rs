@@ -1,4 +1,4 @@
-// Copyright 2021 Peter Williams <pwil3058@gmail.com> <pwil3058@bigpond.net.au>
+// Copyright (c) 2026 Peter Williams <pwil3058@bigpond.net.au> <pwil3058@gmail.com>.
 use std::process::Command;
 
 use lalr1_lib::ParserGenerator;
@@ -9,7 +9,7 @@ fn main() {
         Ok(gen) => match gen.write_parser_code_to_file("src/calc_no_aug.rs") {
             Ok(_) => {
                 Command::new("rustfmt")
-                    .args(&["src/calc_no_aug.rs"])
+                    .args(["src/calc_no_aug.rs"])
                     .status()
                     .expect("prebuild: cargo run rustfmt failed");
             }

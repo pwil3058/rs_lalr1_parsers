@@ -3,20 +3,13 @@ use std::collections::HashMap;
 use std::convert::From;
 use std::str::FromStr;
 
-#[allow(unused)]
-#[derive(Debug, Clone)]
+//#[allow(unused)]
+#[derive(Debug, Default, Clone)]
 pub enum AttributeData {
-    Token(lexan::Token<AATerminal>),
-    Error(lalr1::Error<AATerminal>),
     Value(f64),
     Id(String),
+    #[default]
     Default
-}
-
-impl Default for AttributeData {
-    fn default() -> Self {
-        AttributeData::Default
-    }
 }
 
 impl AttributeData {
@@ -38,22 +31,22 @@ impl AttributeData {
 impl From<lexan::Token<AATerminal>> for AttributeData {
     fn from(input: lexan::Token<AATerminal>) -> Self {
         match input.tag() {
-            AATerminal::NUMBER => {
+            AATerminal::Number => {
                 let value = f64::from_str(input.lexeme()).unwrap();
                 AttributeData::Value(value)
             }
-            AATerminal::ID => {
+            AATerminal::Id => {
                 let id = input.lexeme().to_string();
                 AttributeData::Id(id)
             }
-            _ => AttributeData::Token(input.clone()),
+            _ => AttributeData::Default,
         }
     }
 }
 
 impl From<lalr1::Error<AATerminal>> for AttributeData {
-    fn from(error: lalr1::Error<AATerminal>) -> Self {
-        AttributeData::Error(error.clone())
+    fn from(_error: lalr1::Error<AATerminal>) -> Self {
+        AttributeData::Default
     }
 }
 
@@ -76,11 +69,7 @@ impl Calc {
     }
 
     pub fn variable(&self, name: &str) -> Option<f64> {
-        if let Some(value) = self.variables.get(name) {
-            Some(*value)
-        } else {
-            None
-        }
+        self.variables.get(name).copied()
     }
 
     fn report_errors(&self) {
@@ -107,20 +96,20 @@ impl Calc {
 
 %%
 
-%token          EOL     (\n)
-%token          PLUS    "+"
-%token          MINUS   "-"
-%token          TIMES   "*"
-%token          DIVIDE  "/"
-%token          ASSIGN  "="
-%token          NUMBER  ([0-9]+(\.[0-9]+){0,1})
-%token          ID      ([a-zA-Z]+)
-%token          LPR     "("
-%token          RPR     ")"
+%token          Eol     (\n)
+%token          Plus    "+"
+%token          Minus   "-"
+%token          Times   "*"
+%token          Divide  "/"
+%token          Assign  "="
+%token          Number  ([0-9]+(\.[0-9]+){0,1})
+%token          Id      ([a-zA-Z]+)
+%token          Lpr     "("
+%token          Rpr     ")"
 
 %skip   ([\t\r ]+)
 
-%left   EOL
+%left   Eol
 %left   "+" "-"
 %left   "*" "/"
 %right  UMINUS
@@ -133,15 +122,15 @@ Line: SetUp Expr !{
             println!("{}", $2.value());
         }
     !}
-    | SetUp ID "=" Expr !{
+    | SetUp Id "=" Expr !{
         if self.errors > 0 {
             self.report_errors();
         } else {
             self.variables.insert($2.id().clone(), $4.value());
         }
     !}
-    | Line EOL Line
-    | Line EOL
+    | Line Eol Line
+    | Line Eol
     | %error !{self.errors |= SYNTAX_ERROR;!}
     .
 
@@ -159,8 +148,8 @@ Expr: Expr "+" Expr !{$$ = AttributeData::Value($1.value() + $3.value());!}
     !}
     | "(" Expr ")" !{$$ = AttributeData::Value($2.value());!}
     | "-" Expr %prec UMINUS !{$$ = AttributeData::Value(-$2.value());!}
-    | NUMBER !{$$ = AttributeData::Value($1.value());!}
-    | ID !{
+    | Number !{$$ = AttributeData::Value($1.value());!}
+    | Id !{
         match self.variable($1.id()) {
             Some(value) => $$ = AttributeData::Value(value),
             None => {
