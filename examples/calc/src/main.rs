@@ -1,8 +1,10 @@
+// Copyright (c) 2026 Peter Williams <pwil3058@bigpond.net.au> <pwil3058@gmail.com>.
+
 extern crate lazy_static;
 
 mod calc;
 
-use lalr1_plus::Parser;
+use lalr1::Parser;
 
 fn main() {
     let mut calc = calc::Calc::new();
