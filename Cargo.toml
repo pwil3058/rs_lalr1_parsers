@@ -8,7 +8,7 @@ members = [
     "lalr1_common",
     "lalr1_lib",
     "lalr1_gen",
-    "alalr1",
+    #    "alalr1",
     "alalr1_lib",
     "alalr1_gen",
 ]
