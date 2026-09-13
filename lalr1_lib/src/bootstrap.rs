@@ -18,7 +18,7 @@ use lalr1_common::{
 pub enum AttributeData {
     Token(lexan::Token<AATerminal>),
     SyntaxError(lexan::Token<AATerminal>, OrderedSet<AATerminal>),
-    LexicalError(lexan::token::Error<AATerminal>, OrderedSet<AATerminal>),
+    // LexicalError(lexan::token::Error<AATerminal>, OrderedSet<AATerminal>),
     Number(u32),
     Symbol(Symbol),
     SymbolList(Vec<Symbol>),
@@ -38,11 +38,11 @@ impl AttributeData {
         match self {
             AttributeData::Token(token) => token.lexeme(),
             AttributeData::SyntaxError(token, _) => token.lexeme(),
-            AttributeData::LexicalError(error, _) => match error {
-                lexan::token::Error::UnexpectedText(text, _) => text,
-                lexan::token::Error::AmbiguousMatches(_, text, _) => text,
-                lexan::token::Error::AdvancedWhenEmpty(_) => panic!("Wrong attribute variant."),
-            },
+            // AttributeData::LexicalError(error, _) => match error {
+            //     lexan::token::Error::UnexpectedText(text, _) => text,
+            //     lexan::token::Error::AmbiguousMatches(_, text, _) => text,
+            //     lexan::token::Error::AdvancedWhenEmpty(_) => panic!("Wrong attribute variant."),
+            // },
             _ => panic!("{self:?}: Wrong attribute variant."),
         }
     }
@@ -51,11 +51,11 @@ impl AttributeData {
         match self {
             AttributeData::Token(token) => token.location(),
             AttributeData::SyntaxError(token, _) => token.location(),
-            AttributeData::LexicalError(error, _) => match error {
-                lexan::token::Error::UnexpectedText(_, location) => location,
-                lexan::token::Error::AmbiguousMatches(_, _, location) => location,
-                lexan::token::Error::AdvancedWhenEmpty(location) => location,
-            },
+            // AttributeData::LexicalError(error, _) => match error {
+            //     lexan::token::Error::UnexpectedText(_, location) => location,
+            //     lexan::token::Error::AmbiguousMatches(_, _, location) => location,
+            //     lexan::token::Error::AdvancedWhenEmpty(location) => location,
+            // },
             _ => panic!("{self:?}: Wrong attribute variant."),
         }
     }
@@ -64,11 +64,11 @@ impl AttributeData {
         match self {
             AttributeData::Token(token) => (token.lexeme(), token.location()),
             AttributeData::SyntaxError(token, _) => (token.lexeme(), token.location()),
-            AttributeData::LexicalError(error, _) => match error {
-                lexan::token::Error::UnexpectedText(text, location) => (text, location),
-                lexan::token::Error::AmbiguousMatches(_, text, location) => (text, location),
-                lexan::token::Error::AdvancedWhenEmpty(_) => panic!("Wrong attribute variant."),
-            },
+            // AttributeData::LexicalError(error, _) => match error {
+            //     lexan::token::Error::UnexpectedText(text, location) => (text, location),
+            //     lexan::token::Error::AmbiguousMatches(_, text, location) => (text, location),
+            //     lexan::token::Error::AdvancedWhenEmpty(_) => panic!("Wrong attribute variant."),
+            // },
             _ => panic!("{self:?}: Wrong attribute variant."),
         }
     }
