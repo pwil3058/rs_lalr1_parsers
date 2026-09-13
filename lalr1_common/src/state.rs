@@ -705,15 +705,13 @@ impl ParserStates {
     }
 }
 
-impl TryFrom<(&Productions, u32, bool, u32, bool)> for ParserStates {
+impl TryFrom<(&Productions, u32, u32)> for ParserStates {
     type Error = crate::GrammarError;
 
-    fn try_from(arg: (&Productions, u32, bool, u32, bool)) -> Result<Self, Self::Error> {
+    fn try_from(arg: (&Productions, u32, u32)) -> Result<Self, Self::Error> {
         let productions = arg.0;
         let expected_sr_conflicts = arg.1;
-        let ignore_sr_conflicts = arg.2;
-        let expected_rr_conflicts = arg.3;
-        let ignore_rr_conflicts = arg.4;
+        let expected_rr_conflicts = arg.2;
 
         let start_item_key = GrammarItemKey::from(productions.base());
         let mut start_look_ahead_set = TokenSet::new();
@@ -759,13 +757,13 @@ impl TryFrom<(&Productions, u32, bool, u32, bool)> for ParserStates {
             }
         }
         let (sr_conflicts, rr_conflicts) = parser_states.resolve_conflicts();
-        if !ignore_sr_conflicts && sr_conflicts != expected_sr_conflicts {
+        if sr_conflicts != expected_sr_conflicts {
             Err(Self::Error::UnexpectedSRConflicts(
                 sr_conflicts,
                 expected_sr_conflicts,
                 parser_states.describe_sr_conflict_states(),
             ))
-        } else if !ignore_rr_conflicts && rr_conflicts != expected_rr_conflicts {
+        } else if rr_conflicts != expected_rr_conflicts {
             Err(Self::Error::UnexpectedRRConflicts(
                 rr_conflicts,
                 expected_rr_conflicts,

@@ -11,11 +11,8 @@ use lalr1::OrderedSet;
 use lalr1::ParseStack;
 use lexan::TokenStream;
 
-#[allow(unused)]
 #[derive(Debug, Clone)]
 pub enum AttributeData {
-    Token(lexan::Token<AATerminal>),
-    Error(lalr1::ParseError<AATerminal>),
     Value(f64),
     Id(String),
     Default,
@@ -54,14 +51,14 @@ impl From<lexan::Token<AATerminal>> for AttributeData {
                 let id = input.lexeme().to_string();
                 AttributeData::Id(id)
             }
-            _ => AttributeData::Token(input.clone()),
+            _ => AttributeData::Default,
         }
     }
 }
 
-impl From<lalr1::ParseError<AATerminal>> for AttributeData {
-    fn from(error: lalr1::ParseError<AATerminal>) -> Self {
-        AttributeData::Error(error)
+impl From<lalr1::SyntaxError<AATerminal>> for AttributeData {
+    fn from(_error: lalr1::SyntaxError<AATerminal>) -> Self {
+        AttributeData::Default
     }
 }
 

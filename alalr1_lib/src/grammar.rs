@@ -105,13 +105,10 @@ pub struct Grammar {
     parser_states: ParserStates,
 }
 
-impl TryFrom<(Specification, bool, bool)> for Grammar {
+impl TryFrom<Specification> for Grammar {
     type Error = lalr1_common::GrammarError;
 
-    fn try_from(arg: (Specification, bool, bool)) -> Result<Self, Self::Error> {
-        let specification = arg.0;
-        let ignore_sr_conflicts = arg.1;
-        let ignore_rr_conflicts = arg.2;
+    fn try_from(specification: Specification) -> Result<Self, Self::Error> {
         for token in specification.symbol_table.unused_tokens() {
             report_warning(
                 token.defined_at(),
@@ -154,9 +151,7 @@ impl TryFrom<(Specification, bool, bool)> for Grammar {
             let parser_states = ParserStates::try_from((
                 &specification.productions,
                 specification.expected_sr_conflicts,
-                ignore_sr_conflicts,
                 specification.expected_rr_conflicts,
-                ignore_rr_conflicts,
             ))?;
             Ok(Grammar {
                 specification,

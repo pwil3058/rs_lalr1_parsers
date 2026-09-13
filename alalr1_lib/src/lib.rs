@@ -50,7 +50,7 @@ impl ParserGenerator {
         let path = path.as_ref();
         let text = std::fs::read_to_string(path)?;
         let specification = grammar::Specification::new(&text, &path.to_string_lossy())?;
-        let grammar = grammar::Grammar::try_from((specification, false, false))?;
+        let grammar = grammar::Grammar::try_from(specification)?;
         Ok(Self(grammar))
     }
 
@@ -76,7 +76,7 @@ impl TryFrom<&str> for ParserGenerator {
 
     fn try_from(text: &str) -> Result<ParserGenerator> {
         let specification = grammar::Specification::new(text, "text")?;
-        let grammar = grammar::Grammar::try_from((specification, false, false))?;
+        let grammar = grammar::Grammar::try_from(specification)?;
         Ok(Self(grammar))
     }
 }

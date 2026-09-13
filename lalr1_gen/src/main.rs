@@ -33,12 +33,6 @@ struct CLOptions {
     /// Overwrite the output files (if they exist).
     #[structopt(short, long)]
     force: bool,
-    /// Don't fail if shift/reduce conflicts even if differ from expected.
-    #[structopt(long)]
-    ignore_sr_conflicts: bool,
-    /// Don't fail if reduce/reduce conflicts even if differ from expected.
-    #[structopt(long)]
-    ignore_rr_conflicts: bool,
     /// Specify the path of the required output file (if different to the default).
     #[structopt(short, long)]
     output: Option<PathBuf>,
@@ -85,11 +79,7 @@ fn main() {
         }
     };
 
-    let grammar = match grammar::Grammar::try_from((
-        specification,
-        cl_options.ignore_sr_conflicts,
-        cl_options.ignore_rr_conflicts,
-    )) {
+    let grammar = match grammar::Grammar::try_from(specification) {
         Ok(grammar) => grammar,
         Err(err) => match err {
             GrammarError::TooManyErrors(count) => {
