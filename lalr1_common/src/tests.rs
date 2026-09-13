@@ -15,7 +15,7 @@ use lexan::TokenStream;
 #[derive(Debug, Clone)]
 pub enum AttributeData {
     Token(lexan::Token<AATerminal>),
-    Error(lalr1::Error<AATerminal>),
+    Error(lalr1::ParseError<AATerminal>),
     Value(f64),
     Id(String),
     Default,
@@ -59,8 +59,8 @@ impl From<lexan::Token<AATerminal>> for AttributeData {
     }
 }
 
-impl From<lalr1::Error<AATerminal>> for AttributeData {
-    fn from(error: lalr1::Error<AATerminal>) -> Self {
+impl From<lalr1::ParseError<AATerminal>> for AttributeData {
+    fn from(error: lalr1::ParseError<AATerminal>) -> Self {
         AttributeData::Error(error)
     }
 }
@@ -75,7 +75,7 @@ pub struct Calc {
     variables: HashMap<String, f64>,
 }
 
-impl lalr1::ReportError<AATerminal> for Calc {}
+impl lalr1::ReportParseError<AATerminal> for Calc {}
 
 impl Calc {
     pub fn new() -> Self {
@@ -119,8 +119,9 @@ macro_rules! ordered_set {
         };
     }
 
-#[derive(Debug, Clone, Copy, PartialOrd, Ord, PartialEq, Eq)]
+#[derive(Debug, Default, Clone, Copy, PartialOrd, Ord, PartialEq, Eq)]
 pub enum AATerminal {
+    #[default]
     AAEnd,
     ASSIGN,
     DIVIDE,

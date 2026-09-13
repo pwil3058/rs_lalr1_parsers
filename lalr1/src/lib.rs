@@ -71,13 +71,35 @@ impl<T: Display + Ord + Clone> Display for OrderedSet<T> {
 }
 
 #[derive(Debug, Error, Clone)]
-pub enum Error<T: Ord + Clone + Copy + Debug + Display + Eq> {
-    #[error("Lexicon build error: {0}")]
-    LexiconBuildError(#[from] lexan::lexicon::Error<T>),
+pub enum ParseError<T: Ord + Clone + Copy + Debug + Display + Eq> {
     #[error("Lexical error: {0} expected {1}.")]
     LexicalError(lexan::token::Error<T>, OrderedSet<T>),
     #[error("Syntax error: {0} expected {1}.")]
     SyntaxError(lexan::Token<T>, OrderedSet<T>),
+}
+
+#[derive(Debug, Default, Clone)]
+pub struct ParseErrors<T: Ord + Clone + Copy + Debug + Display + Eq>(pub Vec<ParseError<T>>);
+
+impl<T: Ord + Clone + Copy + Debug + Display + Eq> Display for ParseErrors<T> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mut string = String::new();
+        for (index, err) in self.0.iter().enumerate() {
+            if index > 0 {
+                string += ", ";
+            }
+            string += &err.to_string();
+        }
+        write!(f, "{}", string)
+    }
+}
+
+#[derive(Debug, Error, Clone)]
+pub enum Error<T: Ord + Clone + Copy + Debug + Display + Eq> {
+    #[error("Lexicon build error: {0}")]
+    LexiconBuildError(#[from] lexan::lexicon::Error<T>),
+    #[error("Error parsing text: {0}.")]
+    ParseError(#[from] ParseErrors<T>),
     #[error("I/O error: {0}.")]
     IOError(std::io::ErrorKind),
 }
@@ -88,10 +110,10 @@ impl<T: Ord + Clone + Copy + Debug + Display + Eq> From<std::io::Error> for Erro
     }
 }
 
-pub trait ReportError<T: Ord + Copy + Debug + Display + Eq> {
-    fn report_error(&mut self, error: &Error<T>) {
+pub trait ReportParseError<T: Ord + Copy + Debug + Display + Eq> {
+    fn report_parse_error(&mut self, error: &ParseError<T>) {
         let message = error.to_string();
-        if let Error::LexicalError(lexan::token::Error::AmbiguousMatches(_, _, _), _) = error {
+        if let ParseError::LexicalError(lexan::token::Error::AmbiguousMatches(_, _, _), _) = error {
             panic!("Fatal Error: {message}!!");
         };
         std::io::stderr()
@@ -112,7 +134,7 @@ pub enum Symbol<T, N> {
 pub struct ParseStack<T, N, A>
 where
     T: Copy + Ord + Debug + Display,
-    A: From<lexan::Token<T>> + From<Error<T>>,
+    A: From<lexan::Token<T>> + From<ParseError<T>>,
 {
     states: Vec<(Symbol<T, N>, u32)>,
     attributes: Vec<A>,
@@ -122,7 +144,7 @@ where
 impl<T, N, A> ParseStack<T, N, A>
 where
     T: Copy + Ord + Debug + Display,
-    A: From<lexan::Token<T>> + From<Error<T>>,
+    A: From<lexan::Token<T>> + From<ParseError<T>>,
 {
     fn new() -> Self {
         Self {
@@ -148,7 +170,7 @@ where
         self.attributes.split_off(len - n)
     }
 
-    fn push_error(&mut self, state: u32, error: Error<T>) {
+    fn push_error(&mut self, state: u32, error: ParseError<T>) {
         self.states.push((Symbol::Error, state));
         self.attributes.push(A::from(error))
     }
@@ -203,12 +225,12 @@ pub enum Action {
     SyntaxError,
 }
 
-pub trait Parser<T: Ord + Copy + Debug, N, A>
+pub trait Parser<T, N, A>
 where
-    T: Ord + Copy + Debug + Display,
+    T: Ord + Copy + Debug + Default + Display,
     N: Ord + Display + Debug,
-    A: Default + From<lexan::Token<T>> + From<Error<T>>,
-    Self: ReportError<T>,
+    A: Default + From<lexan::Token<T>> + From<ParseError<T>>,
+    Self: ReportParseError<T>,
 {
     fn token_stream(&self, text: &str, label: &str) -> Result<TokenStream<T>, Error<T>>;
     fn next_action(&self, parse_stack: &ParseStack<T, N, A>, o_token: &lexan::Token<T>) -> Action;
@@ -236,7 +258,7 @@ where
     fn look_ahead_set(state: u32) -> OrderedSet<T>;
 
     fn recover_from_error(
-        error: Error<T>,
+        error: ParseError<T>,
         parse_stack: &mut ParseStack<T, N, A>,
         tokens: &mut TokenStream<T>,
     ) -> bool {
@@ -255,15 +277,15 @@ where
     fn parse_text(&mut self, text: &str, label: &str) -> Result<(), Error<T>> {
         let mut token_stream = self.token_stream(text, label)?;
         let mut parse_stack = ParseStack::<T, N, A>::new();
-        let mut result: Result<(), Error<T>> = Ok(());
+        let mut parse_errors = ParseErrors::<T>::default();
 
         loop {
             match token_stream.front() {
                 Err(err) => {
                     let expected_tokens = Self::look_ahead_set(parse_stack.current_state());
-                    let error = Error::LexicalError(err, expected_tokens);
-                    self.report_error(&error);
-                    result = Err(error.clone());
+                    let error = ParseError::LexicalError(err.clone(), expected_tokens);
+                    self.report_parse_error(&error);
+                    parse_errors.0.push(error.clone());
                     if !Self::recover_from_error(error, &mut parse_stack, &mut token_stream) {
                         break;
                     }
@@ -285,9 +307,9 @@ where
                     }
                     Action::SyntaxError => {
                         let expected_tokens = Self::look_ahead_set(parse_stack.current_state());
-                        let error = Error::SyntaxError(token.clone(), expected_tokens);
-                        self.report_error(&error);
-                        result = Err(error.clone());
+                        let error = ParseError::SyntaxError(token.clone(), expected_tokens);
+                        self.report_parse_error(&error);
+                        parse_errors.0.push(error.clone());
                         if !Self::recover_from_error(error, &mut parse_stack, &mut token_stream) {
                             break;
                         }
@@ -295,7 +317,11 @@ where
                 },
             };
         }
-        result
+        if parse_errors.0.is_empty() {
+            Ok(())
+        } else {
+            Err(Error::ParseError(parse_errors))
+        }
     }
 
     fn parse_text_from_file(&mut self, path: impl AsRef<Path>) -> Result<(), Error<T>> {

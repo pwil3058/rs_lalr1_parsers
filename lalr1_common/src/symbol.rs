@@ -389,8 +389,8 @@ impl SymbolTable {
         wtr.write_all(b"        ordered_set![ $( $x ), * ]\n")?;
         wtr.write_all(b"    };\n")?;
         wtr.write_all(b"}\n\n")?;
-        wtr.write_all(b"#[derive(Debug, Clone, Copy, PartialOrd, Ord, PartialEq, Eq)]\n")?;
-        wtr.write_all(b"pub enum AATerminal {\n")?;
+        wtr.write_all(b"#[derive(Debug, Default, Clone, Copy, PartialOrd, Ord, PartialEq, Eq)]\n")?;
+        wtr.write_all(b"pub enum AATerminal {\n    #[default]\n")?;
         for token in special_tokens.iter().chain(self.tokens()) {
             wtr.write_fmt(format_args!("    {},\n", token.name()))?;
         }

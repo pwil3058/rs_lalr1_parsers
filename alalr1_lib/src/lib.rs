@@ -20,13 +20,27 @@ use bootstrap::AATerminal;
 
 #[derive(Debug, Error)]
 pub enum Error {
-    #[error("Specification error {0}")]
-    SpecificationError(#[from] lalr1::Error<AATerminal>),
+    #[error("Lexicon build error: {0}")]
+    LexiconBuildError(#[from] lexan::lexicon::Error<AATerminal>),
+    #[error("Parse error {0}")]
+    ParseError(lalr1::ParseErrors<AATerminal>),
     #[error("Grammar error {0}")]
     GrammarError(#[from] lalr1_common::GrammarError),
     #[error("I/O error {0}")]
     IoError(#[from] io::Error),
 }
+
+impl From<lalr1::Error<AATerminal>> for Error {
+    fn from(err: lalr1::Error<AATerminal>) -> Self {
+        use lalr1::Error::*;
+        match err {
+            LexiconBuildError(e) => Error::LexiconBuildError(e),
+            ParseError(e) => Error::ParseError(e),
+            IOError(e) => Error::IoError(e.into()),
+        }
+    }
+}
+
 pub type Result<T> = std::result::Result<T, Error>;
 
 pub struct ParserGenerator(grammar::Grammar);

@@ -179,16 +179,15 @@ impl From<lexan::Token<AATerminal>> for AttributeData {
     }
 }
 
-impl From<lalr1::Error<AATerminal>> for AttributeData {
-    fn from(error: lalr1::Error<AATerminal>) -> Self {
+impl From<lalr1::ParseError<AATerminal>> for AttributeData {
+    fn from(error: lalr1::ParseError<AATerminal>) -> Self {
         match error {
-            lalr1::Error::LexicalError(error, expected) => {
+            lalr1::ParseError::LexicalError(error, expected) => {
                 AttributeData::LexicalError(error, expected)
             }
-            lalr1::Error::SyntaxError(token, expected) => {
+            lalr1::ParseError::SyntaxError(token, expected) => {
                 AttributeData::SyntaxError(token, expected)
             }
-            _ => AttributeData::Default,
         }
     }
 }
@@ -213,8 +212,9 @@ macro_rules! ordered_set {
     };
 }
 
-#[derive(Debug, Clone, Copy, PartialOrd, Ord, PartialEq, Eq)]
+#[derive(Debug, Default, Clone, Copy, PartialOrd, Ord, PartialEq, Eq)]
 pub enum AATerminal {
+    #[default]
     AAEnd,
     ActionCode,
     Attr,

@@ -37,7 +37,7 @@ pub struct Specification {
     pub expected_sr_conflicts: u32,
 }
 
-impl lalr1::ReportError<AATerminal> for Specification {}
+impl lalr1::ReportParseError<AATerminal> for Specification {}
 
 impl Specification {
     pub fn new(text: &str, label: &str) -> Result<Self, lalr1::Error<AATerminal>> {

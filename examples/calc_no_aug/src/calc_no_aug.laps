@@ -3,7 +3,6 @@ use std::collections::HashMap;
 use std::convert::From;
 use std::str::FromStr;
 
-//#[allow(unused)]
 #[derive(Debug, Default, Clone)]
 pub enum AttributeData {
     Value(f64),
@@ -44,8 +43,8 @@ impl From<lexan::Token<AATerminal>> for AttributeData {
     }
 }
 
-impl From<lalr1::Error<AATerminal>> for AttributeData {
-    fn from(_error: lalr1::Error<AATerminal>) -> Self {
+impl From<lalr1::ParseError<AATerminal>> for AttributeData {
+    fn from(_error: lalr1::ParseError<AATerminal>) -> Self {
         AttributeData::Default
     }
 }
@@ -61,7 +60,7 @@ pub struct Calc {
     variables: HashMap<String, f64>,
 }
 
-impl lalr1::ReportError<AATerminal> for Calc {}
+impl lalr1::ReportParseError<AATerminal> for Calc {}
 
 impl Calc {
     pub fn new() -> Self {

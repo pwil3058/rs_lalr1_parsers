@@ -75,7 +75,7 @@ pub struct Calc {
     variables: HashMap<String, f64>,
 }
 
-impl crate::ReportError<AATerminal> for Calc {}
+impl crate::ReportParseError<AATerminal> for Calc {}
 
 impl Calc {
     pub fn new() -> Self {
