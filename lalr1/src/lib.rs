@@ -71,11 +71,35 @@ impl<T: Display + Ord + Clone> Display for OrderedSet<T> {
 }
 
 #[derive(Debug, Error, Clone)]
+pub struct SyntaxError<T: Ord + Clone + Copy + Debug + Display + Eq>(
+    pub lexan::Token<T>,
+    pub OrderedSet<T>,
+);
+
+impl<T: Ord + Clone + Copy + Debug + Display + Eq> Display for SyntaxError<T> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}: expected {}", self.0, self.1)
+    }
+}
+
+#[derive(Debug, Error, Clone)]
 pub enum ParseError<T: Ord + Clone + Copy + Debug + Display + Eq> {
     #[error("Lexical error: {0} expected {1}.")]
     LexicalError(lexan::token::Error<T>, OrderedSet<T>),
-    #[error("Syntax error: {0} expected {1}.")]
-    SyntaxError(lexan::Token<T>, OrderedSet<T>),
+    #[error("Syntax error: {0}")]
+    SyntaxError(#[from] SyntaxError<T>),
+}
+
+pub trait ReportParseError<T: Ord + Copy + Debug + Display + Eq> {
+    fn report_parse_error(&mut self, error: &ParseError<T>) {
+        let message = error.to_string();
+        if let ParseError::LexicalError(lexan::token::Error::AmbiguousMatches(_, _, _), _) = error {
+            panic!("Fatal Error: {message}!!");
+        };
+        std::io::stderr()
+            .write_all(message.as_bytes())
+            .expect("Nowhere to go here!!!");
+    }
 }
 
 #[derive(Debug, Default, Clone)]
@@ -110,18 +134,6 @@ impl<T: Ord + Clone + Copy + Debug + Display + Eq> From<std::io::Error> for Erro
     }
 }
 
-pub trait ReportParseError<T: Ord + Copy + Debug + Display + Eq> {
-    fn report_parse_error(&mut self, error: &ParseError<T>) {
-        let message = error.to_string();
-        if let ParseError::LexicalError(lexan::token::Error::AmbiguousMatches(_, _, _), _) = error {
-            panic!("Fatal Error: {message}!!");
-        };
-        std::io::stderr()
-            .write_all(message.as_bytes())
-            .expect("Nowhere to go here!!!");
-    }
-}
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Symbol<T, N> {
     Terminal(T),
@@ -134,7 +146,7 @@ pub enum Symbol<T, N> {
 pub struct ParseStack<T, N, A>
 where
     T: Copy + Ord + Debug + Display,
-    A: From<lexan::Token<T>> + From<ParseError<T>>,
+    A: From<lexan::Token<T>> + From<SyntaxError<T>>,
 {
     states: Vec<(Symbol<T, N>, u32)>,
     attributes: Vec<A>,
@@ -144,7 +156,7 @@ where
 impl<T, N, A> ParseStack<T, N, A>
 where
     T: Copy + Ord + Debug + Display,
-    A: From<lexan::Token<T>> + From<ParseError<T>>,
+    A: From<lexan::Token<T>> + From<SyntaxError<T>>,
 {
     fn new() -> Self {
         Self {
@@ -170,7 +182,7 @@ where
         self.attributes.split_off(len - n)
     }
 
-    fn push_error(&mut self, state: u32, error: ParseError<T>) {
+    fn push_error(&mut self, state: u32, error: SyntaxError<T>) {
         self.states.push((Symbol::Error, state));
         self.attributes.push(A::from(error))
     }
@@ -229,7 +241,7 @@ pub trait Parser<T, N, A>
 where
     T: Ord + Copy + Debug + Default + Display,
     N: Ord + Display + Debug,
-    A: Default + From<lexan::Token<T>> + From<ParseError<T>>,
+    A: Default + From<lexan::Token<T>> + From<SyntaxError<T>>,
     Self: ReportParseError<T>,
 {
     fn token_stream(&self, text: &str, label: &str) -> Result<TokenStream<T>, Error<T>>;
@@ -258,7 +270,7 @@ where
     fn look_ahead_set(state: u32) -> OrderedSet<T>;
 
     fn recover_from_error(
-        error: ParseError<T>,
+        error: SyntaxError<T>,
         parse_stack: &mut ParseStack<T, N, A>,
         tokens: &mut TokenStream<T>,
     ) -> bool {
@@ -286,9 +298,7 @@ where
                     let error = ParseError::LexicalError(err.clone(), expected_tokens);
                     self.report_parse_error(&error);
                     parse_errors.0.push(error.clone());
-                    if !Self::recover_from_error(error, &mut parse_stack, &mut token_stream) {
-                        break;
-                    }
+                    token_stream.advance();
                 }
                 Ok(token) => match self.next_action(&parse_stack, &token) {
                     Action::Accept => break,
@@ -307,9 +317,10 @@ where
                     }
                     Action::SyntaxError => {
                         let expected_tokens = Self::look_ahead_set(parse_stack.current_state());
-                        let error = ParseError::SyntaxError(token.clone(), expected_tokens);
-                        self.report_parse_error(&error);
-                        parse_errors.0.push(error.clone());
+                        let error = SyntaxError(token.clone(), expected_tokens);
+                        let parse_error: ParseError<T> = error.clone().into();
+                        self.report_parse_error(&parse_error);
+                        parse_errors.0.push(parse_error);
                         if !Self::recover_from_error(error, &mut parse_stack, &mut token_stream) {
                             break;
                         }

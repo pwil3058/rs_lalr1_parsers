@@ -6,7 +6,7 @@ use lalr1_lib::ParserGenerator;
 fn main() {
     println!("cargo:rerun-if-changed=src/calc_no_aug.laps");
     match ParserGenerator::new("src/calc_no_aug.laps") {
-        Ok(gen) => match gen.write_parser_code_to_file("src/calc_no_aug.rs") {
+        Ok(generator) => match generator.write_parser_code_to_file("src/calc_no_aug.rs") {
             Ok(_) => {
                 Command::new("rustfmt")
                     .args(["src/calc_no_aug.rs"])

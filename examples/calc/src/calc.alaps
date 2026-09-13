@@ -43,8 +43,8 @@ impl From<lexan::Token<AATerminal>> for AttributeData {
     }
 }
 
-impl From<lalr1::ParseError<AATerminal>> for AttributeData {
-    fn from(_error: lalr1::ParseError<AATerminal>) -> Self {
+impl From<lalr1::SyntaxError<AATerminal>> for AttributeData {
+    fn from(_error: lalr1::SyntaxError<AATerminal>) -> Self {
         AttributeData::Default
     }
 }
