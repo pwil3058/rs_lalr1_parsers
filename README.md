@@ -1,6 +1,6 @@
 # LALR (1) Parser Generation Tools
 
-This workspace contains five crates:
+This workspace contains six crates:
 
 1. *lalr1* defines a public trait `ParserGenerator` which is (when implemented) is an **LALR (1)** parser,
 2. *lexan* is a library containing a configurable lexical analyser `LexicalAnalyzer<T>` where `T` is a lexical token,
